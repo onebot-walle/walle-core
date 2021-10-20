@@ -9,7 +9,7 @@ pub type RequestEvent = Event<Request>;
 /// *事件*是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
 ///
 /// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
-#[derive(Serialize, Deserialize)]
+#[derive(Debug ,Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Event<T> {
     pub id: String,
     #[serde(rename = "impl")]
@@ -84,7 +84,7 @@ impl Events {
 }
 
 /// Event Content 除了 OneBot 规定的 Event 通用 Field 均为 Content
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 pub enum EventContent {
     #[serde(rename = "meta")]
@@ -98,7 +98,7 @@ pub enum EventContent {
 }
 
 /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 pub enum Meta {
     #[serde(rename = "heartbeat")]
@@ -109,7 +109,7 @@ pub enum Meta {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq)]
 pub struct Message {
     #[serde(rename = "detail_type")]
     pub ty: String, // private or group
@@ -118,10 +118,10 @@ pub struct Message {
     pub alt_message: String,
     pub user_id: String,
     pub group_id: Option<String>, // private MessageEvent will be None
-    sub_type: String, // just for Deserialize
+    pub sub_type: String, // just for Deserialize
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 pub enum Notice { 
     #[serde(rename = "group_member_increase")]
@@ -192,7 +192,7 @@ pub enum Notice {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone ,Serialize, Deserialize,PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 pub enum Request {
     Empty {

@@ -9,6 +9,7 @@ pub struct Builder {
 
 impl Builder {
     /// new EventBuilder
+    #[allow(dead_code)]
     pub fn new(r#impl: &str, platform: &str, self_id: &str) -> Self {
         Builder {
             r#impl: r#impl.to_owned(),

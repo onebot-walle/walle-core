@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 pub type Message = Vec<MessageSegment>;
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", content = "data")]
 pub enum MessageSegment {
     #[serde(rename = "text")]
     Text {
