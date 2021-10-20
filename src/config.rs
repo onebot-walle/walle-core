@@ -11,30 +11,30 @@ pub struct Config {
 
 #[derive(Debug, Deserialize)]
 pub struct Http {
-    host: std::net::IpAddr,
-    port: u16,
-    access_token: String,
-    event_enable: bool,
-    event_buffer_size: usize,
+    pub host: std::net::IpAddr,
+    pub port: u16,
+    pub access_token: Option<String>,
+    pub event_enable: bool,
+    pub event_buffer_size: usize,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct HttpWebhook {
-    url: String,
-    access_token: String,
-    timeout: u32,
+    pub url: String,
+    pub access_token: Option<String>,
+    pub timeout: u64,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct WebSocket {
-    host: std::net::IpAddr,
-    port: u16,
-    access_token: String,
+    pub host: std::net::IpAddr,
+    pub port: u16,
+    pub access_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct WebSocketRev {
-    url: String,
-    access_token: String,
-    reconnect_interval: u32,
+    pub url: String,
+    pub access_token: Option<String>,
+    pub reconnect_interval: u32,
 }
