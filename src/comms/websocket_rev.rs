@@ -1,5 +1,5 @@
 use tokio::task::JoinHandle;
-use hyper::Request;
+use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use crate::config::WebSocketRev;
 

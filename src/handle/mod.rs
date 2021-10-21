@@ -16,7 +16,7 @@ impl ActionHandler for DefaultHandler {
         };
 
         match action {
-            Action::GetVersion => Some(ActionResp::success(ActionRespContent::Version(
+            Action::GetVersion(_) => Some(ActionResp::success(ActionRespContent::Version(
                 get_version().await,
             ))),
             _ => None,
@@ -27,4 +27,3 @@ impl ActionHandler for DefaultHandler {
 async fn get_version() -> crate::action_resp::VersionContent {
     crate::action_resp::VersionContent::default()
 }
-

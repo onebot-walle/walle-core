@@ -1,12 +1,10 @@
-use futures_util::{SinkExt, StreamExt};
-use tokio::{net::TcpStream, task::JoinHandle};
-use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
-
+#[cfg(any(feature = "http", feature = "websocket"))]
 pub enum ContentTpye {
     Json,
     MsgPack,
 }
 
+#[cfg(any(feature = "http", feature = "websocket"))]
 impl ContentTpye {
     pub fn new(s: &str) -> Option<Self> {
         match s {
@@ -17,11 +15,18 @@ impl ContentTpye {
     }
 }
 
+#[cfg(feature = "websocket")]
+use tokio::{net::TcpStream, task::JoinHandle};
+
+#[cfg(feature = "websocket")]
 pub async fn web_socket_loop(
-    ws_stream: WebSocketStream<TcpStream>,
+    ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>,
     mut listener: crate::EventListner,
     sender: crate::ActionSender,
 ) -> (JoinHandle<()>, JoinHandle<()>) {
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::tungstenite::Message;
+
     let (mut sink, mut stream) = ws_stream.split();
     let (resp_sender, mut resp_receiver) = tokio::sync::mpsc::channel(1024);
     let sink_join = tokio::spawn(async move {
@@ -30,8 +35,8 @@ pub async fn web_socket_loop(
                 event = listener.recv() => {
                     if let Ok(event) = event {
                         serde_json::to_string(&event).unwrap()
-                    } 
-                    else { panic!() } 
+                    }
+                    else { panic!() }
                 }
                 resp = resp_receiver.recv() => { serde_json::to_string(&resp).unwrap() }
             };

@@ -26,11 +26,14 @@ pub enum ARSS {
     None,
 }
 
+#[cfg(any(feature = "http", feature = "websocket"))]
 type ActionSender = tokio::sync::mpsc::Sender<(Action, ARSS)>;
 type EventBroadcaster = tokio::sync::broadcast::Sender<Events>;
+#[cfg(any(feature = "http", feature = "websocket"))]
 type EventListner = tokio::sync::broadcast::Receiver<Events>;
 
 /// OneBot 实例
+#[allow(unused)]
 pub struct OneBot {
     r#impl: String,
     platform: String,
@@ -62,6 +65,7 @@ impl OneBot {
         }
     }
 
+    #[cfg(any(feature = "http", feature = "websocket"))]
     pub async fn run(mut self) {
         let (action_sender, mut action_receiver) = tokio::sync::mpsc::channel(1024);
         #[cfg(feature = "http")]

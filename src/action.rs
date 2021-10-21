@@ -3,19 +3,28 @@ use serde::{Deserialize, Serialize};
 // trait ActionHandleFn<T> = FnOnce(Action) -> crate::action_resp::ActionResp<T>;
 // trait_alias unstable
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct EmptyContent {}
+
+impl Default for EmptyContent {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 /// *动作请求*是应用端为了主动向 OneBot 实现请求服务而发送的数据。
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "action", content = "params")]
 pub enum Action {
     // meta action
     #[serde(rename = "get_latest_events")]
     GetLatestEvents(GetLatestEventsContent),
     #[serde(rename = "get_supported_actions")]
-    GetSupportedActions,
+    GetSupportedActions(EmptyContent),
     #[serde(rename = "get_status")]
-    GetStatus,
+    GetStatus(EmptyContent),
     #[serde(rename = "get_version")]
-    GetVersion,
+    GetVersion(EmptyContent),
 
     // message action
     #[serde(rename = "send_message")]
@@ -25,17 +34,17 @@ pub enum Action {
 
     // user action
     #[serde(rename = "get_self_info")]
-    GetSelfInfo,
+    GetSelfInfo(EmptyContent),
     #[serde(rename = "get_user_info")]
     GetUserInfo(UserIdContent),
     #[serde(rename = "get_friend_list")]
-    GetFriendList,
+    GetFriendList(EmptyContent),
 
     // group action
     #[serde(rename = "get_group_info")]
     GetGroupInfo(GroupIdContent),
     #[serde(rename = "get_group_list")]
-    GetGroupList,
+    GetGroupList(EmptyContent),
     #[serde(rename = "get_group_member_info")]
     GetGroupMemberInfo(IdsContent),
     #[serde(rename = "get_group_member_list")]
@@ -66,13 +75,13 @@ pub enum Action {
     GetFileFragmented(GetFileFragmented),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetLatestEventsContent {
     pub limit: i64,
     pub timeout: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageContent {
     pub detail_type: String,
     pub group_id: Option<String>,
@@ -80,51 +89,51 @@ pub struct SendMessageContent {
     pub message: crate::Message,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DeleteMessageContent {
     pub message_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserIdContent {
     pub user_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupIdContent {
     pub group_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IdsContent {
     pub group_id: String,
     pub user_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SetGroupNameContent {
     pub group_id: String,
     pub group_name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UploadFileContent {
     pub r#type: String,
     pub name: String,
     pub url: Option<String>,
-    pub headers:Option<std::collections::HashMap<String, String>>,
+    pub headers: Option<std::collections::HashMap<String, String>>,
     pub path: Option<String>,
     pub data: Option<Vec<u8>>,
     pub sha256: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetFileContent {
     pub file_id: String,
     pub r#type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "stage")]
 pub enum UploadFileFragmented {
     #[serde(rename = "prepare")]
@@ -144,7 +153,7 @@ pub enum UploadFileFragmented {
     Finish { file_id: String },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "stage")]
 pub enum GetFileFragmented {
     #[serde(rename = "prepare")]
@@ -158,7 +167,7 @@ pub enum GetFileFragmented {
 }
 
 #[cfg(feature = "echo")]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct EchoAction {
     #[serde(flatten)]
     pub action: Action,

@@ -5,7 +5,7 @@ use crate::Events;
 pub type ActionResps = ActionResp<ActionRespContent>;
 
 /// *动作响应*是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionResp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
     pub status: String,
@@ -17,7 +17,8 @@ pub struct ActionResp<T> {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
 pub enum ActionRespContent {
     LatestEvents(Vec<Events>),
     SupportActions(Vec<String>),
@@ -30,7 +31,7 @@ pub enum ActionRespContent {
     FileId(String),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
-    Empty(()), // todo
+    Empty(crate::action::EmptyContent), // todo
 }
 
 impl<T> ActionResp<T> {
@@ -90,7 +91,7 @@ impl ActionResp<serde_json::Value> {
 }
 
 #[cfg(feature = "echo")]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct EchoActionResp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
     pub status: String,
@@ -140,7 +141,7 @@ pub struct StatusContent {
     pub online: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VersionContent {
     pub r#impl: String,
     pub platform: String,
@@ -174,7 +175,7 @@ pub type UserInfo = ActionResp<UserInfoContent>;
 /// Resp for get_friend_list
 pub type FriendList = ActionResp<Vec<UserInfoContent>>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfoContent {
     pub user_id: String,
     pub nickname: String,
@@ -186,7 +187,7 @@ pub type GroupInfo = ActionResp<GroupInfoContent>;
 /// Resp for get_group_list
 pub type GroupList = ActionResp<Vec<GroupInfoContent>>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupInfoContent {
     pub group_id: String,
     pub group_name: String,
@@ -200,7 +201,7 @@ pub type PrepareFileFragmented = ActionResp<FileFragmentedHead>;
 /// Resp for upload_file_fragmented
 pub type TransferFileFragmented = ActionResp<Vec<u8>>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileContent {
     pub name: String,
     pub url: Option<String>,
@@ -210,7 +211,7 @@ pub struct FileContent {
     pub sha256: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileFragmentedHead {
     pub name: String,
     pub total_size: i64,
