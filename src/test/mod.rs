@@ -228,7 +228,6 @@ fn action_resp() {
         status_data.1
     );
     let json_str = serde_json::to_string(&status_data.1).unwrap();
-    println!("{}", json_str);
     assert_eq!(
         serde_json::from_str::<ActionResp<ActionRespContent>>(&json_str).unwrap(),
         status_data.2

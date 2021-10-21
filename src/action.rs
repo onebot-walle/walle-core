@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 // trait ActionHandleFn<T> = FnOnce(Action) -> crate::action_resp::ActionResp<T>;
 // trait_alias unstable
 
+/// 空结构体，用于对应 Json 中的空 Map
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct EmptyContent {}
 
@@ -12,7 +13,7 @@ impl Default for EmptyContent {
     }
 }
 
-/// *动作请求*是应用端为了主动向 OneBot 实现请求服务而发送的数据。
+/// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "action", content = "params")]
 pub enum Action {

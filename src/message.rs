@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+/// 在事件和动作参数中用于表示聊天消息的数据类型 
 pub type Message = Vec<MessageSegment>;
 
+/// 消息段
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "data")]
 pub enum MessageSegment {

@@ -49,7 +49,10 @@ pub async fn web_socket_loop(
                 if let Ok(message) = data {
                     match serde_json::from_str(&message.to_string()) {
                         Ok(action) => {
-                            sender.send((action, crate::ARSS::Mpsc(resp_sender.clone())));
+                            sender
+                                .send((action, crate::ARSS::Mpsc(resp_sender.clone())))
+                                .await
+                                .unwrap();
                         }
                         Err(_) => {}
                     }

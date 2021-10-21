@@ -12,12 +12,18 @@ pub use action::*;
 pub use action_resp::*;
 pub use config::Config;
 pub use event::{Events, MessageEvent, MetaEvent, NoticeEvent, RequestEvent};
+pub use handle::ActionHandler;
 pub use message::{Message, MessageBuild, MessageSegment};
 
 pub type EventSender = tokio::sync::mpsc::Sender<Events>;
 type EventReceiver = tokio::sync::mpsc::Receiver<Events>;
-type ActionRespSender = tokio::sync::oneshot::Sender<Option<ActionResps>>;
-type ActionRespMpscSender = tokio::sync::mpsc::Sender<Option<ActionResps>>;
+type ActionRespSender = tokio::sync::oneshot::Sender<ActionResps>;
+type ActionRespMpscSender = tokio::sync::mpsc::Sender<ActionResps>;
+#[cfg(any(feature = "http", feature = "websocket"))]
+type ActionSender = tokio::sync::mpsc::Sender<(Action, ARSS)>;
+type EventBroadcaster = tokio::sync::broadcast::Sender<Events>;
+#[cfg(any(feature = "http", feature = "websocket"))]
+type EventListner = tokio::sync::broadcast::Receiver<Events>;
 
 #[derive(Debug)]
 pub enum ARSS {
@@ -26,13 +32,7 @@ pub enum ARSS {
     None,
 }
 
-#[cfg(any(feature = "http", feature = "websocket"))]
-type ActionSender = tokio::sync::mpsc::Sender<(Action, ARSS)>;
-type EventBroadcaster = tokio::sync::broadcast::Sender<Events>;
-#[cfg(any(feature = "http", feature = "websocket"))]
-type EventListner = tokio::sync::broadcast::Receiver<Events>;
-
-/// OneBot 实例
+/// OneBot Implementation 实例
 #[allow(unused)]
 pub struct OneBot {
     r#impl: String,
@@ -65,35 +65,60 @@ impl OneBot {
         }
     }
 
+    /// 运行实例，该方法会永久堵塞运行，请 spawn 使用
     #[cfg(any(feature = "http", feature = "websocket"))]
     pub async fn run(mut self) {
+        use colored::*;
+        use tracing::{info, trace};
+
+        info!("{} is booting", "AbraOnebot".red());
         let (action_sender, mut action_receiver) = tokio::sync::mpsc::channel(1024);
+
         #[cfg(feature = "http")]
-        for http in &self.config.http {
-            crate::comms::http_run(http, action_sender.clone());
+        if !self.config.http.is_empty() {
+            info!("Running HTTP");
+            for http in &self.config.http {
+                crate::comms::http_run(http, action_sender.clone());
+            }
         }
+
         #[cfg(feature = "http")]
-        {
+        if !self.config.http_webhook.is_empty() {
+            info!("Running HTTP Webhook");
             let clients = self.build_webhook_clients(action_sender.clone());
             for client in clients {
                 client.run().await;
             }
         }
+
         #[cfg(feature = "websocket")]
-        for websocket in &self.config.websocket {
-            crate::comms::websocket_run(websocket, self.broadcaster.clone(), action_sender.clone())
+        if !self.config.websocket.is_empty() {
+            info!("Running WebSocket");
+            for websocket in &self.config.websocket {
+                crate::comms::websocket_run(
+                    websocket,
+                    self.broadcaster.clone(),
+                    action_sender.clone(),
+                )
                 .await;
+            }
         }
+
         #[cfg(feature = "websocket")]
-        for websocket_rev in &self.config.websocket_rev {
-            crate::comms::websocket_rev_run(
-                websocket_rev,
-                self.broadcaster.clone(),
-                action_sender.clone(),
-            )
-            .await;
+        if !self.config.websocket_rev.is_empty() {
+            info!("Running WebSocket Reverse");
+            for websocket_rev in &self.config.websocket_rev {
+                crate::comms::websocket_rev_run(
+                    websocket_rev,
+                    self.broadcaster.clone(),
+                    action_sender.clone(),
+                )
+                .await;
+            }
         }
+
         loop {
+            trace!("Loopping to handle action and event forever");
             tokio::select! {
                 option_action = action_receiver.recv() => {
                     if let Some((action, sender)) = option_action {

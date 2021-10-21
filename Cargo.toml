@@ -17,7 +17,8 @@ serde_json = "1.0"
 rmp-serde = "0.15"
 async-trait = "0.1"
 tracing = "0.1"
+colored = "2"
 hyper = { version = "0.14", features = ["full"], optional = true }
 tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
 tokio-tungstenite = { version = "0.15", optional = true }
-futures-util = { version = "0.3",features = ["sink"], optional = true }
+futures-util = { version = "0.3", features = ["sink"], optional = true }

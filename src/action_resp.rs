@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Events;
+use crate::{EmptyContent, Events};
 
 pub type ActionResps = ActionResp<ActionRespContent>;
 
-/// *动作响应*是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
+/// **动作响应**是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionResp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
@@ -70,15 +70,19 @@ macro_rules! empty_err_resp {
     };
 }
 
-impl ActionResp<serde_json::Value> {
+impl ActionResp<ActionRespContent> {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(serde_json::Value::Null)
+        Self::success(ActionRespContent::Empty(EmptyContent::default()))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
-        Self::fail(serde_json::Value::Null, retcode, message)
+        Self::fail(
+            ActionRespContent::Empty(EmptyContent::default()),
+            retcode,
+            message,
+        )
     }
 
     empty_err_resp!(bad_request, 10001, "无效的动作请求");
