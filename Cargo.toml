@@ -9,7 +9,7 @@ edition = "2018"
 echo = []
 qq = []
 http = ["hyper"]
-websocket = ["tokio-tungstenite"]
+websocket = ["tokio-tungstenite", "futures-util"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -17,5 +17,6 @@ serde_json = "1.0"
 rmp-serde = "0.15"
 async-trait = "0.1"
 hyper = { version = "0.14", features = ["full"], optional = true }
-tokio = { version = "1.0", features = ["sync", "net", "rt", "time"] }
+tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
 tokio-tungstenite = { version = "0.15", optional = true }
+futures-util = { version = "0.3",features = ["sink"], optional = true }

@@ -2,11 +2,11 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
-    heartheat: bool,
-    http: Vec<Http>,
-    http_webhook: Vec<HttpWebhook>,
-    websocket: Vec<WebSocket>,
-    websocket_rev: Vec<WebSocketRev>,
+    pub heartheat: bool,
+    pub http: Vec<Http>,
+    pub http_webhook: Vec<HttpWebhook>,
+    pub websocket: Vec<WebSocket>,
+    pub websocket_rev: Vec<WebSocketRev>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::Events;
 
+pub type ActionResps = ActionResp<ActionRespContent>;
+
 /// *动作响应*是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionResp<T> {
@@ -13,6 +15,22 @@ pub struct ActionResp<T> {
     pub data: T,
     /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
     pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ActionRespContent {
+    LatestEvents(Vec<Events>),
+    SupportActions(Vec<String>),
+    Status(StatusContent),
+    Version(VersionContent),
+    UserInfo(UserInfoContent),
+    FriendList(Vec<UserInfoContent>),
+    GroupInfo(GroupInfoContent),
+    GroupList(Vec<GroupInfoContent>),
+    FileId(String),
+    PrepareFileFragmented(FileFragmentedHead),
+    TransferFileFragmented(Vec<u8>),
+    Empty(()), // todo
 }
 
 impl<T> ActionResp<T> {
@@ -124,20 +142,20 @@ pub struct StatusContent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionContent {
-    pub r#impl: &'static str,
-    pub platform: &'static str,
-    pub version: &'static str,
-    pub onebot_version: &'static str,
+    pub r#impl: String,
+    pub platform: String,
+    pub version: String,
+    pub onebot_version: String,
 }
 
-impl Default for Version {
+impl Default for VersionContent {
     fn default() -> Self {
-        Self::success(VersionContent {
-            r#impl: "AbrasOneBot",
-            platform: "RustOneBot",
-            version: "0.0.1",
-            onebot_version: "12",
-        })
+        VersionContent {
+            r#impl: "AbrasOneBot".to_owned(),
+            platform: "RustOneBot".to_owned(),
+            version: "0.0.1".to_owned(),
+            onebot_version: "12".to_owned(),
+        }
     }
 }
 
@@ -156,6 +174,7 @@ pub type UserInfo = ActionResp<UserInfoContent>;
 /// Resp for get_friend_list
 pub type FriendList = ActionResp<Vec<UserInfoContent>>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfoContent {
     pub user_id: String,
     pub nickname: String,
@@ -167,6 +186,7 @@ pub type GroupInfo = ActionResp<GroupInfoContent>;
 /// Resp for get_group_list
 pub type GroupList = ActionResp<Vec<GroupInfoContent>>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupInfoContent {
     pub group_id: String,
     pub group_name: String,
@@ -180,6 +200,7 @@ pub type PrepareFileFragmented = ActionResp<FileFragmentedHead>;
 /// Resp for upload_file_fragmented
 pub type TransferFileFragmented = ActionResp<Vec<u8>>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileContent {
     pub name: String,
     pub url: Option<String>,
@@ -189,6 +210,7 @@ pub struct FileContent {
     pub sha256: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileFragmentedHead {
     pub name: String,
     pub total_size: i64,

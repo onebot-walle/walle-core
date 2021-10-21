@@ -1,5 +1,25 @@
 use hyper::{body::Buf, client::HttpConnector, Body, Client as HyperClient, Method, Request, Uri};
 use serde::Serialize;
+use tokio::task::JoinHandle;
+
+impl crate::OneBot {
+    pub fn build_webhook_clients(&self, sender: crate::ActionSender) -> Vec<Client> {
+        let mut r = vec![];
+        for webhook in &self.config.http_webhook {
+            r.push(Client::new(
+                "json".to_owned(),
+                self.r#impl.clone(),
+                self.r#impl.clone(),
+                self.platform.clone(),
+                self.self_id.clone(),
+                sender.clone(),
+                self.broadcaster.subscribe(),
+                webhook,
+            ));
+        }
+        r
+    }
+}
 
 pub struct Client {
     inner: HyperClient<HttpConnector>,
@@ -11,6 +31,8 @@ pub struct Client {
     self_id: String,
     access_token: Option<String>,
     time_out: u64,
+    sender: crate::ActionSender,
+    listner: crate::EventListner,
 }
 
 impl Client {
@@ -20,6 +42,8 @@ impl Client {
         r#impl: String,
         platform: String,
         self_id: String,
+        sender: crate::ActionSender,
+        listner: crate::EventListner,
         config: &crate::config::HttpWebhook,
     ) -> Self {
         Client {
@@ -32,10 +56,25 @@ impl Client {
             self_id,
             access_token: config.access_token.clone(),
             time_out: config.timeout,
+            sender,
+            listner,
         }
     }
 
-    pub async fn push<T>(&self, event: crate::event::Event<T>) -> Option<Vec<crate::Action>>
+    pub async fn run(mut self) -> JoinHandle<()> {
+        tokio::spawn(async move {
+            while let Ok(e) = self.listner.recv().await {
+                let actions = self.push(e).await;
+                if let Some(actions) = actions {
+                    for action in actions {
+                        self.sender.send((action, crate::ARSS::None)).await.unwrap();
+                    }
+                }
+            }
+        })
+    }
+
+    async fn push<T>(&self, event: crate::event::Event<T>) -> Option<Vec<crate::Action>>
     where
         T: Serialize,
     {

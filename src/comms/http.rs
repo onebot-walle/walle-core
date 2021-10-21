@@ -1,3 +1,4 @@
+use hyper::body::Buf;
 use hyper::Method;
 use hyper::{service::Service, Body, Request, Response, Server};
 use std::convert::Infallible;
@@ -12,7 +13,10 @@ fn empty_error_response(code: u16) -> Response<Body> {
         .unwrap()
 }
 
-struct OneBotService(Option<String>);
+struct OneBotService {
+    pub access_token: Option<String>,
+    pub sender: crate::ActionSender,
+}
 
 impl Service<Request<Body>> for OneBotService {
     type Response = Response<Body>;
@@ -39,17 +43,32 @@ impl Service<Request<Body>> for OneBotService {
             None => return Box::pin(async { Ok(empty_error_response(415)) }),
         };
 
-        if let (Some(token), Some(header_token)) = (&self.0, req.headers().get("Authorization")) {
+        if let (Some(token), Some(header_token)) =
+            (&self.access_token, req.headers().get("Authorization"))
+        {
             let header_token = header_token.to_str().unwrap();
             if header_token != &format!("Bearer {}", token) {
                 return Box::pin(async { Ok(empty_error_response(401)) });
             }
         }
-        Box::pin(async { Ok(Response::new(Body::empty())) })
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let action_sender = self.sender.clone();
+        Box::pin(async move {
+            let data = hyper::body::aggregate(req).await.unwrap();
+            let action = serde_json::from_reader(data.reader()).unwrap();
+            action_sender.send((action, crate::ARSS::OneShot(sender))).await.unwrap();
+            let action_resp = receiver.await.unwrap();
+            Ok(Response::new(Body::from(
+                serde_json::to_string(&action_resp).unwrap(),
+            )))
+        })
     }
 }
 
-struct MakeOneBotService(Option<String>);
+struct MakeOneBotService {
+    pub access_token: Option<String>,
+    pub sender: crate::ActionSender,
+}
 
 impl<T> Service<T> for MakeOneBotService {
     type Response = OneBotService;
@@ -61,13 +80,22 @@ impl<T> Service<T> for MakeOneBotService {
     }
 
     fn call(&mut self, _: T) -> Self::Future {
-        let obs = OneBotService(self.0.clone());
+        let obs = OneBotService {
+            access_token: self.access_token.clone(),
+            sender: self.sender.clone(),
+        };
         Box::pin(async move { Ok(obs) })
     }
 }
 
-pub async fn run(config: &crate::config::Http) -> tokio::task::JoinHandle<()> {
-    let mobs = MakeOneBotService(config.access_token.clone());
+pub fn run(
+    config: &crate::config::Http,
+    sender: crate::ActionSender,
+) -> tokio::task::JoinHandle<()> {
+    let mobs = MakeOneBotService {
+        access_token: config.access_token.clone(),
+        sender,
+    };
     let addr = std::net::SocketAddr::new(config.host, config.port);
     let server = Server::bind(&addr).serve(mobs);
     tokio::spawn(async { server.await.unwrap() })

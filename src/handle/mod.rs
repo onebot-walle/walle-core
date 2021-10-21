@@ -2,21 +2,29 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait ActionHandler {
-    type Content;
-    async fn handle(action: crate::Action) -> crate::ActionResp<Self::Content>;
+    async fn handle(&self, action: crate::Action) -> Option<crate::ActionResps>;
 }
 
-#[async_trait]
-pub trait ActionHanders {
-    async fn handle(action: crate::Action) -> String;
-}
-
-pub struct DoNothing;
+pub struct DefaultHandler;
 
 #[async_trait]
-impl ActionHandler for DoNothing {
-    type Content = ();
-    async fn handle(_: crate::Action) -> crate::ActionResp<Self::Content> {
-        crate::ActionResp::success(())
+impl ActionHandler for DefaultHandler {
+    async fn handle(&self, action: crate::Action) -> Option<crate::ActionResps> {
+        use crate::{
+            action_resp::{ActionResp, ActionRespContent},
+            Action,
+        };
+
+        match action {
+            Action::GetVersion => Some(ActionResp::success(ActionRespContent::Version(
+                get_version().await,
+            ))),
+            _ => None,
+        }
     }
 }
+
+async fn get_version() -> crate::action_resp::VersionContent {
+    crate::action_resp::VersionContent::default()
+}
+
