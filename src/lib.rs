@@ -25,6 +25,8 @@ type EventBroadcaster = tokio::sync::broadcast::Sender<Events>;
 #[cfg(any(feature = "http", feature = "websocket"))]
 type EventListner = tokio::sync::broadcast::Receiver<Events>;
 
+use std::sync::Arc;
+
 #[derive(Debug)]
 pub enum ARSS {
     OneShot(ActionRespSender),
@@ -40,7 +42,7 @@ pub struct OneBot {
     self_id: String,
     config: Config,
     event_receiver: EventReceiver,
-    action_handler: Box<dyn handle::ActionHandler>,
+    action_handler: Arc<dyn handle::ActionHandler>,
     broadcaster: EventBroadcaster,
 }
 
@@ -51,7 +53,7 @@ impl OneBot {
         self_id: String,
         config: Config,
         event_receiver: EventReceiver,
-        action_handler: Box<dyn handle::ActionHandler>,
+        action_handler: Arc<dyn handle::ActionHandler>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {
@@ -122,12 +124,17 @@ impl OneBot {
             tokio::select! {
                 option_action = action_receiver.recv() => {
                     if let Some((action, sender)) = option_action {
-                        let resp = self.action_handler.handle(action).await;
-                        match sender {
-                            ARSS::OneShot(s) => s.send(resp).unwrap(),
-                            ARSS::Mpsc(s) => s.send(resp).await.unwrap(),
-                            ARSS::None => {}
-                        }
+                        let action_handler = self.action_handler.clone();
+                        tokio::spawn{
+                            async move {
+                                let resp = action_handler.handle(action).await;
+                                match sender {
+                                    ARSS::OneShot(s) => s.send(resp).unwrap(),
+                                    ARSS::Mpsc(s) => s.send(resp).await.unwrap(),
+                                    ARSS::None => {}
+                                }
+                            }
+                        };
                     }
                 }
                 option_event = self.event_receiver.recv() => {

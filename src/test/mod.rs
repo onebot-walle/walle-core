@@ -28,7 +28,7 @@ fn event() {
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
                 time: 1632847927,
-                content: EventContent::Meta(Meta::HeartBeat {
+                content: EventContent::Meta(Meta::Heartbeat {
                     interval: 5000,
                     status: StatusContent {
                         good: true,

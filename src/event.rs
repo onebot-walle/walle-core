@@ -86,23 +86,20 @@ impl Events {
 /// Event Content 除了 OneBot 规定的 Event 通用 Field 均为 Content
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
 pub enum EventContent {
-    #[serde(rename = "meta")]
     Meta(Meta),
-    #[serde(rename = "message")]
     Message(Message),
-    #[serde(rename = "notice")]
     Notice(Notice),
-    #[serde(rename = "request")]
     Request(Request),
 }
 
 /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
 #[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
+#[serde(rename_all = "snake_case")]
 pub enum Meta {
-    #[serde(rename = "heartbeat")]
-    HeartBeat {
+    Heartbeat {
         interval: i64,
         status: crate::action_resp::StatusContent,
         sub_type: String, // just for Deserialize
@@ -123,50 +120,44 @@ pub struct Message {
 
 #[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
+#[serde(rename_all = "snake_case")]
 pub enum Notice { 
-    #[serde(rename = "group_member_increase")]
     GroupMemberIncrease {
         sub_type: String,
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_member_decrease")]
     GroupMemberDecrease {
         sub_type: String,
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_member_ban")]
     GroupMemberBan {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_member_unban")]
     GroupMemberUnban {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_admin_set")]
     GroupAdminSet {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_admin_unset")]
     GroupAdminUnset {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "group_message_delete")]
     GroupMessageDelete {
         sub_type: String,
         group_id: String,
@@ -174,17 +165,14 @@ pub enum Notice {
         user_id: String,
         operator_id: String,
     },
-    #[serde(rename = "friend_increase")]
     FriendIncrease {
         sub_type: String, // just for Deserialize
         user_id: String,
     },
-    #[serde(rename = "friend_decrease")]
     FriendDecrease {
         sub_type: String, // just for Deserialize
         user_id: String,
     },
-    #[serde(rename = "private_message_delete")]
     PrivateMessageDelete {
         sub_type: String, // just for Deserialize
         message_id: String,
