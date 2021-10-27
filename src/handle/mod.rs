@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 
+use crate::ActionResp;
+
 /// 处理 Action 需要实现的 Trait
 ///
-/// 请注意，请务必实现默认返回 `ActionResp::unsupported_action()` 
-/// 
+/// 请注意，请务必实现默认返回 `ActionResp::unsupported_action()`
+///
 /// **ToDo:** 预计未来会写一个宏来方便使用
 ///
 /// # Example
@@ -31,14 +33,14 @@ use async_trait::async_trait;
 /// }
 /// ```
 #[async_trait]
-pub trait ActionHandler {
-    async fn handle(&self, action: crate::Action) -> crate::ActionResps;
+pub trait ActionHandler<A, R> {
+    async fn handle(&self, action: A) -> ActionResp<R>;
 }
 
 pub struct DefaultHandler;
 
 #[async_trait]
-impl ActionHandler for DefaultHandler {
+impl ActionHandler<crate::Action, crate::ActionRespContent> for DefaultHandler {
     async fn handle(&self, action: crate::Action) -> crate::ActionResps {
         use crate::{
             action_resp::{ActionResp, ActionRespContent},

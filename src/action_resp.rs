@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{EmptyContent, Events};
+use crate::{EmptyContent, Event};
 
 pub type ActionResps = ActionResp<ActionRespContent>;
 
@@ -20,7 +20,8 @@ pub struct ActionResp<T> {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum ActionRespContent {
-    LatestEvents(Vec<Events>),
+    SendMessage(SendMessageRespContent),
+    LatestEvents(Vec<Event>),
     SupportActions(Vec<String>),
     Status(StatusContent),
     Version(VersionContent),
@@ -32,6 +33,12 @@ pub enum ActionRespContent {
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
     Empty(crate::action::EmptyContent), // todo
+}
+
+impl ActionRespContent {
+    pub fn empty() -> Self {
+        Self::Empty(crate::action::EmptyContent::default())
+    }
 }
 
 impl<T> ActionResp<T> {
@@ -134,7 +141,7 @@ impl<T> EchoActionResp<T> {
 }
 
 // meta
-pub type LatestEvents = ActionResp<Vec<Events>>;
+pub type LatestEvents = ActionResp<Vec<Event>>;
 pub type SupportActions = ActionResp<Vec<String>>;
 pub type Status = ActionResp<StatusContent>;
 pub type Version = ActionResp<VersionContent>;
@@ -168,6 +175,7 @@ impl Default for VersionContent {
 /// Resp for send_message
 pub type SendMessageResp = ActionResp<SendMessageRespContent>;
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
     pub message_id: String,
     pub time: i64,

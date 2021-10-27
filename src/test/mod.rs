@@ -1,8 +1,8 @@
 #[test]
 fn event() {
     use crate::action_resp::StatusContent;
-    use crate::event::Events;
-    use crate::event::{Event, EventContent, Message as MsgContent, Meta, Notice};
+    use crate::event::Event;
+    use crate::event::{CustomEvent, EventContent, Message as MsgContent, Meta, Notice};
     use crate::MessageSegment;
 
     let data = vec![
@@ -22,7 +22,7 @@ fn event() {
                     "online": true
                 }
             }"#,
-            Event {
+            CustomEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
@@ -66,7 +66,7 @@ fn event() {
                 "alt_message": "OneBot is not a bot[图片]",
                 "user_id": "123456788"
             }"#,
-            Event {
+            CustomEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
@@ -104,7 +104,7 @@ fn event() {
                 "group_id": "87654321",
                 "operator_id": "1234567"
             }"#,
-            Event {
+            CustomEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
@@ -121,9 +121,9 @@ fn event() {
     ];
 
     for (json, event) in data {
-        assert_eq!(serde_json::from_str::<Events>(json).unwrap(), event);
+        assert_eq!(serde_json::from_str::<Event>(json).unwrap(), event);
         let json_str = serde_json::to_string(&event).unwrap();
-        assert_eq!(serde_json::from_str::<Events>(&json_str).unwrap(), event);
+        assert_eq!(serde_json::from_str::<Event>(&json_str).unwrap(), event);
     }
 }
 

@@ -1,9 +1,18 @@
 use hyper::{body::Buf, client::HttpConnector, Body, Client as HyperClient, Method, Request, Uri};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
-impl crate::OneBot {
-    pub fn build_webhook_clients(&self, sender: crate::ActionSender) -> Vec<Client> {
+#[cfg(feature = "impl")]
+impl<E, A, R> crate::CustomOneBot<E, A, R>
+where
+    E: Clone + Serialize + Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: std::fmt::Debug + Send + 'static,
+{
+    pub fn build_webhook_clients(
+        &self,
+        sender: crate::impls::CustomActionSender<A, R>,
+    ) -> Vec<Client<E, A, R>> {
         let mut r = vec![];
         for webhook in &self.config.http_webhook {
             r.push(Client::new(
@@ -21,7 +30,8 @@ impl crate::OneBot {
     }
 }
 
-pub struct Client {
+#[cfg(feature = "impl")]
+pub struct Client<E, A, R> {
     inner: HyperClient<HttpConnector>,
     uri: Uri,
     content_type: String,
@@ -31,19 +41,25 @@ pub struct Client {
     self_id: String,
     access_token: Option<String>,
     time_out: u64,
-    sender: crate::ActionSender,
-    listner: crate::EventListner,
+    sender: crate::impls::CustomActionSender<A, R>,
+    listner: crate::impls::CustomEventListner<E>,
 }
 
-impl Client {
+#[cfg(feature = "impl")]
+impl<'de, E, A, R> Client<E, A, R>
+where
+    E: Clone + Serialize + Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: std::fmt::Debug + Send + 'static,
+{
     pub fn new(
         content_type: String,
         ua: String,
         r#impl: String,
         platform: String,
         self_id: String,
-        sender: crate::ActionSender,
-        listner: crate::EventListner,
+        sender: crate::impls::CustomActionSender<A, R>,
+        listner: crate::impls::CustomEventListner<E>,
         config: &crate::config::HttpWebhook,
     ) -> Self {
         Client {
@@ -61,23 +77,23 @@ impl Client {
         }
     }
 
-    pub async fn run(mut self) -> JoinHandle<()> {
+    pub fn run(mut self) -> JoinHandle<()> {
         tokio::spawn(async move {
             while let Ok(e) = self.listner.recv().await {
                 let actions = self.push(e).await;
                 if let Some(actions) = actions {
                     for action in actions {
-                        self.sender.send((action, crate::ARSS::None)).await.unwrap();
+                        self.sender
+                            .send((action, crate::impls::CustomARSS::None))
+                            .await
+                            .unwrap();
                     }
                 }
             }
         })
     }
 
-    async fn push<T>(&self, event: crate::event::Event<T>) -> Option<Vec<crate::Action>>
-    where
-        T: Serialize,
-    {
+    async fn push(&self, event: E) -> Option<Vec<A>> {
         let data = match serde_json::to_string(&event) {
             Ok(s) => s,
             Err(_) => {

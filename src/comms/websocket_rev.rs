@@ -1,13 +1,20 @@
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use crate::config::WebSocketRev;
 
-pub async fn run(
+#[cfg(feature = "impl")]
+pub async fn run<E, A, R>(
     config: &WebSocketRev,
-    broadcaster: crate::EventBroadcaster,
-    sender: crate::ActionSender,
-) -> JoinHandle<()> {
+    broadcaster: crate::impls::CustomEventBroadcaster<E>,
+    sender: crate::impls::CustomActionSender<A, R>,
+) -> JoinHandle<()>
+where
+    E: Clone + Serialize + Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
     let url = config.url.clone();
     let access_token = config.access_token.clone();
     let _reconnect_interval = config.reconnect_interval;
@@ -23,6 +30,9 @@ pub async fn run(
         let (ws_stream, _) = tokio_tungstenite::client_async(req, tcp_stream)
             .await
             .unwrap();
-        super::util::web_socket_loop(ws_stream, broadcaster.subscribe(), sender.clone()).await;
+        super::util::websocket_loop(ws_stream, broadcaster.subscribe(), sender.clone()).await;
     })
 }
+
+// #[cfg(feature = "sdk")]
+// pub async fn sdk_run() {}

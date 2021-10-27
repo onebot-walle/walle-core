@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-pub type Events = Event<EventContent>;
-pub type MetaEvent = Event<Meta>;
-pub type MessageEvent = Event<Message>;
-pub type NoticeEvent = Event<Notice>;
-pub type RequestEvent = Event<Request>;
+pub type Event = CustomEvent<EventContent>;
+pub type MetaEvent = CustomEvent<Meta>;
+pub type MessageEvent = CustomEvent<Message>;
+pub type NoticeEvent = CustomEvent<Notice>;
+pub type RequestEvent = CustomEvent<Request>;
 
 /// *事件*是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
 ///
 /// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
-#[derive(Debug ,Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Event<T> {
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CustomEvent<T> {
     pub id: String,
     #[serde(rename = "impl")]
     pub r#impl: String,
@@ -21,7 +21,7 @@ pub struct Event<T> {
     pub content: T,
 }
 
-impl Events {
+impl Event {
     /// 转化为 MetaEvent
     pub fn as_meta_event(self) -> Option<MetaEvent> {
         match self.content {
@@ -45,7 +45,7 @@ impl Events {
                 r#impl: self.r#impl,
                 platform: self.platform,
                 self_id: self.self_id,
-                time:self.time,
+                time: self.time,
                 content: m,
             }),
             _ => None,
@@ -60,7 +60,7 @@ impl Events {
                 r#impl: self.r#impl,
                 platform: self.platform,
                 self_id: self.self_id,
-                time:self.time,
+                time: self.time,
                 content: n,
             }),
             _ => None,
@@ -75,7 +75,7 @@ impl Events {
                 r#impl: self.r#impl,
                 platform: self.platform,
                 self_id: self.self_id,
-                time:self.time,
+                time: self.time,
                 content: r,
             }),
             _ => None,
@@ -94,8 +94,29 @@ pub enum EventContent {
     Request(Request),
 }
 
+impl EventContent {
+    pub fn new_message_content(
+        ty: String,
+        message_id: String,
+        message: crate::message::Message,
+        alt_message: String,
+        user_id: String,
+        group_id: Option<String>,
+    ) -> Self {
+        Self::Message(Message {
+            ty,
+            message_id,
+            message,
+            alt_message,
+            user_id,
+            group_id,
+            sub_type: "".to_owned(),
+        })
+    }
+}
+
 /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
-#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
 pub enum Meta {
@@ -106,7 +127,7 @@ pub enum Meta {
     },
 }
 
-#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Message {
     #[serde(rename = "detail_type")]
     pub ty: String, // private or group
@@ -115,13 +136,13 @@ pub struct Message {
     pub alt_message: String,
     pub user_id: String,
     pub group_id: Option<String>, // private MessageEvent will be None
-    pub sub_type: String, // just for Deserialize
+    pub sub_type: String,         // just for Deserialize
 }
 
-#[derive(Debug, Clone ,Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
-pub enum Notice { 
+pub enum Notice {
     GroupMemberIncrease {
         sub_type: String,
         group_id: String,
@@ -177,13 +198,11 @@ pub enum Notice {
         sub_type: String, // just for Deserialize
         message_id: String,
         user_id: String,
-    }
+    },
 }
 
-#[derive(Debug, Clone ,Serialize, Deserialize,PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 pub enum Request {
-    Empty {
-        sub_type: String,
-    }
+    Empty { sub_type: String },
 }

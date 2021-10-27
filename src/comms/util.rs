@@ -1,3 +1,5 @@
+use serde::{de::DeserializeOwned, Serialize};
+
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub enum ContentTpye {
     Json,
@@ -18,12 +20,17 @@ impl ContentTpye {
 #[cfg(feature = "websocket")]
 use tokio::{net::TcpStream, task::JoinHandle};
 
-#[cfg(feature = "websocket")]
-pub async fn web_socket_loop(
+#[cfg(all(feature = "websocket", feature = "impl"))]
+pub(crate) async fn websocket_loop<E, A, R>(
     ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>,
-    mut listener: crate::EventListner,
-    sender: crate::ActionSender,
-) -> (JoinHandle<()>, JoinHandle<()>) {
+    mut listener: crate::impls::CustomEventListner<E>,
+    sender: crate::impls::CustomActionSender<A, R>,
+) -> (JoinHandle<()>, JoinHandle<()>)
+where
+    E: Clone + Serialize + Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
     use futures_util::{SinkExt, StreamExt};
     use tokio_tungstenite::tungstenite::Message;
 
@@ -50,7 +57,7 @@ pub async fn web_socket_loop(
                     match serde_json::from_str(&message.to_string()) {
                         Ok(action) => {
                             sender
-                                .send((action, crate::ARSS::Mpsc(resp_sender.clone())))
+                                .send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
                                 .await
                                 .unwrap();
                         }
@@ -62,3 +69,6 @@ pub async fn web_socket_loop(
     });
     (sink_join, stream_join)
 }
+
+// #[cfg(all(feature = "websocket", feature = "impl"))]
+// pub(crate) async fn sdk_websocket_loop(ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>) {}

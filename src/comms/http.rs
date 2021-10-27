@@ -1,6 +1,7 @@
 use hyper::body::Buf;
 use hyper::Method;
 use hyper::{service::Service, Body, Request, Response, Server};
+use serde::{de::DeserializeOwned, Serialize};
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
@@ -13,12 +14,18 @@ fn empty_error_response(code: u16) -> Response<Body> {
         .unwrap()
 }
 
-struct OneBotService {
+#[cfg(feature = "impl")]
+struct OneBotService<A, R> {
     pub access_token: Option<String>,
-    pub sender: crate::ActionSender,
+    pub sender: crate::impls::CustomActionSender<A, R>,
 }
 
-impl Service<Request<Body>> for OneBotService {
+#[cfg(feature = "impl")]
+impl<A, R> Service<Request<Body>> for OneBotService<A, R>
+where
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
     type Response = Response<Body>;
     type Error = Infallible;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -56,7 +63,10 @@ impl Service<Request<Body>> for OneBotService {
         Box::pin(async move {
             let data = hyper::body::aggregate(req).await.unwrap();
             let action = serde_json::from_reader(data.reader()).unwrap();
-            action_sender.send((action, crate::ARSS::OneShot(sender))).await.unwrap();
+            action_sender
+                .send((action, crate::impls::CustomARSS::OneShot(sender)))
+                .await
+                .unwrap();
             let action_resp = receiver.await.unwrap();
             Ok(Response::new(Body::from(
                 serde_json::to_string(&action_resp).unwrap(),
@@ -65,13 +75,19 @@ impl Service<Request<Body>> for OneBotService {
     }
 }
 
-struct MakeOneBotService {
+#[cfg(feature = "impl")]
+struct MakeOneBotService<A, R> {
     pub access_token: Option<String>,
-    pub sender: crate::ActionSender,
+    pub sender: crate::impls::CustomActionSender<A, R>,
 }
 
-impl<T> Service<T> for MakeOneBotService {
-    type Response = OneBotService;
+#[cfg(feature = "impl")]
+impl<T, A, R> Service<T> for MakeOneBotService<A, R>
+where
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
+    type Response = OneBotService<A, R>;
     type Error = Infallible;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
 
@@ -88,10 +104,15 @@ impl<T> Service<T> for MakeOneBotService {
     }
 }
 
-pub fn run(
+#[cfg(feature = "impl")]
+pub fn run<A, R>(
     config: &crate::config::Http,
-    sender: crate::ActionSender,
-) -> tokio::task::JoinHandle<()> {
+    sender: crate::impls::CustomActionSender<A, R>,
+) -> tokio::task::JoinHandle<()>
+where
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
     let mobs = MakeOneBotService {
         access_token: config.access_token.clone(),
         sender,
