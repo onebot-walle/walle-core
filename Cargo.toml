@@ -26,4 +26,4 @@ tokio-tungstenite = { version = "0.15", optional = true }
 futures-util = { version = "0.3", features = ["sink"], optional = true }
 
 [workspace]
-members = ["recruit"]
+members = ["recruit", "mira"]

@@ -49,7 +49,7 @@ pub struct CustomOneBot<E, A, R> {
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
     #[cfg(feature = "websocket")]
-    ws_join_handles: RwLock<(Vec<comms::WebSocketServer>, Vec<JoinHandle<()>>)>,
+    ws_join_handles: RwLock<(Vec<comms::impls::WebSocketServer>, Vec<JoinHandle<()>>)>,
     // statu
     running: AtomicBool,
     // signal
@@ -93,7 +93,7 @@ where
             return Err("OneBot is already running");
         }
 
-        info!("{} is booting", "AbraOnebot".red());
+        info!("{} is booting", self.r#impl.red());
         let (action_sender, mut action_receiver) = tokio::sync::mpsc::channel(1024);
 
         #[cfg(feature = "http")]
@@ -101,7 +101,7 @@ where
             info!("Running HTTP");
             let http_joins = &mut self.http_join_handles.write().await.0;
             for http in &self.config.http {
-                http_joins.push(crate::comms::http_run(http, action_sender.clone()));
+                http_joins.push(crate::comms::impls::http_run(http, action_sender.clone()));
             }
         }
 
@@ -121,7 +121,7 @@ where
             let ws_joins = &mut self.ws_join_handles.write().await.0;
             for websocket in &self.config.websocket {
                 ws_joins.push(
-                    crate::comms::websocket_run(
+                    crate::comms::impls::websocket_run(
                         websocket,
                         self.broadcaster.clone(),
                         action_sender.clone(),
@@ -137,7 +137,7 @@ where
             let wsrev_joins = &mut self.ws_join_handles.write().await.1;
             for websocket_rev in &self.config.websocket_rev {
                 wsrev_joins.push(
-                    crate::comms::websocket_rev_run(
+                    crate::comms::impls::websocket_rev_run(
                         websocket_rev,
                         self.broadcaster.clone(),
                         action_sender.clone(),

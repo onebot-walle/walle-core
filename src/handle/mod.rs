@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::ActionResp;
 
@@ -33,8 +34,29 @@ use crate::ActionResp;
 /// }
 /// ```
 #[async_trait]
-pub trait ActionHandler<A, R> {
+pub trait ActionHandler<A, R>
+where
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
     async fn handle(&self, action: A) -> ActionResp<R>;
+}
+
+/// 处理 Event 需要实现的 Trait
+#[async_trait]
+pub trait EventHandler<E>
+where
+    E: Clone + DeserializeOwned + Send + 'static + std::fmt::Debug,
+{
+    async fn handle(&self, event: E);
+}
+
+#[async_trait]
+pub trait ActionRespHandler<R>
+where
+    R: Clone + DeserializeOwned + Send + 'static + std::fmt::Debug,
+{
+    async fn handle(&self, resp: R);
 }
 
 pub struct DefaultHandler;

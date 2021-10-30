@@ -4,15 +4,11 @@ use serde::{Deserialize, Serialize};
 // trait_alias unstable
 
 /// 空结构体，用于对应 Json 中的空 Map
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct EmptyContent {}
 
-impl Default for EmptyContent {
-    fn default() -> Self {
-        Self {}
-    }
-}
-
+/// OneBot 12 标准动作
+///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "action", content = "params")]
@@ -143,12 +139,4 @@ pub enum GetFileFragmented {
         offset: i64,
         size: i64,
     },
-}
-
-#[cfg(feature = "echo")]
-#[derive(Serialize, Deserialize, PartialEq)]
-pub struct EchoAction {
-    #[serde(flatten)]
-    pub action: Action,
-    pub echo: String,
 }

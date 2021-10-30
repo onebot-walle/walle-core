@@ -1,9 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+/// OneBot 12 标准事件
 pub type Event = CustomEvent<EventContent>;
+/// OneBot 12 标准元事件
 pub type MetaEvent = CustomEvent<Meta>;
+/// OneBot 12 标准消息事件
 pub type MessageEvent = CustomEvent<Message>;
+/// OneBot 12 标准通知事件
 pub type NoticeEvent = CustomEvent<Notice>;
+/// OneBot 12 标准请求事件
 pub type RequestEvent = CustomEvent<Request>;
 
 /// *事件*是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。

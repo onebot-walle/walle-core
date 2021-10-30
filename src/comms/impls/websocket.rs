@@ -7,21 +7,19 @@ use tokio::task::JoinHandle;
 
 pub struct WebSocketServer {
     pub listner: JoinHandle<()>,
-    pub conns: Arc<RwLock<Vec<(JoinHandle<()>, JoinHandle<()>)>>>,
+    pub conns: Arc<RwLock<Vec<JoinHandle<()>>>>,
 }
 
 impl WebSocketServer {
     pub(crate) async fn abort(self) {
         let mut conns = self.conns.write().await;
         for conn in conns.iter_mut() {
-            conn.0.abort();
-            conn.1.abort();
+            conn.abort();
         }
         self.listner.abort();
     }
 }
 
-#[cfg(feature = "impl")]
 pub async fn run<E, A, R>(
     websocket: &WebSocket,
     broadcaster: crate::impls::CustomEventBroadcaster<E>,
@@ -39,7 +37,7 @@ where
     let move_conns = conns.clone();
     let join = tokio::spawn(async move {
         while let Ok((stream, _)) = tcp_listener.accept().await {
-            let join = handle_conn(stream, broadcaster.subscribe(), sender.clone()).await;
+            let join = tokio::spawn(handle_conn(stream, broadcaster.subscribe(), sender.clone()));
             {
                 let mut lockconns = move_conns.write().await;
                 lockconns.push(join);
@@ -52,12 +50,11 @@ where
     }
 }
 
-#[cfg(feature = "impl")]
 async fn handle_conn<E, A, R>(
     stream: TcpStream,
     listener: crate::impls::CustomEventListner<E>,
     sender: crate::impls::CustomActionSender<A, R>,
-) -> (JoinHandle<()>, JoinHandle<()>)
+) -> ()
 where
     E: Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
@@ -69,10 +66,5 @@ where
     let ws_stream = tokio_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
-    super::util::websocket_loop(ws_stream, listener, sender).await
+    super::websocket_loop(ws_stream, listener, sender).await
 }
-
-// #[cfg(feature = "sdk")]
-// pub async fn sdk_handle_conn(stream: TcpStream) -> (JoinHandle<()>, JoinHandle<()>) {
-//     todo!()
-// }

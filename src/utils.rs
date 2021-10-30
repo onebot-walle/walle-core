@@ -6,3 +6,13 @@ pub fn timestamp() -> i64 {
         .unwrap()
         .as_secs() as i64
 }
+
+#[cfg(feature = "echo")]
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "echo")]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Echo<I> {
+    #[serde(flatten)]
+    pub inner: I,
+    pub echo: String,
+}

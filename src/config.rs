@@ -10,6 +10,15 @@ pub struct Config {
     pub websocket_rev: Vec<WebSocketRev>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct SdkConfig {
+    pub heartheat: bool,
+    pub http: Vec<Http>,
+    pub http_webhook: Vec<HttpWebhook>,
+    pub websocket: Vec<WebSocketRev>,
+    pub websocket_rev: Vec<WebSocket>,
+}
+
 /// OneBot Impl Http 通讯设置
 #[derive(Debug, Deserialize)]
 pub struct Http {
@@ -37,7 +46,7 @@ pub struct WebSocket {
 }
 
 /// OneBot Impl 反向 WebSocket 通讯设置
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct WebSocketRev {
     pub url: String,
     pub access_token: Option<String>,

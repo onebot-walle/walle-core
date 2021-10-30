@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{EmptyContent, Event};
 
+/// OneBot 12 标准动作响应
 pub type ActionResps = ActionResp<ActionRespContent>;
 
 /// **动作响应**是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
@@ -113,31 +114,6 @@ pub struct EchoActionResp<T> {
     /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
     pub message: String,
     pub echo: String,
-}
-
-#[cfg(feature = "echo")]
-impl<T> EchoActionResp<T> {
-    pub fn new(resp: ActionResp<T>, echo: String) -> Self {
-        Self {
-            status: resp.status,
-            retcode: resp.retcode,
-            data: resp.data,
-            message: resp.message,
-            echo,
-        }
-    }
-
-    pub fn as_action_resp(self) -> (ActionResp<T>, String) {
-        (
-            ActionResp {
-                status: self.status,
-                retcode: self.retcode,
-                data: self.data,
-                message: self.message,
-            },
-            self.echo,
-        )
-    }
 }
 
 // meta

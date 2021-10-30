@@ -1,5 +1,3 @@
-use serde::{de::DeserializeOwned, Serialize};
-
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub enum ContentTpye {
     Json,
@@ -18,57 +16,35 @@ impl ContentTpye {
 }
 
 #[cfg(feature = "websocket")]
-use tokio::{net::TcpStream, task::JoinHandle};
+use tokio::net::TcpStream;
 
-#[cfg(all(feature = "websocket", feature = "impl"))]
-pub(crate) async fn websocket_loop<E, A, R>(
-    ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>,
-    mut listener: crate::impls::CustomEventListner<E>,
-    sender: crate::impls::CustomActionSender<A, R>,
-) -> (JoinHandle<()>, JoinHandle<()>)
-where
-    E: Clone + Serialize + Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
-{
-    use futures_util::{SinkExt, StreamExt};
-    use tokio_tungstenite::tungstenite::Message;
-
-    let (mut sink, mut stream) = ws_stream.split();
-    let (resp_sender, mut resp_receiver) = tokio::sync::mpsc::channel(1024);
-    let sink_join = tokio::spawn(async move {
-        loop {
-            let s = tokio::select! {
-                event = listener.recv() => {
-                    if let Ok(event) = event {
-                        serde_json::to_string(&event).unwrap()
-                    }
-                    else { panic!() }
-                }
-                resp = resp_receiver.recv() => { serde_json::to_string(&resp).unwrap() }
-            };
-            sink.send(Message::Text(s)).await.unwrap();
-        }
-    });
-    let stream_join = tokio::spawn(async move {
-        loop {
-            if let Some(data) = stream.next().await {
-                if let Ok(message) = data {
-                    match serde_json::from_str(&message.to_string()) {
-                        Ok(action) => {
-                            sender
-                                .send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
-                                .await
-                                .unwrap();
-                        }
-                        Err(_) => {}
-                    }
-                }
+#[cfg(feature = "websocket")]
+pub(crate) async fn try_connect(
+    config: &crate::config::WebSocketRev,
+) -> Option<tokio_tungstenite::WebSocketStream<TcpStream>> {
+    use tracing::error;
+    let mut req =
+        tokio_tungstenite::tungstenite::handshake::client::Request::builder().uri(&config.url);
+    if let Some(token) = &config.access_token {
+        req = req.header("Authorization", format!("Bearer {}", token));
+    }
+    let req = req.body(()).unwrap();
+    match tokio::net::TcpStream::connect(&config.url).await {
+        Ok(tcp_stream) => match tokio_tungstenite::client_async(req, tcp_stream).await {
+            Ok((ws_stream, _)) => Some(ws_stream),
+            Err(e) => {
+                error!("upgrade connect to ws error {}", e);
+                None
             }
+        },
+        Err(e) => {
+            error!("connect ws server error {}", e);
+            None
         }
-    });
-    (sink_join, stream_join)
+    }
 }
 
 // #[cfg(all(feature = "websocket", feature = "impl"))]
-// pub(crate) async fn sdk_websocket_loop(ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>) {}
+// pub(crate) async fn sdk_websocket_loop(ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>) {
+
+// }
