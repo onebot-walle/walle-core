@@ -14,8 +14,6 @@ pub use http_webhook::Client as WebhookClient;
 #[cfg(feature = "websocket")]
 pub use websocket::run as websocket_run;
 #[cfg(feature = "websocket")]
-pub use websocket::WebSocketServer;
-#[cfg(feature = "websocket")]
 pub use websocket_rev::run as websocket_rev_run;
 
 #[cfg(feature = "websocket")]
@@ -23,8 +21,7 @@ async fn websocket_loop<E, A, R>(
     mut ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     mut listener: crate::impls::CustomEventListner<E>,
     sender: crate::impls::CustomActionSender<A, R>,
-) -> ()
-where
+) where
     E: Clone + serde::Serialize + Send + 'static,
     A: serde::de::DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: serde::Serialize + std::fmt::Debug + Send + 'static,
@@ -52,13 +49,19 @@ where
             }
             data_option = ws_stream.next() => {
                 if let Some(data) = data_option {
-                    if let Ok(message) = data {
-                        match serde_json::from_str(&message.to_string()) {
-                            Ok(action) => {
-                                sender.send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
-                                .await.unwrap();
+                    match data {
+                        Ok(message) => {
+                            match serde_json::from_str(&message.to_string()) {
+                                Ok(action) => {
+                                    sender.send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
+                                    .await.unwrap();
+                                }
+                                Err(_) => error!("Receive illegal action {}", message.to_string()),
                             }
-                            Err(_) => error!("Receive illegal action {}", message.to_string()),
+                        },
+                        Err(e) => {
+                            error!("ws disconnect with error {}", e);
+                            return;
                         }
                     }
                 }

@@ -1,8 +1,9 @@
-use abras_onebot::tokio::task::JoinHandle;
-use abras_onebot::{Event, EventContent, Message, OneBot, VersionContent};
-
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::task::JoinHandle;
+use walle_core::{
+    action_resp::VersionContent, impls::OneBot, Event, EventContent, ImplConfig, Message,
+};
 
 static NAME: &str = "Recruit";
 static PLATFORM: &str = "shell";
@@ -21,7 +22,7 @@ pub(crate) struct Bots {
 }
 
 impl Bot {
-    pub(crate) fn new(self_id: String, config: abras_onebot::Config) -> Self {
+    pub(crate) fn new(self_id: String, config: ImplConfig) -> Self {
         Bot {
             inner: Arc::new(OneBot::new(
                 NAME.to_owned(),
@@ -35,25 +36,24 @@ impl Bot {
         }
     }
 
-    fn build_private_event(&self, self_id: String, bot_id: String, message: Message) -> Event {
+    fn build_private_event(
+        &self,
+        self_id: String,
+        bot_id: String,
+        message: Message,
+        alt_message: String,
+    ) -> Event {
         self.inner.new_events(
             format!("{}", self.event_count),
             self_id,
-            EventContent::new_message_content(
-                "private".to_owned(),
-                "".to_owned(),
-                message,
-                "".to_owned(),
-                bot_id,
-                None,
-            ),
+            EventContent::private("".to_owned(), message, alt_message, bot_id),
         )
     }
 
     fn run(&mut self) {
         if self.join_handle.is_none() {
             let bot = self.inner.clone();
-            self.join_handle = Some(abras_onebot::tokio::spawn(async move {
+            self.join_handle = Some(tokio::spawn(async move {
                 bot.run().await.unwrap();
             }));
         }
@@ -66,18 +66,15 @@ impl Bots {
         self.inner.insert(bot_id, bot)
     }
 
-    pub(crate) async fn remove_bot(&mut self, bot_id: &str) -> Option<Bot> {
-        self.inner.remove(bot_id)
-    }
-
     pub(crate) async fn send_private_message(
         &mut self,
         bot_id: String,
         self_id: &str,
         message: Message,
+        alt_message: String,
     ) -> Option<String> {
         if let Some(bot) = self.inner.get(&bot_id) {
-            let e = bot.build_private_event(self_id.to_owned(), bot_id, message);
+            let e = bot.build_private_event(self_id.to_owned(), bot_id, message, alt_message);
             let seq = e.id.clone();
             bot.inner.send_event(e);
             Some(seq)

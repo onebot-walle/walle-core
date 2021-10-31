@@ -1,16 +1,10 @@
+use crate::EmptyContent;
 use serde::{Deserialize, Serialize};
-
-// trait ActionHandleFn<T> = FnOnce(Action) -> crate::action_resp::ActionResp<T>;
-// trait_alias unstable
-
-/// 空结构体，用于对应 Json 中的空 Map
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
-pub struct EmptyContent {}
 
 /// OneBot 12 标准动作
 ///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "action", content = "params")]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
@@ -49,12 +43,14 @@ pub enum Action {
     GetFileFragmented(GetFileFragmented),
 }
 
+/// Action content for GetLatestEvents
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetLatestEventsContent {
     pub limit: i64,
     pub timeout: i64,
 }
 
+/// Action content for SendMessage
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageContent {
     pub detail_type: String,
@@ -63,33 +59,39 @@ pub struct SendMessageContent {
     pub message: crate::Message,
 }
 
+/// Action content for DeleteMessage
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DeleteMessageContent {
     pub message_id: String,
 }
 
+/// Action content for UserId
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserIdContent {
     pub user_id: String,
 }
 
+/// Action content for GroupId
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GroupIdContent {
     pub group_id: String,
 }
 
+/// Action content for Ids
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IdsContent {
     pub group_id: String,
     pub user_id: String,
 }
 
+/// Action content for SetGroupName
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SetGroupNameContent {
     pub group_id: String,
     pub group_name: String,
 }
 
+/// Action content for UploadFile
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UploadFileContent {
     pub r#type: String,
@@ -101,13 +103,15 @@ pub struct UploadFileContent {
     pub sha256: Option<String>,
 }
 
+/// Action content for GetFile
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetFileContent {
     pub file_id: String,
     pub r#type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+/// Action content for UploadFileFragmented
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "stage")]
 #[serde(rename_all = "snake_case")]
 pub enum UploadFileFragmented {
@@ -127,7 +131,8 @@ pub enum UploadFileFragmented {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+/// Action content for GetFileFragmented
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "stage")]
 #[serde(rename_all = "snake_case")]
 pub enum GetFileFragmented {

@@ -100,13 +100,13 @@ pub enum EventContent {
 }
 
 impl EventContent {
+    /// build a new MessageContent
     pub fn new_message_content(
-        ty: String,
+        ty: MessageEventType,
         message_id: String,
         message: crate::message::Message,
         alt_message: String,
         user_id: String,
-        group_id: Option<String>,
     ) -> Self {
         Self::Message(Message {
             ty,
@@ -114,17 +114,50 @@ impl EventContent {
             message,
             alt_message,
             user_id,
-            group_id,
             sub_type: "".to_owned(),
         })
     }
+
+    /// build a new MessageContent with Private type
+    pub fn private(
+        message_id: String,
+        message: crate::message::Message,
+        alt_message: String,
+        user_id: String,
+    ) -> Self {
+        Self::new_message_content(
+            MessageEventType::Private,
+            message_id,
+            message,
+            alt_message,
+            user_id,
+        )
+    }
+
+    /// build a new MessageContent with Group type
+    pub fn group(
+        message_id: String,
+        message: crate::message::Message,
+        alt_message: String,
+        user_id: String,
+        group_id: String,
+    ) -> Self {
+        Self::new_message_content(
+            MessageEventType::Group { group_id },
+            message_id,
+            message,
+            alt_message,
+            user_id,
+        )
+    }
 }
 
-/// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
+/// OneBot 元事件
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
 pub enum Meta {
+    /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
     Heartbeat {
         interval: i64,
         status: crate::action_resp::StatusContent,
@@ -132,16 +165,25 @@ pub enum Meta {
     },
 }
 
+/// OneBot 消息事件
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Message {
-    #[serde(rename = "detail_type")]
-    pub ty: String, // private or group
+    #[serde(flatten)]
+    pub ty: MessageEventType,
     pub message_id: String,
     pub message: crate::Message,
     pub alt_message: String,
     pub user_id: String,
-    pub group_id: Option<String>, // private MessageEvent will be None
-    pub sub_type: String,         // just for Deserialize
+    pub(crate) sub_type: String, // just for Deserialize
+}
+
+/// MessageEvent detail_type ( private or group )
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "detail_type")]
+#[serde(rename_all = "snake_case")]
+pub enum MessageEventType {
+    Private,
+    Group { group_id: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

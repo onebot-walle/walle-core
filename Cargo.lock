@@ -3,22 +3,6 @@
 version = 3
 
 [[package]]
-name = "abras_onebot"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "colored",
- "futures-util",
- "hyper",
- "rmp-serde",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite",
- "tracing",
-]
-
-[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -463,7 +447,10 @@ dependencies = [
 name = "mira"
 version = "0.1.0"
 dependencies = [
- "abras_onebot",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "walle-core",
 ]
 
 [[package]]
@@ -682,11 +669,11 @@ dependencies = [
 name = "recruit"
 version = "0.1.0"
 dependencies = [
- "abras_onebot",
  "clap",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "walle-core",
 ]
 
 [[package]]
@@ -1139,6 +1126,22 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
+
+[[package]]
+name = "walle-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "colored",
+ "futures-util",
+ "hyper",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+]
 
 [[package]]
 name = "want"

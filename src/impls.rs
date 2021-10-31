@@ -1,23 +1,16 @@
-use crate::{comms, Action, ActionResp, ActionRespContent, Config, Event};
+use crate::{comms, Action, ActionResps, Event, ImplConfig};
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::{atomic::AtomicBool, Arc};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, trace};
 
-pub(crate) type CustomActionRespSender<R> = tokio::sync::oneshot::Sender<ActionResp<R>>;
-// pub(crate) type ActionRespSender = CustomActionRespSender<ActionResps>;
-pub(crate) type CustomActionRespMpscSender<R> = tokio::sync::mpsc::Sender<ActionResp<R>>;
-// pub(crate) type ActionRespMpscSender = CustomActionRespMpscSender<ActionResps>;
+pub(crate) type CustomActionRespSender<R> = tokio::sync::oneshot::Sender<R>;
+pub(crate) type CustomActionRespMpscSender<R> = tokio::sync::mpsc::Sender<R>;
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomActionSender<A, R> = tokio::sync::mpsc::Sender<(A, CustomARSS<R>)>;
-#[cfg(any(feature = "http", feature = "websocket"))]
-// pub(crate) type ActionSender = CustomActionSender<Action, ActionResps>;
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
-// pub(crate) type EventBroadcaster = CustomEventBroadcaster<Events>;
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<E>;
-#[cfg(any(feature = "http", feature = "websocket"))]
-// pub(crate) type EventListner = CustomEventListner<Events>;
 
 type ArcActionHandler<A, R> = Arc<dyn crate::handle::ActionHandler<A, R> + Send + Sync>;
 
@@ -30,7 +23,7 @@ pub enum CustomARSS<R> {
 
 // pub type ARSS = CustomARSS<ActionResps>;
 
-pub type OneBot = CustomOneBot<Event, Action, ActionRespContent>;
+pub type OneBot = CustomOneBot<Event, Action, ActionResps>;
 
 /// OneBot Implementation 实例
 ///
@@ -43,13 +36,13 @@ pub struct CustomOneBot<E, A, R> {
     pub r#impl: String,
     pub platform: String,
     pub self_id: String,
-    pub config: Config,
+    pub config: ImplConfig,
     action_handler: ArcActionHandler<A, R>,
     pub broadcaster: CustomEventBroadcaster<E>,
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
     #[cfg(feature = "websocket")]
-    ws_join_handles: RwLock<(Vec<comms::impls::WebSocketServer>, Vec<JoinHandle<()>>)>,
+    ws_join_handles: RwLock<(Vec<comms::WebSocketServer>, Vec<JoinHandle<()>>)>,
     // statu
     running: AtomicBool,
     // signal
@@ -66,7 +59,7 @@ where
         r#impl: String,
         platform: String,
         self_id: String,
-        config: Config,
+        config: ImplConfig,
         action_handler: ArcActionHandler<A, R>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
@@ -148,19 +141,18 @@ where
         }
 
         trace!("Loopping to handle action and event forever");
-        while let (Some((action, sender)), false) = (
-            action_receiver.recv().await,
-            self._shutdown.load(std::sync::atomic::Ordering::SeqCst),
-        ) {
-            let action_handler = self.action_handler.clone();
-            tokio::spawn(async move {
-                let resp = action_handler.handle(action).await;
-                match sender {
-                    CustomARSS::OneShot(s) => s.send(resp).unwrap(),
-                    CustomARSS::Mpsc(s) => s.send(resp).await.unwrap(),
-                    CustomARSS::None => {}
-                }
-            });
+        while !self._shutdown.load(std::sync::atomic::Ordering::SeqCst) {
+            while let Some((action, sender)) = action_receiver.recv().await {
+                let action_handler = self.action_handler.clone();
+                tokio::spawn(async move {
+                    let resp = action_handler.handle(action).await;
+                    match sender {
+                        CustomARSS::OneShot(s) => s.send(resp).unwrap(),
+                        CustomARSS::Mpsc(s) => s.send(resp).await.unwrap(),
+                        CustomARSS::None => {}
+                    }
+                });
+            }
         }
         Ok(())
     }
@@ -194,8 +186,8 @@ where
 
     pub fn send_event(&self, event: E) {
         match self.broadcaster.send(event) {
-            Ok(t) => trace!("{} receiver receive event", t),
-            Err(_) => info!("there is no event receiver yet"),
+            Ok(t) => trace!("there is {} receiver(s) should receive the event", t),
+            Err(_) => trace!("there is no event receiver can receive the event yet"),
         }
     }
 

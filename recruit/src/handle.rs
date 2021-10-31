@@ -1,11 +1,10 @@
-use abras_onebot::{
-    async_trait, tracing::trace, Action, ActionHandler, ActionRespContent, ActionResps,
-};
+use tracing::trace;
+use walle_core::{async_trait, Action, ActionHandler, ActionRespContent, ActionResps};
 
 pub(crate) struct Handler;
 
 #[async_trait]
-impl ActionHandler<Action, ActionRespContent> for Handler {
+impl ActionHandler<Action, ActionResps> for Handler {
     async fn handle(&self, action: Action) -> ActionResps {
         trace!("get Action: {:?}", action);
         match action {

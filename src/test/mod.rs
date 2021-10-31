@@ -2,7 +2,9 @@
 fn event() {
     use crate::action_resp::StatusContent;
     use crate::event::Event;
-    use crate::event::{CustomEvent, EventContent, Message as MsgContent, Meta, Notice};
+    use crate::event::{
+        CustomEvent, EventContent, Message as MsgContent, MessageEventType, Meta, Notice,
+    };
     use crate::MessageSegment;
 
     let data = vec![
@@ -74,7 +76,7 @@ fn event() {
                 time: 1632847927,
                 content: EventContent::Message(MsgContent {
                     sub_type: String::default(),
-                    ty: "private".to_owned(),
+                    ty: MessageEventType::Private,
                     message_id: "6283".to_owned(),
                     message: vec![
                         MessageSegment::Text {
@@ -86,7 +88,6 @@ fn event() {
                     ],
                     alt_message: "OneBot is not a bot[图片]".to_owned(),
                     user_id: "123456788".to_owned(),
-                    group_id: None,
                 }),
             },
         ),
@@ -131,7 +132,7 @@ fn event() {
 fn action() {
     use crate::action::GetLatestEventsContent;
     use crate::action::*;
-    use crate::{Action, MessageSegment};
+    use crate::{Action, EmptyContent, MessageSegment};
 
     let data = vec![
         (
@@ -190,8 +191,8 @@ fn action() {
 
 #[test]
 fn action_resp() {
-    use crate::action::EmptyContent;
     use crate::action_resp::*;
+    use crate::EmptyContent;
 
     let status_data = (
         r#"{   

@@ -16,22 +16,45 @@ impl ContentTpye {
 }
 
 #[cfg(feature = "websocket")]
-use tokio::net::TcpStream;
+use std::sync::Arc;
+#[cfg(feature = "websocket")]
+use tokio::{net::TcpStream, sync::RwLock, task::JoinHandle};
+
+#[cfg(feature = "websocket")]
+pub struct WebSocketServer {
+    pub listner: JoinHandle<()>,
+    pub conns: Arc<RwLock<Vec<JoinHandle<()>>>>,
+}
+
+#[cfg(feature = "websocket")]
+impl WebSocketServer {
+    pub(crate) async fn abort(self) {
+        let mut conns = self.conns.write().await;
+        for conn in conns.iter_mut() {
+            conn.abort();
+        }
+        self.listner.abort();
+    }
+}
 
 #[cfg(feature = "websocket")]
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketRev,
 ) -> Option<tokio_tungstenite::WebSocketStream<TcpStream>> {
-    use tracing::error;
+    use tracing::{error, info};
+    let ws_url = format!("ws://{}", config.url);
     let mut req =
-        tokio_tungstenite::tungstenite::handshake::client::Request::builder().uri(&config.url);
+        tokio_tungstenite::tungstenite::handshake::client::Request::builder().uri(&ws_url);
     if let Some(token) = &config.access_token {
         req = req.header("Authorization", format!("Bearer {}", token));
     }
     let req = req.body(()).unwrap();
     match tokio::net::TcpStream::connect(&config.url).await {
         Ok(tcp_stream) => match tokio_tungstenite::client_async(req, tcp_stream).await {
-            Ok((ws_stream, _)) => Some(ws_stream),
+            Ok((ws_stream, _)) => {
+                info!("success connect to {}", ws_url);
+                Some(ws_stream)
+            }
             Err(e) => {
                 error!("upgrade connect to ws error {}", e);
                 None
@@ -43,8 +66,3 @@ pub(crate) async fn try_connect(
         }
     }
 }
-
-// #[cfg(all(feature = "websocket", feature = "impl"))]
-// pub(crate) async fn sdk_websocket_loop(ws_stream: tokio_tungstenite::WebSocketStream<TcpStream>) {
-
-// }

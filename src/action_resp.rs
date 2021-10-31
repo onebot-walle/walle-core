@@ -6,7 +6,7 @@ use crate::{EmptyContent, Event};
 pub type ActionResps = ActionResp<ActionRespContent>;
 
 /// **动作响应**是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ActionResp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
     pub status: String,
@@ -18,7 +18,7 @@ pub struct ActionResp<T> {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum ActionRespContent {
     SendMessage(SendMessageRespContent),
@@ -33,12 +33,12 @@ pub enum ActionRespContent {
     FileId(String),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
-    Empty(crate::action::EmptyContent), // todo
+    Empty(EmptyContent), // todo
 }
 
 impl ActionRespContent {
     pub fn empty() -> Self {
-        Self::Empty(crate::action::EmptyContent::default())
+        Self::Empty(EmptyContent::default())
     }
 }
 
@@ -151,7 +151,7 @@ impl Default for VersionContent {
 /// Resp for send_message
 pub type SendMessageResp = ActionResp<SendMessageRespContent>;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
     pub message_id: String,
     pub time: i64,

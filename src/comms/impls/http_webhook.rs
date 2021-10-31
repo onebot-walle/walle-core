@@ -3,7 +3,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
 #[cfg(feature = "impl")]
-impl<E, A, R> crate::CustomOneBot<E, A, R>
+impl<E, A, R> crate::impls::CustomOneBot<E, A, R>
 where
     E: Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,

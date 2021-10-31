@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// 在事件和动作参数中用于表示聊天消息的数据类型 
+/// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
 
 /// 消息段
@@ -8,35 +8,21 @@ pub type Message = Vec<MessageSegment>;
 #[serde(tag = "type", content = "data")]
 pub enum MessageSegment {
     #[serde(rename = "text")]
-    Text {
-        text: String,
-    },
+    Text { text: String },
     #[serde(rename = "mention")]
-    Mention {
-        user_id: String,
-    },
+    Mention { user_id: String },
     #[serde(rename = "mention_all")]
     MentionAll,
     #[serde(rename = "image")]
-    Image {
-        file_id: String,
-    },
+    Image { file_id: String },
     #[serde(rename = "voice")]
-    Voice {
-        file_id: String,
-    },
+    Voice { file_id: String },
     #[serde(rename = "audio")]
-    Audio {
-        file_id: String,
-    },
+    Audio { file_id: String },
     #[serde(rename = "video")]
-    Video {
-        file_id: String,
-    },
+    Video { file_id: String },
     #[serde(rename = "file")]
-    File {
-        file_id: String,
-    },
+    File { file_id: String },
     #[serde(rename = "location")]
     Location {
         latitude: f64,
@@ -45,12 +31,10 @@ pub enum MessageSegment {
         content: String,
     },
     #[serde(rename = "reply")]
-    Reply {
-        message_id: String,
-        user_id: String,
-    },
+    Reply { message_id: String, user_id: String },
 }
 
+/// Message 构建 trait
 pub trait MessageBuild {
     fn text(self, text: String) -> Self;
     fn mention(self, user_id: String) -> Self;

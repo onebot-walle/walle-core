@@ -1,7 +1,10 @@
 [package]
-name = "abras_onebot"
+name = "walle-core"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
+license = "MIT"
+description = "Onebot Lib in Rust"
+authors = ["Abrahum<307887491@qq.com>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
