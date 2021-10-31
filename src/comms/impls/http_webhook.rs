@@ -2,16 +2,18 @@ use hyper::{body::Buf, client::HttpConnector, Body, Client as HyperClient, Metho
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
+use crate::event::CustomEvent;
+
 #[cfg(feature = "impl")]
 impl<E, A, R> crate::impls::CustomOneBot<E, A, R>
 where
     E: Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: std::fmt::Debug + Send + 'static,
+    R: std::fmt::Debug + Serialize + Send + 'static,
 {
-    pub fn build_webhook_clients(
+    pub(crate) fn build_webhook_clients(
         &self,
-        sender: crate::impls::CustomActionSender<A, R>,
+        handler: crate::impls::ArcActionHandler<A, R>,
     ) -> Vec<Client<E, A, R>> {
         let mut r = vec![];
         for webhook in &self.config.http_webhook {
@@ -21,7 +23,7 @@ where
                 self.r#impl.clone(),
                 self.platform.clone(),
                 self.self_id.clone(),
-                sender.clone(),
+                handler.clone(),
                 self.broadcaster.subscribe(),
                 webhook,
             ));
@@ -41,7 +43,7 @@ pub struct Client<E, A, R> {
     self_id: String,
     access_token: Option<String>,
     time_out: u64,
-    sender: crate::impls::CustomActionSender<A, R>,
+    handler: crate::impls::ArcActionHandler<A, R>,
     listner: crate::impls::CustomEventListner<E>,
 }
 
@@ -50,7 +52,7 @@ impl<'de, E, A, R> Client<E, A, R>
 where
     E: Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: std::fmt::Debug + Send + 'static,
+    R: std::fmt::Debug + Serialize + Send + 'static,
 {
     pub fn new(
         content_type: String,
@@ -58,7 +60,7 @@ where
         r#impl: String,
         platform: String,
         self_id: String,
-        sender: crate::impls::CustomActionSender<A, R>,
+        handler: crate::impls::ArcActionHandler<A, R>,
         listner: crate::impls::CustomEventListner<E>,
         config: &crate::config::HttpWebhook,
     ) -> Self {
@@ -72,7 +74,7 @@ where
             self_id,
             access_token: config.access_token.clone(),
             time_out: config.timeout,
-            sender,
+            handler,
             listner,
         }
     }
@@ -83,17 +85,14 @@ where
                 let actions = self.push(e).await;
                 if let Some(actions) = actions {
                     for action in actions {
-                        self.sender
-                            .send((action, crate::impls::CustomARSS::None))
-                            .await
-                            .unwrap();
+                        self.handler.handle(action).await;
                     }
                 }
             }
         })
     }
 
-    async fn push(&self, event: E) -> Option<Vec<A>> {
+    async fn push(&self, event: CustomEvent<E>) -> Option<Vec<A>> {
         let data = match serde_json::to_string(&event) {
             Ok(s) => s,
             Err(_) => {

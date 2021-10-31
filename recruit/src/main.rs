@@ -14,7 +14,6 @@ async fn main() {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         bots.send_private_message(
             "recruit".to_owned(),
-            "recruit",
             vec![MessageSegment::Text {
                 text: "hello world!".to_owned(),
             }],

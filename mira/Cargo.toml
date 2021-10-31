@@ -6,7 +6,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-walle-core = { path = "../.", features = ["http", "websocket", "sdk"] }
+walle-core = { path = "../.", features = ["http", "websocket", "app"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "*"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

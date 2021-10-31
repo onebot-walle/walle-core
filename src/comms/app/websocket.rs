@@ -4,13 +4,15 @@ use tokio::task::JoinHandle;
 
 use crate::config::WebSocketRev;
 
-pub async fn run<E, R>(
+pub async fn run<E, A, R>(
     config: &WebSocketRev,
-    event_handler: crate::sdk::ArcEventHandler<E>,
-    action_resp_handler: crate::sdk::ArcARHandler<R>,
+    event_handler: crate::app::ArcEventHandler<E>,
+    action_broadcaster: tokio::sync::broadcast::Sender<A>,
+    action_resp_handler: crate::app::ArcARHandler<R>,
 ) -> JoinHandle<()>
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
+    A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
     let config = config.clone();
@@ -20,6 +22,7 @@ where
                 super::websocket_loop(
                     ws_stream,
                     event_handler.clone(),
+                    action_broadcaster.subscribe(),
                     action_resp_handler.clone(),
                 )
                 .await;

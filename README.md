@@ -19,13 +19,13 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 - http: 启用 Http 与 HttpWebhook 通讯协议
 - websocket: 启用正向 WebSocket 与反向 WebSocket 通讯协议
 - impl: 启用实现端 lib api
-- sdk: 启用应用端 lib api
+- app: 启用应用端 lib api
 
 ## How to use
 
 仅展示最小实例
 
-### impl
+### Implementation
 
 ```rust
 use walle_core::{ImplConfig, impls::OneBot, DefaultHandler};
@@ -47,16 +47,16 @@ async fn main() {
 }
 ```
 
-### sdk
+### Application
 
 ```rust
-use walle_core::{SdkConfig, sdk::OneBot, DefaultHandler};
+use walle_core::{AppConfig, app::OneBot, DefaultHandler};
 
 #[tokio::main]
 async fn main() {
     let env = tracing_subscriber::EnvFilter::from("walle_core=trace"); 
     tracing_subscriber::fmt().with_env_filter(env).init(); // 初始化 tracing
-    let config = SdkConfig::default();
+    let config = AppConfig::default();
     let ob = OneBot::new(
         config,
         DefaultHandler::arc(), // EventHandler

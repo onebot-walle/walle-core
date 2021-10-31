@@ -1,4 +1,5 @@
-pub fn timestamp() -> i64 {
+#[cfg(feature = "impl")]
+pub(crate) fn timestamp() -> i64 {
     use std::time;
 
     time::SystemTime::now()

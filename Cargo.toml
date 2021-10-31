@@ -13,7 +13,7 @@ echo = []
 qq = []
 http = ["hyper"]
 websocket = ["tokio-tungstenite", "futures-util"]
-sdk = []
+app = []
 impl = []
 
 [dependencies]

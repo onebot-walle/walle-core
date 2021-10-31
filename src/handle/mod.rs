@@ -42,6 +42,8 @@ where
 }
 
 /// 应用端处理 Event 需要实现的 Trait
+///
+/// 请注意，该出的泛型 E 应为使用 CustomEvent 包装后的 Event 并非 Content
 #[async_trait]
 pub trait EventHandler<E>
 where

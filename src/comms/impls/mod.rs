@@ -20,7 +20,7 @@ pub use websocket_rev::run as websocket_rev_run;
 async fn websocket_loop<E, A, R>(
     mut ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     mut listener: crate::impls::CustomEventListner<E>,
-    sender: crate::impls::CustomActionSender<A, R>,
+    handler: crate::impls::ArcActionHandler<A, R>,
 ) where
     E: Clone + serde::Serialize + Send + 'static,
     A: serde::de::DeserializeOwned + std::fmt::Debug + Send + 'static,
@@ -38,7 +38,10 @@ async fn websocket_loop<E, A, R>(
                 match event_result {
                     Ok(event) => {
                         let event = serde_json::to_string(&event).unwrap();
-                        ws_stream.send(Message::Text(event)).await.unwrap();
+                        if let Err(e) = ws_stream.send(Message::Text(event)).await {
+                            error!("ws disconnect with error {}", e);
+                            return;
+                        };
                     }
                     Err(_) => panic!(),
                 }
@@ -53,8 +56,12 @@ async fn websocket_loop<E, A, R>(
                         Ok(message) => {
                             match serde_json::from_str(&message.to_string()) {
                                 Ok(action) => {
-                                    sender.send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
-                                    .await.unwrap();
+                                    let action_handler = handler.clone();
+                                    let sender = resp_sender.clone();
+                                    tokio::spawn(async move {
+                                        let resp = action_handler.handle(action).await;
+                                        sender.send(resp).await.unwrap();
+                                    });
                                 }
                                 Err(_) => error!("Receive illegal action {}", message.to_string()),
                             }

@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{EmptyContent, Event};
 
-/// OneBot 12 标准动作响应
+/// ## OneBot 12 标准动作响应
 pub type ActionResps = ActionResp<ActionRespContent>;
 
+/// ## 动作响应
+///
 /// **动作响应**是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ActionResp<T> {

@@ -1,7 +1,7 @@
 use crate::EmptyContent;
 use serde::{Deserialize, Serialize};
 
-/// OneBot 12 标准动作
+/// ## OneBot 12 标准动作
 ///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -17,7 +17,7 @@ fn empty_error_response(code: u16) -> Response<Body> {
 #[cfg(feature = "impl")]
 struct OneBotService<A, R> {
     pub access_token: Option<String>,
-    pub sender: crate::impls::CustomActionSender<A, R>,
+    pub handler: crate::impls::ArcActionHandler<A, R>,
 }
 
 #[cfg(feature = "impl")]
@@ -58,16 +58,11 @@ where
                 return Box::pin(async { Ok(empty_error_response(401)) });
             }
         }
-        let (sender, receiver) = tokio::sync::oneshot::channel();
-        let action_sender = self.sender.clone();
+        let action_handler = self.handler.clone();
         Box::pin(async move {
             let data = hyper::body::aggregate(req).await.unwrap();
             let action = serde_json::from_reader(data.reader()).unwrap();
-            action_sender
-                .send((action, crate::impls::CustomARSS::OneShot(sender)))
-                .await
-                .unwrap();
-            let action_resp = receiver.await.unwrap();
+            let action_resp = action_handler.handle(action).await;
             Ok(Response::new(Body::from(
                 serde_json::to_string(&action_resp).unwrap(),
             )))
@@ -78,7 +73,7 @@ where
 #[cfg(feature = "impl")]
 struct MakeOneBotService<A, R> {
     pub access_token: Option<String>,
-    pub sender: crate::impls::CustomActionSender<A, R>,
+    pub handler: crate::impls::ArcActionHandler<A, R>,
 }
 
 #[cfg(feature = "impl")]
@@ -98,7 +93,7 @@ where
     fn call(&mut self, _: T) -> Self::Future {
         let obs = OneBotService {
             access_token: self.access_token.clone(),
-            sender: self.sender.clone(),
+            handler: self.handler.clone(),
         };
         Box::pin(async move { Ok(obs) })
     }
@@ -107,7 +102,7 @@ where
 #[cfg(feature = "impl")]
 pub fn run<A, R>(
     config: &crate::config::Http,
-    sender: crate::impls::CustomActionSender<A, R>,
+    handler: crate::impls::ArcActionHandler<A, R>,
 ) -> tokio::task::JoinHandle<()>
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
@@ -115,7 +110,7 @@ where
 {
     let mobs = MakeOneBotService {
         access_token: config.access_token.clone(),
-        sender,
+        handler,
     };
     let addr = std::net::SocketAddr::new(config.host, config.port);
     let server = Server::bind(&addr).serve(mobs);

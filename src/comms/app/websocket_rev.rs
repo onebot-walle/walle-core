@@ -6,13 +6,15 @@ use tokio::{
 
 use crate::{comms::WebSocketServer, config::WebSocket};
 
-pub async fn run<E, R>(
+pub async fn run<E, A, R>(
     config: &WebSocket,
-    event_handler: crate::sdk::ArcEventHandler<E>,
-    action_resp_handler: crate::sdk::ArcARHandler<R>,
+    event_handler: crate::app::ArcEventHandler<E>,
+    action_broadcaster: tokio::sync::broadcast::Sender<A>,
+    action_resp_handler: crate::app::ArcARHandler<R>,
 ) -> WebSocketServer
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
+    A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
     let addr = std::net::SocketAddr::new(config.host, config.port);
@@ -24,6 +26,7 @@ where
             let join = tokio::spawn(handle_conn(
                 stream,
                 event_handler.clone(),
+                action_broadcaster.subscribe(),
                 action_resp_handler.clone(),
             ));
             {
@@ -38,17 +41,25 @@ where
     }
 }
 
-async fn handle_conn<E, R>(
+async fn handle_conn<E, A, R>(
     stream: TcpStream,
-    event_handler: crate::sdk::ArcEventHandler<E>,
-    action_resp_handler: crate::sdk::ArcARHandler<R>,
+    event_handler: crate::app::ArcEventHandler<E>,
+    action_listener: tokio::sync::broadcast::Receiver<A>,
+    action_resp_handler: crate::app::ArcARHandler<R>,
 ) where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
+    A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
     let _addr = stream
         .peer_addr()
         .expect("connected streams should have a peer address");
     let ws_stream = tokio_tungstenite::accept_async(stream).await.unwrap();
-    super::websocket_loop(ws_stream, event_handler, action_resp_handler).await
+    super::websocket_loop(
+        ws_stream,
+        event_handler,
+        action_listener,
+        action_resp_handler,
+    )
+    .await
 }

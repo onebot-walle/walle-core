@@ -1,18 +1,38 @@
+use std::fmt::Debug;
+
 use serde::Deserialize;
 
 /// OneBot 实现端设置项
 #[derive(Debug, Deserialize)]
 pub struct ImplConfig {
-    pub heartheat: bool,
+    pub heartbeat: Heartbeat,
     pub http: Vec<Http>,
     pub http_webhook: Vec<HttpWebhook>,
     pub websocket: Vec<WebSocket>,
     pub websocket_rev: Vec<WebSocketRev>,
 }
 
+/// OneBot 心跳设置
+///
+/// 间隔为 0 则默认为 4
+#[derive(Debug, Deserialize)]
+pub struct Heartbeat {
+    pub enabled: bool,
+    pub interval: u32,
+}
+
+impl Default for Heartbeat {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            interval: 4,
+        }
+    }
+}
+
 /// OneBot 应用端设置项
 #[derive(Debug, Deserialize)]
-pub struct SdkConfig {
+pub struct AppConfig {
     pub http: Option<Http>,
     pub http_webhook: Option<HttpWebhook>,
     pub websocket: Option<WebSocketRev>,
@@ -56,7 +76,7 @@ pub struct WebSocketRev {
 impl Default for ImplConfig {
     fn default() -> Self {
         Self {
-            heartheat: true,
+            heartbeat: Heartbeat::default(),
             http: vec![],
             http_webhook: vec![],
             websocket: vec![WebSocket {
@@ -69,7 +89,7 @@ impl Default for ImplConfig {
     }
 }
 
-impl Default for SdkConfig {
+impl Default for AppConfig {
     fn default() -> Self {
         Self {
             http: None,

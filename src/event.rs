@@ -11,7 +11,11 @@ pub type NoticeEvent = CustomEvent<Notice>;
 /// OneBot 12 标准请求事件
 pub type RequestEvent = CustomEvent<Request>;
 
-/// *事件*是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
+/// ## OneBot Event 基类
+///
+/// 持有所有 Event 共有字段，其余字段由 Content 定义
+///
+/// **事件**是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
 ///
 /// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -88,7 +92,11 @@ impl Event {
     }
 }
 
-/// Event Content 除了 OneBot 规定的 Event 通用 Field 均为 Content
+/// ## Event Content
+///
+/// 除了 OneBot 规定的 Event 通用 Field 均为 Content
+///
+/// 该枚举为基础未扩展四种事件类型 Content 的枚举
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
@@ -152,20 +160,25 @@ impl EventContent {
     }
 }
 
-/// OneBot 元事件
+/// ## OneBot 元事件 Content
+///
+/// 元事件是 OneBot 实现内部自发产生的一类事件，例如心跳等，
+/// 与 OneBot 本身的运行状态有关，与实现对应的机器人平台无关。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
 pub enum Meta {
     /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
     Heartbeat {
-        interval: i64,
+        interval: u32,
         status: crate::action_resp::StatusContent,
         sub_type: String, // just for Deserialize
     },
 }
 
-/// OneBot 消息事件
+/// ## OneBot 消息事件 Content
+///
+/// 消息事件是聊天机器人收到其他用户发送的消息对应的一类事件，例如私聊消息等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Message {
     #[serde(flatten)]
@@ -186,6 +199,9 @@ pub enum MessageEventType {
     Group { group_id: String },
 }
 
+/// ## OneBot 通知事件 Content
+///
+/// 通知事件是机器人平台向机器人发送通知对应的事件，例如群成员变动等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
@@ -248,6 +264,9 @@ pub enum Notice {
     },
 }
 
+/// ## OneBot 请求事件 Content
+///
+/// 请求事件是聊天机器人收到其他用户发送的请求对应的一类事件，例如加好友请求等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 pub enum Request {

@@ -5,6 +5,10 @@
 pub mod action;
 /// Onebot ActionResp
 pub mod action_resp;
+#[cfg(feature = "app")]
+#[cfg_attr(docsrs, doc(cfg(feature = "app")))]
+/// 应用端相关 api
+pub mod app;
 mod comms;
 /// 相关配置项
 pub mod config;
@@ -17,10 +21,6 @@ mod handle;
 /// 实现端相关 api
 pub mod impls;
 mod message;
-#[cfg(feature = "sdk")]
-#[cfg_attr(docsrs, doc(cfg(feature = "sdk")))]
-/// 应用端相关 api
-pub mod sdk;
 mod test;
 pub(crate) mod utils;
 
@@ -39,3 +39,6 @@ use serde::{Deserialize, Serialize};
 /// 空结构体，用于对应 Json 中的空 Map
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EmptyContent {}
+
+static SHUTDOWN: u8 = 0;
+static RUNNING: u8 = 1;

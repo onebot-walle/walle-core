@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::task::JoinHandle;
 use walle_core::{
     action_resp::VersionContent, impls::OneBot, Event, EventContent, ImplConfig, Message,
 };
@@ -13,7 +12,6 @@ static ONEBOT_VERSION: &str = "12";
 pub(crate) struct Bot {
     pub inner: Arc<OneBot>,
     event_count: u64,
-    join_handle: Option<JoinHandle<()>>,
 }
 
 #[derive(Default)]
@@ -32,51 +30,36 @@ impl Bot {
                 Arc::new(super::handle::Handler),
             )),
             event_count: 0,
-            join_handle: None,
         }
     }
 
-    fn build_private_event(
-        &self,
-        self_id: String,
-        bot_id: String,
-        message: Message,
-        alt_message: String,
-    ) -> Event {
-        self.inner.new_events(
+    fn build_private_event(&self, bot_id: String, message: Message, alt_message: String) -> Event {
+        self.inner.new_event(
             format!("{}", self.event_count),
-            self_id,
             EventContent::private("".to_owned(), message, alt_message, bot_id),
         )
-    }
-
-    fn run(&mut self) {
-        if self.join_handle.is_none() {
-            let bot = self.inner.clone();
-            self.join_handle = Some(tokio::spawn(async move {
-                bot.run().await.unwrap();
-            }));
-        }
     }
 }
 
 impl Bots {
-    pub(crate) async fn add_bot(&mut self, bot_id: String, mut bot: Bot) -> Option<Bot> {
-        bot.run();
+    pub(crate) async fn add_bot(&mut self, bot_id: String, bot: Bot) -> Option<Bot> {
+        bot.inner.run().await.unwrap();
+        bot.inner.start_heartbeat(bot.inner.clone());
         self.inner.insert(bot_id, bot)
     }
 
     pub(crate) async fn send_private_message(
         &mut self,
         bot_id: String,
-        self_id: &str,
         message: Message,
         alt_message: String,
     ) -> Option<String> {
         if let Some(bot) = self.inner.get(&bot_id) {
-            let e = bot.build_private_event(self_id.to_owned(), bot_id, message, alt_message);
+            let e = bot.build_private_event(bot_id, message, alt_message);
             let seq = e.id.clone();
-            bot.inner.send_event(e);
+            match bot.inner.send_event(e) {
+                _ => {}
+            }
             Some(seq)
         } else {
             None
