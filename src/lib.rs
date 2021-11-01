@@ -22,13 +22,13 @@ mod handle;
 pub mod impls;
 mod message;
 mod test;
-pub(crate) mod utils;
+mod utils;
 
 pub use action::Action;
 pub use action_resp::{ActionResp, ActionRespContent, ActionResps};
 pub use config::*;
 pub use event::*;
-pub use handle::{ActionHandler, ActionRespHandler, DefaultHandler, EventHandler};
+pub use handle::{ActionHandler, DefaultHandler, EventHandler};
 pub use message::{Message, MessageBuild, MessageSegment};
 
 pub use async_trait::async_trait;

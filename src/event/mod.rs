@@ -29,7 +29,7 @@ pub struct BaseEvent<T> {
     pub r#impl: String,
     pub platform: String,
     pub self_id: String,
-    pub time: i64,
+    pub time: u64,
     #[serde(flatten)]
     pub content: T,
 }

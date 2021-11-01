@@ -52,16 +52,7 @@ where
     async fn handle(&self, event: E);
 }
 
-/// 应用端处理 ActionResp 需要实现的 Trait
-#[async_trait]
-pub trait ActionRespHandler<R>
-where
-    R: Clone + DeserializeOwned + Send + 'static + std::fmt::Debug,
-{
-    async fn handle(&self, resp: R);
-}
-
-/// 内置默认 Handler ，可以使用 `DefaultHandler::arc()` 返回打包后的 Handler 直接使用  ( 三种 Handler trait 均已实现 )
+/// 内置默认 Handler ，可以使用 `DefaultHandler::arc()` 返回打包后的 Handler 直接使用  ( 两种 Handler trait 均已实现 )
 ///
 /// 仅使用默认 Onebot 类型 (Event, Action, ActionResps) 时可用
 ///
@@ -69,7 +60,6 @@ where
 ///
 /// - ActionHandler: 返回默认 Version 信息，其余均返回 unsupported
 /// - EventHandler: 仅 Log 打印输出 Event
-/// - ActionRespHandler: Do Nothing (累了，毁灭吧，赶紧的)
 pub struct DefaultHandler;
 
 impl DefaultHandler {
@@ -135,11 +125,6 @@ impl EventHandler<crate::Event> for DefaultHandler {
             }
         }
     }
-}
-
-#[async_trait]
-impl ActionRespHandler<crate::ActionResps> for DefaultHandler {
-    async fn handle(&self, _: crate::ActionResps) {}
 }
 
 async fn get_version() -> crate::action_resp::VersionContent {

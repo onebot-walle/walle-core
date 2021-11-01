@@ -11,7 +11,7 @@ static ONEBOT_VERSION: &str = "12";
 
 pub(crate) struct Bot {
     pub inner: Arc<OneBot>,
-    event_count: u64,
+    // event_count: u64,
 }
 
 #[derive(Default)]
@@ -29,22 +29,23 @@ impl Bot {
                 config,
                 Arc::new(super::handle::Handler),
             )),
-            event_count: 0,
+            // event_count: 0,
         }
     }
 
     fn build_private_event(&self, bot_id: String, message: Message, alt_message: String) -> Event {
-        self.inner.new_event(
-            format!("{}", self.event_count),
-            EventContent::private("".to_owned(), message, alt_message, bot_id),
-        )
+        self.inner.new_event(EventContent::private(
+            "".to_owned(),
+            message,
+            alt_message,
+            bot_id,
+        ))
     }
 }
 
 impl Bots {
     pub(crate) async fn add_bot(&mut self, bot_id: String, bot: Bot) -> Option<Bot> {
-        bot.inner.run().await.unwrap();
-        bot.inner.start_heartbeat(bot.inner.clone());
+        bot.inner.run(bot.inner.clone()).await.unwrap();
         self.inner.insert(bot_id, bot)
     }
 

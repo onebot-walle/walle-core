@@ -8,10 +8,13 @@ use crate::{
     config::AppConfig, event::BaseEvent, Action, ActionResps, EventContent, RUNNING, SHUTDOWN,
 };
 
+pub(crate) type ActionRespSender<R> = tokio::sync::mpsc::Sender<R>;
 pub(crate) type ArcEventHandler<E> =
     Arc<dyn crate::handle::EventHandler<BaseEvent<E>> + Send + Sync>;
-pub(crate) type ArcARHandler<R> = Arc<dyn crate::handle::ActionRespHandler<R> + Send + Sync>;
-type CustomActionBroadcaster<A> = tokio::sync::broadcast::Sender<A>;
+pub(crate) type CustomActionBroadcaster<A, R> =
+    tokio::sync::broadcast::Sender<(A, ActionRespSender<R>)>;
+pub(crate) type CustomActionListenr<A, R> =
+    tokio::sync::broadcast::Receiver<(A, ActionRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
 pub type OneBot = CustomOneBot<EventContent, Action, ActionResps>;
@@ -31,8 +34,7 @@ pub type OneBot = CustomOneBot<EventContent, Action, ActionResps>;
 pub struct CustomOneBot<E, A, R> {
     pub config: AppConfig,
     event_handler: ArcEventHandler<E>,
-    action_broadcaster: CustomActionBroadcaster<A>,
-    action_resp_handler: ArcARHandler<R>,
+    action_broadcaster: CustomActionBroadcaster<A, R>,
 
     #[cfg(feature = "websocket")]
     ws_join_handles: RwLock<(
@@ -49,17 +51,12 @@ where
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
-    pub fn new(
-        config: AppConfig,
-        event_handler: ArcEventHandler<E>,
-        action_resp_handler: ArcARHandler<R>,
-    ) -> Self {
+    pub fn new(config: AppConfig, event_handler: ArcEventHandler<E>) -> Self {
         let (action_broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {
             config,
             event_handler,
             action_broadcaster,
-            action_resp_handler,
             #[cfg(feature = "websocket")]
             ws_join_handles: RwLock::default(),
             status: AtomicU8::default(),
@@ -86,7 +83,6 @@ where
                     websocket,
                     self.event_handler.clone(),
                     self.action_broadcaster.clone(),
-                    self.action_resp_handler.clone(),
                 )
                 .await,
             );
@@ -102,7 +98,6 @@ where
                     websocket_rev,
                     self.event_handler.clone(),
                     self.action_broadcaster.clone(),
-                    self.action_resp_handler.clone(),
                 )
                 .await,
             );
@@ -150,6 +145,24 @@ where
     }
 
     pub async fn call_action(&self, action: A) {
-        self.action_broadcaster.send(action).unwrap();
+        let (sender, _) = tokio::sync::mpsc::channel(1);
+        self.action_broadcaster.send((action, sender)).unwrap();
+    }
+
+    pub async fn call_action_resp(&self, action: A) -> Option<R> {
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
+        self.action_broadcaster.send((action, sender)).unwrap();
+        match tokio::time::timeout(tokio::time::Duration::from_secs(15), async {
+            if let Some(r) = receiver.recv().await {
+                Some(r)
+            } else {
+                None
+            }
+        })
+        .await
+        {
+            Ok(r) => r,
+            Err(_) => None,
+        }
     }
 }

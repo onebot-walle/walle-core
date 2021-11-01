@@ -1,6 +1,6 @@
 # Event
 
-已下使用 Event 代指符合 OneBot 标准，未反序列化的事件。
+以下使用 Event 代指符合 OneBot 标准，未反序列化的事件。
 
 ## BaseEvent
 
@@ -80,7 +80,7 @@ pub enum ExtendedMeta<T> {
 
 这是一个 untagged 枚举，serde 将会尝试所有可能匹配， 这也意味着在你的扩展 content 类型 T 中，你依然可以使用 detail_type 字段进行反序列化操作。
 
-当然，你也可以自由定义 Content 枚举，但是你的 Content 需要实现 Trait EventContentExt
+当然，你也可以自由定义 Content 枚举( 并不建议怎么做 )，但是你的 Content 需要实现 Trait EventContentExt
 
 ```rust
 pub trait EventContentExt {

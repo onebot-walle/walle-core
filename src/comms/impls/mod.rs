@@ -30,8 +30,10 @@ async fn websocket_loop<E, A, R>(
     use tokio_tungstenite::tungstenite::Message;
     use tracing::error;
 
+    use crate::utils::Echo;
+
     // let (mut sink, mut stream) = ws_stream.split();
-    let (resp_sender, mut resp_receiver) = tokio::sync::mpsc::channel(1024);
+    let (resp_sender, mut resp_receiver) = tokio::sync::mpsc::unbounded_channel();
     loop {
         tokio::select! {
             event_result = listener.recv() => {
@@ -47,20 +49,24 @@ async fn websocket_loop<E, A, R>(
                 }
             }
             resp = resp_receiver.recv() => {
-                let resp = serde_json::to_string(&resp).unwrap();
-                ws_stream.send(Message::Text(resp)).await.unwrap();
+                if let Some(resp) = resp {
+                    let resp = serde_json::to_string(&resp).unwrap();
+                    ws_stream.send(Message::Text(resp)).await.unwrap();
+                }
             }
             data_option = ws_stream.next() => {
                 if let Some(data) = data_option {
                     match data {
                         Ok(message) => {
-                            match serde_json::from_str(&message.to_string()) {
+                            match serde_json::from_str::<Echo<A>>(&message.to_string()) {
                                 Ok(action) => {
                                     let action_handler = handler.clone();
                                     let sender = resp_sender.clone();
                                     tokio::spawn(async move {
+                                        let (action, echo) = action.unpack();
                                         let resp = action_handler.handle(action).await;
-                                        sender.send(resp).await.unwrap();
+                                        let resp = echo.pack(resp);
+                                        sender.send(resp).unwrap();
                                     });
                                 }
                                 Err(_) => error!(target: "Walle-core", "Receive illegal action {}", message.to_string()),

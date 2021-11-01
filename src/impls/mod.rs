@@ -91,8 +91,7 @@ where
     /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
     ///
     /// 当重复运行同一个实例，将会返回 Err
-    #[cfg(any(feature = "http", feature = "websocket"))]
-    pub async fn run(&self) -> Result<(), &'static str> {
+    pub async fn run(&self, ob: Arc<Self>) -> Result<(), &'static str> {
         use colored::*;
 
         if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
@@ -154,6 +153,9 @@ where
                 );
             }
         }
+        if self.config.heartbeat.enabled {
+            self.start_heartbeat(ob);
+        }
 
         self.status
             .swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
@@ -209,9 +211,10 @@ where
         }
     }
 
-    pub fn new_event(&self, id: String, content: E) -> BaseEvent<E> {
+    pub fn new_event(&self, content: E) -> BaseEvent<E> {
+        let auuid = uuid::Uuid::from_u128(crate::utils::timestamp_nano());
         crate::event::BaseEvent {
-            id,
+            id: auuid.to_string(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
             self_id: self.self_id.clone(),
@@ -220,7 +223,7 @@ where
         }
     }
 
-    pub fn start_heartbeat(&self, ob: Arc<Self>) {
+    fn start_heartbeat(&self, ob: Arc<Self>) {
         let mut interval = self.config.heartbeat.interval;
         if interval <= 0 {
             interval = 4;
@@ -231,15 +234,13 @@ where
                     break;
                 }
                 tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
-                let t = crate::utils::timestamp();
-                let hb = ob.new_event(
-                    format!("{}", t),
-                    E::from_standard(EventContent::Meta(crate::event::Meta::Heartbeat {
+                let hb = ob.new_event(E::from_standard(EventContent::Meta(
+                    crate::event::Meta::Heartbeat {
                         interval,
                         status: ob.get_status(),
                         sub_type: "".to_owned(),
-                    })),
-                );
+                    },
+                )));
                 match ob.send_event(hb) {
                     _ => {}
                 };

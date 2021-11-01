@@ -2,7 +2,7 @@ use hyper::{body::Buf, client::HttpConnector, Body, Client as HyperClient, Metho
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
-use crate::event::BaseEvent;
+use crate::{event::BaseEvent, utils::Echo};
 
 #[cfg(feature = "impl")]
 impl<E, A, R> crate::impls::CustomOneBot<E, A, R>
@@ -138,12 +138,18 @@ where
         }
 
         let body = hyper::body::aggregate(resp).await.unwrap();
-        match serde_json::from_reader(body.reader()) {
-            Ok(a) => Some(a),
+        let echo_action: Vec<Echo<A>> = match serde_json::from_reader(body.reader()) {
+            Ok(e) => e,
             Err(_) => {
                 panic!()
                 // handle error here
             }
+        };
+        let mut r = vec![];
+        for ea in echo_action {
+            let (a, _) = ea.unpack();
+            r.push(a);
         }
+        Some(r)
     }
 }

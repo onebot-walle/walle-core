@@ -7,6 +7,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use crate::utils::Echo;
+
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
         .status(code)
@@ -61,8 +63,10 @@ where
         let action_handler = self.handler.clone();
         Box::pin(async move {
             let data = hyper::body::aggregate(req).await.unwrap();
-            let action = serde_json::from_reader(data.reader()).unwrap();
+            let action: Echo<A> = serde_json::from_reader(data.reader()).unwrap();
+            let (action, echo) = action.unpack();
             let action_resp = action_handler.handle(action).await;
+            let action_resp = echo.pack(action_resp);
             Ok(Response::new(Body::from(
                 serde_json::to_string(&action_resp).unwrap(),
             )))

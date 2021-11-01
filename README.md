@@ -15,7 +15,7 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 
 ## features
 
-- echo: 为 Action 启用 Echo 字段（todo）
+- ~~echo~~: 启用 echo 字段 ( echo 字段默认实现，才是因为分离太难了 )
 - http: 启用 Http 与 HttpWebhook 通讯协议
 - websocket: 启用正向 WebSocket 与反向 WebSocket 通讯协议
 - impl: 启用实现端 lib api

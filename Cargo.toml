@@ -9,12 +9,11 @@ authors = ["Abrahum<307887491@qq.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-echo = []
 qq = []
 http = ["hyper"]
 websocket = ["tokio-tungstenite", "futures-util"]
 app = []
-impl = []
+impl = ["uuid"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -23,6 +22,7 @@ rmp-serde = "0.15"
 async-trait = "0.1"
 tracing = "0.1"
 colored = "2"
+uuid = { version = "0.8", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
 tokio-tungstenite = { version = "0.15", optional = true }

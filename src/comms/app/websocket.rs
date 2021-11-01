@@ -7,8 +7,7 @@ use crate::config::WebSocketRev;
 pub async fn run<E, A, R>(
     config: &WebSocketRev,
     event_handler: crate::app::ArcEventHandler<E>,
-    action_broadcaster: tokio::sync::broadcast::Sender<A>,
-    action_resp_handler: crate::app::ArcARHandler<R>,
+    action_broadcaster: crate::app::CustomActionBroadcaster<A, R>,
 ) -> JoinHandle<()>
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
@@ -23,7 +22,6 @@ where
                     ws_stream,
                     event_handler.clone(),
                     action_broadcaster.subscribe(),
-                    action_resp_handler.clone(),
                 )
                 .await;
             }
