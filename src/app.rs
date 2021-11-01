@@ -5,11 +5,11 @@ use std::sync::{
 use tokio::{sync::RwLock, task::JoinHandle};
 
 use crate::{
-    config::AppConfig, event::CustomEvent, Action, ActionResps, EventContent, RUNNING, SHUTDOWN,
+    config::AppConfig, event::BaseEvent, Action, ActionResps, EventContent, RUNNING, SHUTDOWN,
 };
 
 pub(crate) type ArcEventHandler<E> =
-    Arc<dyn crate::handle::EventHandler<CustomEvent<E>> + Send + Sync>;
+    Arc<dyn crate::handle::EventHandler<BaseEvent<E>> + Send + Sync>;
 pub(crate) type ArcARHandler<R> = Arc<dyn crate::handle::ActionRespHandler<R> + Send + Sync>;
 type CustomActionBroadcaster<A> = tokio::sync::broadcast::Sender<A>;
 
@@ -80,7 +80,7 @@ where
 
         #[cfg(feature = "websocket")]
         if let Some(websocket) = &self.config.websocket {
-            info!("Running WebSocket");
+            info!(target: "Walle-core", "Running WebSocket");
             self.ws_join_handles.write().await.0 = Some(
                 crate::comms::app::websocket_run(
                     websocket,
@@ -96,7 +96,7 @@ where
 
         #[cfg(feature = "websocket")]
         if let Some(websocket_rev) = &self.config.websocket_rev {
-            info!("Running WebSocket");
+            info!(target: "Walle-core", "Running WebSocket");
             self.ws_join_handles.write().await.1 = Some(
                 crate::comms::app::websocket_rev_run(
                     websocket_rev,

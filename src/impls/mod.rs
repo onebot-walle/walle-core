@@ -1,7 +1,7 @@
 #![doc = include_str!("README.md")]
 
 use crate::{
-    action_resp::StatusContent, comms, event::CustomEvent, Action, ActionResps, EventContent,
+    action_resp::StatusContent, comms, event::BaseEvent, Action, ActionResps, EventContent,
     ImplConfig, RUNNING, SHUTDOWN,
 };
 use serde::{de::DeserializeOwned, Serialize};
@@ -13,12 +13,10 @@ use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::info;
 
 #[cfg(any(feature = "http", feature = "websocket"))]
-pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<CustomEvent<E>>;
+pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<BaseEvent<E>>;
 #[cfg(any(feature = "http", feature = "websocket"))]
-pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<CustomEvent<E>>;
+pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<BaseEvent<E>>;
 pub(crate) type ArcActionHandler<A, R> = Arc<dyn crate::handle::ActionHandler<A, R> + Send + Sync>;
-
-mod e;
 
 /// OneBot v12 无扩展实现端实例
 pub type OneBot = CustomOneBot<EventContent, Action, ActionResps>;
@@ -49,7 +47,7 @@ pub struct CustomOneBot<E, A, R> {
 
 impl<E, A, R> CustomOneBot<E, A, R>
 where
-    E: Clone + Serialize + Send + 'static,
+    E: crate::EventContentExt + Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
 {
@@ -101,11 +99,11 @@ where
             return Err("OneBot is already running");
         }
 
-        info!("{} is booting", self.r#impl.red());
+        info!(target: "Walle-core", "{} is booting", self.r#impl.red());
 
         #[cfg(feature = "http")]
         if !self.config.http.is_empty() {
-            info!("Running HTTP");
+            info!(target: "Walle-core", "Strating HTTP");
             let http_joins = &mut self.http_join_handles.write().await.0;
             for http in &self.config.http {
                 http_joins.push(crate::comms::impls::http_run(
@@ -117,7 +115,7 @@ where
 
         #[cfg(feature = "http")]
         if !self.config.http_webhook.is_empty() {
-            info!("Running HTTP Webhook");
+            info!(target: "Walle-core", "Strating HTTP Webhook");
             let webhook_joins = &mut self.http_join_handles.write().await.1;
             let clients = self.build_webhook_clients(self.action_handler.clone());
             for client in clients {
@@ -127,7 +125,7 @@ where
 
         #[cfg(feature = "websocket")]
         if !self.config.websocket.is_empty() {
-            info!("Running WebSocket");
+            info!(target: "Walle-core", "Strating WebSocket");
             let ws_joins = &mut self.ws_join_handles.write().await.0;
             for websocket in &self.config.websocket {
                 ws_joins.push(
@@ -143,7 +141,7 @@ where
 
         #[cfg(feature = "websocket")]
         if !self.config.websocket_rev.is_empty() {
-            info!("Running WebSocket Reverse");
+            info!(target: "Walle-core", "Strating WebSocket Reverse");
             let wsrev_joins = &mut self.ws_join_handles.write().await.1;
             for websocket_rev in &self.config.websocket_rev {
                 wsrev_joins.push(
@@ -204,10 +202,48 @@ where
             .swap(SHUTDOWN, std::sync::atomic::Ordering::SeqCst);
     }
 
-    pub fn send_event(&self, event: CustomEvent<E>) -> Result<usize, &str> {
+    pub fn send_event(&self, event: BaseEvent<E>) -> Result<usize, &str> {
         match self.broadcaster.send(event) {
             Ok(t) => Ok(t),
             Err(_) => Err("there is no event receiver can receive the event yet"),
         }
+    }
+
+    pub fn new_event(&self, id: String, content: E) -> BaseEvent<E> {
+        crate::event::BaseEvent {
+            id,
+            r#impl: self.r#impl.clone(),
+            platform: self.platform.clone(),
+            self_id: self.self_id.clone(),
+            time: crate::utils::timestamp(),
+            content,
+        }
+    }
+
+    pub fn start_heartbeat(&self, ob: Arc<Self>) {
+        let mut interval = self.config.heartbeat.interval;
+        if interval <= 0 {
+            interval = 4;
+        }
+        tokio::spawn(async move {
+            loop {
+                if ob.status.load(Ordering::SeqCst) != RUNNING {
+                    break;
+                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
+                let t = crate::utils::timestamp();
+                let hb = ob.new_event(
+                    format!("{}", t),
+                    E::from_standard(EventContent::Meta(crate::event::Meta::Heartbeat {
+                        interval,
+                        status: ob.get_status(),
+                        sub_type: "".to_owned(),
+                    })),
+                );
+                match ob.send_event(hb) {
+                    _ => {}
+                };
+            }
+        });
     }
 }

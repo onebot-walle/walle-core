@@ -3,7 +3,7 @@ fn event() {
     use crate::action_resp::StatusContent;
     use crate::event::Event;
     use crate::event::{
-        CustomEvent, EventContent, Message as MsgContent, MessageEventType, Meta, Notice,
+        BaseEvent, EventContent, Message as MsgContent, MessageEventType, Meta, Notice,
     };
     use crate::MessageSegment;
 
@@ -24,7 +24,7 @@ fn event() {
                     "online": true
                 }
             }"#,
-            CustomEvent {
+            BaseEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
@@ -68,7 +68,7 @@ fn event() {
                 "alt_message": "OneBot is not a bot[图片]",
                 "user_id": "123456788"
             }"#,
-            CustomEvent {
+            BaseEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
@@ -105,7 +105,7 @@ fn event() {
                 "group_id": "87654321",
                 "operator_id": "1234567"
             }"#,
-            CustomEvent {
+            BaseEvent {
                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),

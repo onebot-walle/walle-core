@@ -52,16 +52,16 @@ pub(crate) async fn try_connect(
     match tokio::net::TcpStream::connect(&config.url).await {
         Ok(tcp_stream) => match tokio_tungstenite::client_async(req, tcp_stream).await {
             Ok((ws_stream, _)) => {
-                info!("success connect to {}", ws_url);
+                info!(target: "Walle-core", "success connect to {}", ws_url);
                 Some(ws_stream)
             }
             Err(e) => {
-                error!("upgrade connect to ws error {}", e);
+                error!(target: "Walle-core", "upgrade connect to ws error {}", e);
                 None
             }
         },
         Err(e) => {
-            error!("connect ws server error {}", e);
+            error!(target: "Walle-core", "connect ws server error {}", e);
             None
         }
     }

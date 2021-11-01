@@ -1,15 +1,19 @@
+#![doc = include_str!("README.md")]
 use serde::{Deserialize, Serialize};
 
 /// OneBot 12 标准事件
-pub type Event = CustomEvent<EventContent>;
-/// OneBot 12 标准元事件
-pub type MetaEvent = CustomEvent<Meta>;
-/// OneBot 12 标准消息事件
-pub type MessageEvent = CustomEvent<Message>;
-/// OneBot 12 标准通知事件
-pub type NoticeEvent = CustomEvent<Notice>;
-/// OneBot 12 标准请求事件
-pub type RequestEvent = CustomEvent<Request>;
+pub type Event = BaseEvent<EventContent>;
+
+pub trait EventContentExt {
+    // fn as_standard(self) -> Result<Event, Self>;
+    fn from_standard(content: EventContent) -> Self;
+}
+
+impl EventContentExt for EventContent {
+    fn from_standard(content: EventContent) -> Self {
+        content
+    }
+}
 
 /// ## OneBot Event 基类
 ///
@@ -19,7 +23,7 @@ pub type RequestEvent = CustomEvent<Request>;
 ///
 /// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct CustomEvent<T> {
+pub struct BaseEvent<T> {
     pub id: String,
     #[serde(rename = "impl")]
     pub r#impl: String,
@@ -28,68 +32,6 @@ pub struct CustomEvent<T> {
     pub time: i64,
     #[serde(flatten)]
     pub content: T,
-}
-
-impl Event {
-    /// 转化为 MetaEvent
-    pub fn as_meta_event(self) -> Option<MetaEvent> {
-        match self.content {
-            EventContent::Meta(m) => Some(MetaEvent {
-                id: self.id,
-                r#impl: self.r#impl,
-                platform: self.platform,
-                self_id: self.self_id,
-                time: self.time,
-                content: m,
-            }),
-            _ => None,
-        }
-    }
-
-    /// 转化为 MessageEvent
-    pub fn as_message_event(self) -> Option<MessageEvent> {
-        match self.content {
-            EventContent::Message(m) => Some(MessageEvent {
-                id: self.id,
-                r#impl: self.r#impl,
-                platform: self.platform,
-                self_id: self.self_id,
-                time: self.time,
-                content: m,
-            }),
-            _ => None,
-        }
-    }
-
-    /// 转化为 NoticeEvent
-    pub fn as_notice_event(self) -> Option<NoticeEvent> {
-        match self.content {
-            EventContent::Notice(n) => Some(NoticeEvent {
-                id: self.id,
-                r#impl: self.r#impl,
-                platform: self.platform,
-                self_id: self.self_id,
-                time: self.time,
-                content: n,
-            }),
-            _ => None,
-        }
-    }
-
-    /// 转化为 RequestEvent
-    pub fn as_request_event(self) -> Option<RequestEvent> {
-        match self.content {
-            EventContent::Request(r) => Some(RequestEvent {
-                id: self.id,
-                r#impl: self.r#impl,
-                platform: self.platform,
-                self_id: self.self_id,
-                time: self.time,
-                content: r,
-            }),
-            _ => None,
-        }
-    }
 }
 
 /// ## Event Content
@@ -105,6 +47,27 @@ pub enum EventContent {
     Message(Message),
     Notice(Notice),
     Request(Request),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
+pub enum ExtendedContent<M, E, N, R> {
+    Meta(ExtendedMeta<M>),
+    Message(ExtendedMessage<E>),
+    Notice(ExtendedNotice<N>),
+    Request(ExtendedRequest<R>),
+}
+
+impl<M, E, N, R> EventContentExt for ExtendedContent<M, E, N, R> {
+    fn from_standard(content: EventContent) -> Self {
+        match content {
+            EventContent::Meta(m) => ExtendedContent::Meta(ExtendedMeta::Standard(m)),
+            EventContent::Message(m) => ExtendedContent::Message(ExtendedMessage::Standard(m)),
+            EventContent::Notice(m) => ExtendedContent::Notice(ExtendedNotice::Standard(m)),
+            EventContent::Request(m) => ExtendedContent::Request(ExtendedRequest::Standard(m)),
+        }
+    }
 }
 
 impl EventContent {
@@ -176,6 +139,26 @@ pub enum Meta {
     },
 }
 
+impl Meta {
+    pub fn detail_type(&self) -> &str {
+        match self {
+            Meta::Heartbeat { .. } => "Heartbeat",
+        }
+    }
+}
+
+/// ## 扩展元事件
+///
+/// 已经包含标准事件，传 T 为扩展事件
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedMeta<T> {
+    Standard(Meta),
+    Extended(T),
+}
+
 /// ## OneBot 消息事件 Content
 ///
 /// 消息事件是聊天机器人收到其他用户发送的消息对应的一类事件，例如私聊消息等。
@@ -188,6 +171,18 @@ pub struct Message {
     pub alt_message: String,
     pub user_id: String,
     pub(crate) sub_type: String, // just for Deserialize
+}
+
+/// ## 扩展消息事件
+///
+/// 已经包含标准事件，传 T 为扩展事件
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedMessage<T> {
+    Standard(Message),
+    Extended(T),
 }
 
 /// MessageEvent detail_type ( private or group )
@@ -264,6 +259,18 @@ pub enum Notice {
     },
 }
 
+/// ## 扩展通知事件
+///
+/// 已经包含标准事件，传 T 为扩展事件
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ExtendedNotice<T> {
+    Standard(Notice),
+    Extended(T),
+}
+
 /// ## OneBot 请求事件 Content
 ///
 /// 请求事件是聊天机器人收到其他用户发送的请求对应的一类事件，例如加好友请求等。
@@ -271,4 +278,16 @@ pub enum Notice {
 #[serde(tag = "detail_type")]
 pub enum Request {
     Empty { sub_type: String },
+}
+
+/// ## 扩展请求事件
+///
+/// 已经包含标准事件，传 T 为扩展事件
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ExtendedRequest<T> {
+    Standard(Request),
+    Extended(T),
 }

@@ -39,7 +39,7 @@ async fn websocket_loop<E, A, R>(
                     Ok(event) => {
                         let event = serde_json::to_string(&event).unwrap();
                         if let Err(e) = ws_stream.send(Message::Text(event)).await {
-                            error!("ws disconnect with error {}", e);
+                            error!(target: "Walle-core", "ws disconnect with error {}", e);
                             return;
                         };
                     }
@@ -63,11 +63,11 @@ async fn websocket_loop<E, A, R>(
                                         sender.send(resp).await.unwrap();
                                     });
                                 }
-                                Err(_) => error!("Receive illegal action {}", message.to_string()),
+                                Err(_) => error!(target: "Walle-core", "Receive illegal action {}", message.to_string()),
                             }
                         },
                         Err(e) => {
-                            error!("ws disconnect with error {}", e);
+                            error!(target: "Walle-core", "ws disconnect with error {}", e);
                             return;
                         }
                     }

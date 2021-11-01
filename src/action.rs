@@ -43,6 +43,18 @@ pub enum Action {
     GetFileFragmented(GetFileFragmented),
 }
 
+/// ## 扩展动作
+///
+/// 已经包含标准动作，传 T 为扩展动作事件
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedAction<T> {
+    Standard(Action),
+    Extended(T),
+}
+
 /// Action content for GetLatestEvents
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetLatestEventsContent {

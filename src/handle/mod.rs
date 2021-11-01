@@ -103,7 +103,12 @@ impl EventHandler<crate::Event> for DefaultHandler {
         use tracing::info;
 
         match &event.content {
-            EventContent::Meta(_) => info!("[{}] MetaEvent -> type ", event.self_id.red()),
+            EventContent::Meta(m) => info!(
+                target: "Walle-core",
+                "[{}] MetaEvent -> Type {}",
+                event.self_id.red(),
+                m.detail_type().green()
+            ),
             EventContent::Message(m) => {
                 let alt = if m.alt_message.is_empty() {
                     let mut t = format!("{:?}", m.message);
@@ -115,14 +120,19 @@ impl EventHandler<crate::Event> for DefaultHandler {
                     m.alt_message.clone()
                 };
                 info!(
+                    target: "Walle-core",
                     "[{}] MessageEvent -> from {} alt {}",
                     event.self_id.red(),
                     m.user_id.blue(),
                     alt.green()
                 )
             }
-            EventContent::Notice(_) => info!("[{}] NoticeEvent -> ", event.self_id.red()),
-            EventContent::Request(_) => info!("[{}]RequestEvent ->", event.self_id.red()),
+            EventContent::Notice(_) => {
+                info!(target: "Walle-core","[{}] NoticeEvent ->", event.self_id.red())
+            }
+            EventContent::Request(_) => {
+                info!(target: "Walle-core","[{}]RequestEvent ->", event.self_id.red())
+            }
         }
     }
 }

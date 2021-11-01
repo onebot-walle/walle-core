@@ -26,12 +26,12 @@ async fn websocket_loop<E, A, R>(
     use tokio_tungstenite::tungstenite::Message;
     use tracing::error;
 
-    use crate::event::CustomEvent;
+    use crate::event::BaseEvent;
 
     #[derive(Debug, Deserialize)]
     #[serde(untagged)]
     enum ReceiveItem<E, R> {
-        Event(CustomEvent<E>),
+        Event(BaseEvent<E>),
         Resp(R),
     }
 
