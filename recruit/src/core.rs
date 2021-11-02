@@ -33,6 +33,7 @@ impl Bot {
         }
     }
 
+    #[allow(unused)]
     fn build_private_event(&self, bot_id: String, message: Message, alt_message: String) -> Event {
         self.inner.new_event(EventContent::private(
             "".to_owned(),
@@ -49,6 +50,7 @@ impl Bots {
         self.inner.insert(bot_id, bot)
     }
 
+    #[allow(unused)]
     pub(crate) async fn send_private_message(
         &mut self,
         bot_id: String,

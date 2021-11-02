@@ -1,8 +1,8 @@
 #![doc = include_str!("README.md")]
 
 use crate::{
-    action_resp::StatusContent, comms, event::BaseEvent, Action, ActionResps, EventContent,
-    ImplConfig, RUNNING, SHUTDOWN,
+    action_resp::StatusContent, comms, event::BaseEvent, Action, ActionResp, ActionRespContent,
+    EventContent, ImplConfig, RUNNING, SHUTDOWN,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::{
@@ -16,16 +16,17 @@ use tracing::info;
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<BaseEvent<E>>;
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<BaseEvent<E>>;
-pub(crate) type ArcActionHandler<A, R> = Arc<dyn crate::handle::ActionHandler<A, R> + Send + Sync>;
+pub(crate) type ArcActionHandler<A, R> =
+    Arc<dyn crate::handle::ActionHandler<A, ActionResp<R>> + Send + Sync>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<EventContent, Action, ActionResps>;
+pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
 
 /// OneBot Implementation 实例
 ///
 /// E: EventContent 可以参考 crate::evnt::EventContent
 /// A: Action 可以参考 crate::action::Action
-/// R: ActionResp 可以参考 crate::action_resp::ActionResps
+/// R: ActionRespContent 可以参考 crate::action_resp::ActionRespContent
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
 pub struct CustomOneBot<E, A, R> {
@@ -212,9 +213,8 @@ where
     }
 
     pub fn new_event(&self, content: E) -> BaseEvent<E> {
-        let auuid = uuid::Uuid::from_u128(crate::utils::timestamp_nano());
         crate::event::BaseEvent {
-            id: auuid.to_string(),
+            id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
             self_id: self.self_id.clone(),

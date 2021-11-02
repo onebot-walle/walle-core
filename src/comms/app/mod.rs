@@ -22,6 +22,7 @@ async fn websocket_loop<E, A, R>(
 {
     use crate::event::BaseEvent;
     use crate::utils::{Echo, EchoS};
+    use crate::ActionResp;
     use colored::*;
     use futures_util::{SinkExt, StreamExt};
     use serde::Deserialize;
@@ -32,7 +33,7 @@ async fn websocket_loop<E, A, R>(
     #[serde(untagged)]
     enum ReceiveItem<E, R> {
         Event(BaseEvent<E>),
-        Resp(Echo<R>),
+        Resp(Echo<ActionResp<R>>),
     }
 
     let mut waitting_group = std::collections::HashMap::new();

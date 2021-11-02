@@ -33,10 +33,45 @@ pub use message::{Message, MessageBuild, MessageSegment};
 
 pub use async_trait::async_trait;
 
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Serialize};
+
 /// 空结构体，用于对应 Json 中的空 Map
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EmptyContent {}
+
+/// 默认 serde 失败的 Struct 用于非扩展占位
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AlwaysFailSturct;
+
+struct AFSVisitor;
+
+impl<'de> Visitor<'de> for AFSVisitor {
+    type Value = AlwaysFailSturct;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Nothing wrong this is a AlwaysFailSturct")
+    }
+}
+
+impl<'de> Deserialize<'de> for AlwaysFailSturct {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_any(AFSVisitor)
+    }
+}
+
+impl Serialize for AlwaysFailSturct {
+    fn serialize<S>(&self, _: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Err(serde::ser::Error::custom(
+            "Nothing wrong this is a AlwaysFailSturct",
+        ))
+    }
+}
 
 static SHUTDOWN: u8 = 0;
 static RUNNING: u8 = 1;

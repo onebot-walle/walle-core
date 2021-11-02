@@ -8,13 +8,18 @@ pub(crate) fn timestamp() -> u64 {
         .as_secs()
 }
 
-pub(crate) fn timestamp_nano() -> u128 {
+fn timestamp_nano() -> u128 {
     use std::time;
 
     time::SystemTime::now()
         .duration_since(time::UNIX_EPOCH)
         .unwrap()
         .as_nanos()
+}
+
+#[cfg(feature = "impl")]
+pub(crate) fn new_uuid() -> String {
+    uuid::Uuid::from_u128(timestamp_nano()).to_string()
 }
 
 use serde::{Deserialize, Serialize};

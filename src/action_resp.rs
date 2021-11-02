@@ -38,6 +38,18 @@ pub enum ActionRespContent {
     Empty(EmptyContent), // todo
 }
 
+/// ## 扩展动作响应
+///
+/// 已经包含标准动作响应，传 T 为扩展动作响应
+///
+/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedActionRespContent<T> {
+    Standard(ActionRespContent),
+    Extended(T),
+}
+
 impl ActionRespContent {
     pub fn empty() -> Self {
         Self::Empty(EmptyContent::default())

@@ -1,7 +1,7 @@
 pub(crate) mod core;
 mod handle;
 
-use walle_core::{config::ImplConfig, MessageSegment};
+use walle_core::config::ImplConfig;
 
 #[tokio::main]
 async fn main() {
@@ -12,13 +12,13 @@ async fn main() {
     bots.add_bot("recruit".to_owned(), bot).await;
     loop {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        bots.send_private_message(
-            "recruit".to_owned(),
-            vec![MessageSegment::Text {
-                text: "hello world!".to_owned(),
-            }],
-            "hello world!".to_owned(),
-        )
-        .await;
+        // bots.send_private_message(
+        //     "recruit".to_owned(),
+        //     vec![MessageSegment::Text {
+        //         text: "hello world!".to_owned(),
+        //     }],
+        //     "hello world!".to_owned(),
+        // )
+        // .await;
     }
 }

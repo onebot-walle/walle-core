@@ -5,10 +5,11 @@ use std::sync::{
 use tokio::{sync::RwLock, task::JoinHandle};
 
 use crate::{
-    config::AppConfig, event::BaseEvent, Action, ActionResps, EventContent, RUNNING, SHUTDOWN,
+    config::AppConfig, event::BaseEvent, Action, ActionResp, ActionRespContent, EventContent,
+    RUNNING, SHUTDOWN,
 };
 
-pub(crate) type ActionRespSender<R> = tokio::sync::mpsc::Sender<R>;
+pub(crate) type ActionRespSender<R> = tokio::sync::mpsc::Sender<ActionResp<R>>;
 pub(crate) type ArcEventHandler<E> =
     Arc<dyn crate::handle::EventHandler<BaseEvent<E>> + Send + Sync>;
 pub(crate) type CustomActionBroadcaster<A, R> =
@@ -17,7 +18,7 @@ pub(crate) type CustomActionListenr<A, R> =
     tokio::sync::broadcast::Receiver<(A, ActionRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type OneBot = CustomOneBot<EventContent, Action, ActionResps>;
+pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
 
 /// OneBot Application 实例
 ///
@@ -149,7 +150,7 @@ where
         self.action_broadcaster.send((action, sender)).unwrap();
     }
 
-    pub async fn call_action_resp(&self, action: A) -> Option<R> {
+    pub async fn call_action_resp(&self, action: A) -> Option<ActionResp<R>> {
         let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
         self.action_broadcaster.send((action, sender)).unwrap();
         match tokio::time::timeout(tokio::time::Duration::from_secs(15), async {

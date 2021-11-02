@@ -20,9 +20,11 @@ where
     let tcp_listener = TcpListener::bind(&addr).await.expect("bind addr failed");
     let conns = Arc::new(RwLock::new(Vec::new()));
     let move_conns = conns.clone();
+    let access_token = config.access_token.clone();
     let join = tokio::spawn(async move {
         while let Ok((stream, _)) = tcp_listener.accept().await {
             let join = tokio::spawn(handle_conn(
+                access_token.clone(),
                 stream,
                 event_handler.clone(),
                 action_broadcaster.subscribe(),
@@ -40,6 +42,7 @@ where
 }
 
 async fn handle_conn<E, A, R>(
+    access_token: Option<String>,
     stream: TcpStream,
     event_handler: crate::app::ArcEventHandler<E>,
     action_listener: crate::app::CustomActionListenr<A, R>,
@@ -48,9 +51,7 @@ async fn handle_conn<E, A, R>(
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
-    let _addr = stream
-        .peer_addr()
-        .expect("connected streams should have a peer address");
-    let ws_stream = tokio_tungstenite::accept_async(stream).await.unwrap();
-    super::websocket_loop(ws_stream, event_handler, action_listener).await
+    if let Some(ws_stream) = crate::comms::util::upgrade_websocket(&access_token, stream).await {
+        super::websocket_loop(ws_stream, event_handler, action_listener).await
+    }
 }

@@ -45,7 +45,7 @@ pub enum Action {
 
 /// ## 扩展动作
 ///
-/// 已经包含标准动作，传 T 为扩展动作事件
+/// 已经包含标准动作，传 T 为扩展动作
 ///
 /// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// OneBot 实现端设置项
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ImplConfig {
     pub heartbeat: Heartbeat,
     pub http: Vec<Http>,
@@ -15,7 +15,7 @@ pub struct ImplConfig {
 /// OneBot 心跳设置
 ///
 /// 间隔为 0 则默认为 4
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Heartbeat {
     pub enabled: bool,
     pub interval: u32,
@@ -31,7 +31,7 @@ impl Default for Heartbeat {
 }
 
 /// OneBot 应用端设置项
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AppConfig {
     pub http: Option<Http>,
     pub http_webhook: Option<HttpWebhook>,
@@ -40,7 +40,7 @@ pub struct AppConfig {
 }
 
 /// OneBot Impl Http 通讯设置
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Http {
     pub host: std::net::IpAddr,
     pub port: u16,
@@ -50,7 +50,7 @@ pub struct Http {
 }
 
 /// OneBot Impl Http Webhook 通讯设置
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct HttpWebhook {
     pub url: String,
     pub access_token: Option<String>,
@@ -58,7 +58,7 @@ pub struct HttpWebhook {
 }
 
 /// OneBot Impl 正向 WebSocket 通讯设置
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WebSocket {
     pub host: std::net::IpAddr,
     pub port: u16,
@@ -66,7 +66,7 @@ pub struct WebSocket {
 }
 
 /// OneBot Impl 反向 WebSocket 通讯设置
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WebSocketRev {
     pub url: String,
     pub access_token: Option<String>,

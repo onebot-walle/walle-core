@@ -19,6 +19,7 @@ impl ContentTpye {
 use std::sync::Arc;
 #[cfg(feature = "websocket")]
 use tokio::{net::TcpStream, sync::RwLock, task::JoinHandle};
+use tokio_tungstenite::WebSocketStream;
 
 #[cfg(feature = "websocket")]
 pub struct WebSocketServer {
@@ -62,6 +63,54 @@ pub(crate) async fn try_connect(
         },
         Err(e) => {
             error!(target: "Walle-core", "connect ws server error {}", e);
+            None
+        }
+    }
+}
+
+#[cfg(feature = "websocket")]
+pub(crate) async fn upgrade_websocket(
+    access_token: &Option<String>,
+    stream: TcpStream,
+) -> Option<WebSocketStream<TcpStream>> {
+    use tokio_tungstenite::tungstenite::{
+        handshake::client::{Request, Response},
+        http::Response as HttpResp,
+    };
+    use tracing::{error, info};
+
+    let addr = match stream.peer_addr() {
+        Ok(a) => a,
+        Err(_) => {
+            error!("connectting streams should have a peer address");
+            return None;
+        }
+    };
+
+    let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
+        let headers = req.headers();
+        match access_token {
+            Some(token) => match headers.get("Authorization") {
+                Some(get_token) => {
+                    if get_token == token {
+                        Ok(resp)
+                    } else {
+                        Err(HttpResp::new(None))
+                    }
+                }
+                None => Err(HttpResp::new(None)),
+            },
+            None => Ok(resp),
+        }
+    };
+
+    match tokio_tungstenite::accept_hdr_async(stream, callback).await {
+        Ok(s) => {
+            info!(target:"Walle-core","new ws connect from {}",addr);
+            Some(s)
+        }
+        Err(e) => {
+            error!(target:"Walle-core","ws upgrade fail with error {}", e);
             None
         }
     }
