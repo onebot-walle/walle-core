@@ -12,6 +12,18 @@ pub struct ImplConfig {
     pub websocket_rev: Vec<WebSocketRev>,
 }
 
+impl Default for ImplConfig {
+    fn default() -> Self {
+        Self {
+            heartbeat: Heartbeat::default(),
+            http: vec![],
+            http_webhook: vec![],
+            websocket: vec![WebSocket::default()],
+            websocket_rev: vec![],
+        }
+    }
+}
+
 /// OneBot 心跳设置
 ///
 /// 间隔为 0 则默认为 4
@@ -39,6 +51,28 @@ pub struct AppConfig {
     pub websocket_rev: Option<WebSocket>,
 }
 
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            http: None,
+            http_webhook: None,
+            websocket: Some(WebSocketRev::default()),
+            websocket_rev: None,
+        }
+    }
+}
+
+impl AppConfig {
+    pub fn empty() -> Self {
+        Self {
+            http: None,
+            http_webhook: None,
+            websocket: None,
+            websocket_rev: None,
+        }
+    }
+}
+
 /// OneBot Impl Http 通讯设置
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Http {
@@ -49,12 +83,34 @@ pub struct Http {
     pub event_buffer_size: usize,
 }
 
+impl Default for Http {
+    fn default() -> Self {
+        Self {
+            host: std::net::IpAddr::from([127, 0, 0, 1]),
+            port: 6700,
+            access_token: None,
+            event_enable: true,
+            event_buffer_size: 16,
+        }
+    }
+}
+
 /// OneBot Impl Http Webhook 通讯设置
 #[derive(Debug, Deserialize, Serialize)]
 pub struct HttpWebhook {
     pub url: String,
     pub access_token: Option<String>,
     pub timeout: u64,
+}
+
+impl Default for HttpWebhook {
+    fn default() -> Self {
+        Self {
+            url: "http://127.0.0.1:6700".to_owned(),
+            access_token: None,
+            timeout: 4,
+        }
+    }
 }
 
 /// OneBot Impl 正向 WebSocket 通讯设置
@@ -65,6 +121,16 @@ pub struct WebSocket {
     pub access_token: Option<String>,
 }
 
+impl Default for WebSocket {
+    fn default() -> Self {
+        Self {
+            host: std::net::IpAddr::from([127, 0, 0, 1]),
+            port: 8844,
+            access_token: None,
+        }
+    }
+}
+
 /// OneBot Impl 反向 WebSocket 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WebSocketRev {
@@ -73,33 +139,12 @@ pub struct WebSocketRev {
     pub reconnect_interval: u32,
 }
 
-impl Default for ImplConfig {
+impl Default for WebSocketRev {
     fn default() -> Self {
         Self {
-            heartbeat: Heartbeat::default(),
-            http: vec![],
-            http_webhook: vec![],
-            websocket: vec![WebSocket {
-                host: std::net::IpAddr::from([127, 0, 0, 1]),
-                port: 8844,
-                access_token: None,
-            }],
-            websocket_rev: vec![],
-        }
-    }
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            http: None,
-            http_webhook: None,
-            websocket: Some(WebSocketRev {
-                url: "127.0.0.1:8844".to_owned(),
-                access_token: None,
-                reconnect_interval: 3,
-            }),
-            websocket_rev: None,
+            url: "ws://127.0.0.1:8844".to_owned(),
+            access_token: None,
+            reconnect_interval: 4,
         }
     }
 }

@@ -3,11 +3,14 @@ use std::sync::{
     Arc,
 };
 use tokio::{sync::RwLock, task::JoinHandle};
+use tracing::info;
 
 use crate::{
     config::AppConfig, event::BaseEvent, Action, ActionResp, ActionRespContent, EventContent,
     RUNNING, SHUTDOWN,
 };
+
+mod action;
 
 pub(crate) type ActionRespSender<R> = tokio::sync::mpsc::Sender<ActionResp<R>>;
 pub(crate) type ArcEventHandler<E> =
@@ -70,8 +73,6 @@ where
     ///
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
     pub async fn run(&self) -> Result<(), &str> {
-        use tracing::info;
-
         if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
@@ -146,11 +147,11 @@ where
     }
 
     pub async fn call_action(&self, action: A) {
-        let (sender, _) = tokio::sync::mpsc::channel(1);
-        self.action_broadcaster.send((action, sender)).unwrap();
+        self.call_action_resp(action).await;
     }
 
     pub async fn call_action_resp(&self, action: A) -> Option<ActionResp<R>> {
+        info!(target:"Walle-core", "Sending action:{:?}", action);
         let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
         self.action_broadcaster.send((action, sender)).unwrap();
         match tokio::time::timeout(tokio::time::Duration::from_secs(15), async {

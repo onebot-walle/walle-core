@@ -27,7 +27,7 @@ async fn websocket_loop<E, A, R>(
     use futures_util::{SinkExt, StreamExt};
     use serde::Deserialize;
     use tokio_tungstenite::tungstenite::Message;
-    use tracing::error;
+    use tracing::{error, info};
 
     #[derive(Debug, Deserialize)]
     #[serde(untagged)]
@@ -68,6 +68,7 @@ async fn websocket_loop<E, A, R>(
                                 }
                                 ReceiveItem::Resp(r) => {
                                     let (resp, echo) = r.unpack();
+                                    info!(target:"Walle-core","receive action_resp {:?}", resp);
                                     if let Some(s) = waitting_group.remove(&echo) {
                                         match s.send(resp).await {
                                             _ => {}

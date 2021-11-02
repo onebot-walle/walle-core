@@ -42,15 +42,19 @@ impl WebSocketServer {
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketRev,
 ) -> Option<tokio_tungstenite::WebSocketStream<TcpStream>> {
+    use tokio_tungstenite::tungstenite::http::Uri;
     use tracing::{error, info};
-    let ws_url = format!("ws://{}", config.url);
+
+    let uri: Uri = config.url.parse().unwrap();
+    let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
+    let ws_url = format!("ws://{}", addr);
     let mut req =
         tokio_tungstenite::tungstenite::handshake::client::Request::builder().uri(&ws_url);
     if let Some(token) = &config.access_token {
         req = req.header("Authorization", format!("Bearer {}", token));
     }
     let req = req.body(()).unwrap();
-    match tokio::net::TcpStream::connect(&config.url).await {
+    match tokio::net::TcpStream::connect(&addr).await {
         Ok(tcp_stream) => match tokio_tungstenite::client_async(req, tcp_stream).await {
             Ok((ws_stream, _)) => {
                 info!(target: "Walle-core", "success connect to {}", ws_url);
