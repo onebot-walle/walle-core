@@ -48,6 +48,7 @@ impl EchoS {
         };
     }
 
+    #[allow(dead_code)]
     pub fn new(tag: &str) -> Self {
         return Self(Some(format!("{}-{}", tag, timestamp_nano())));
     }

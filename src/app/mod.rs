@@ -93,6 +93,8 @@ where
     /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
     ///
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
+    ///
+    /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
     pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
         if ob.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");

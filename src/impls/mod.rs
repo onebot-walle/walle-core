@@ -1,8 +1,8 @@
 #![doc = include_str!("README.md")]
 
 use crate::{
-    action_resp::StatusContent, comms, event::BaseEvent, Action, ActionResp, ActionRespContent,
-    EventContent, ImplConfig, Message, RUNNING, SHUTDOWN,
+    action_resp::StatusContent, comms, event::BaseEvent, message::MessageAlt, Action, ActionResp,
+    ActionRespContent, EventContent, ImplConfig, Message, RUNNING, SHUTDOWN,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::{
@@ -96,6 +96,8 @@ where
     /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
     ///
     /// 当重复运行同一个实例，将会返回 Err
+    ///
+    /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
     pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
         use colored::*;
 
@@ -239,8 +241,8 @@ where
                 crate::event::MessageEventType::Private
             },
             message_id: crate::utils::new_uuid(),
+            alt_message: message.alt(),
             message,
-            alt_message: "".to_owned(), //todo
             user_id,
             sub_type: "".to_owned(),
         };
