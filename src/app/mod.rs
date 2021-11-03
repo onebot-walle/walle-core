@@ -1,24 +1,25 @@
+use dashmap::DashMap;
 use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
 };
 use tokio::{sync::RwLock, task::JoinHandle};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::{
-    config::AppConfig, event::BaseEvent, Action, ActionResp, ActionRespContent, EventContent,
-    RUNNING, SHUTDOWN,
+    config::AppConfig,
+    event::BaseEvent,
+    utils::{Echo, EchoS},
+    Action, ActionResp, ActionRespContent, EventContent, RUNNING, SHUTDOWN,
 };
 
 mod action;
 
-pub(crate) type ActionRespSender<R> = tokio::sync::mpsc::Sender<ActionResp<R>>;
+pub(crate) type ActionRespSender<R> = tokio::sync::oneshot::Sender<ActionResp<R>>;
 pub(crate) type ArcEventHandler<E> =
     Arc<dyn crate::handle::EventHandler<BaseEvent<E>> + Send + Sync>;
-pub(crate) type CustomActionBroadcaster<A, R> =
-    tokio::sync::broadcast::Sender<(A, ActionRespSender<R>)>;
-pub(crate) type CustomActionListenr<A, R> =
-    tokio::sync::broadcast::Receiver<(A, ActionRespSender<R>)>;
+pub(crate) type CustomActionSender<A> = tokio::sync::mpsc::UnboundedSender<Echo<A>>;
+pub(crate) type CustomActionReceiver<A> = tokio::sync::mpsc::UnboundedReceiver<Echo<A>>;
 
 /// OneBot v12 无扩展应用端实例
 pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
@@ -36,9 +37,12 @@ pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
 ///
 /// Http( 未实现 ) >> HttpWebhook( 未实现 ) >> 正向 WebSocket >> 反向 WebSocket
 pub struct CustomOneBot<E, A, R> {
+    self_id: RwLock<String>,
     pub config: AppConfig,
-    event_handler: ArcEventHandler<E>,
-    action_broadcaster: CustomActionBroadcaster<A, R>,
+    pub(crate) event_handler: ArcEventHandler<E>,
+    action_sender: CustomActionSender<A>,
+    pub(crate) action_receiver: RwLock<CustomActionReceiver<A>>,
+    pub(crate) echo_map: DashMap<EchoS, ActionRespSender<R>>,
 
     #[cfg(feature = "websocket")]
     ws_join_handles: RwLock<(
@@ -56,14 +60,31 @@ where
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
     pub fn new(config: AppConfig, event_handler: ArcEventHandler<E>) -> Self {
-        let (action_broadcaster, _) = tokio::sync::broadcast::channel(1024);
+        let (action_sender, action_receiver) = tokio::sync::mpsc::unbounded_channel();
         Self {
+            self_id: RwLock::default(),
             config,
             event_handler,
-            action_broadcaster,
+            action_sender,
+            action_receiver: RwLock::new(action_receiver),
+            echo_map: DashMap::new(),
             #[cfg(feature = "websocket")]
             ws_join_handles: RwLock::default(),
             status: AtomicU8::default(),
+        }
+    }
+
+    pub fn arc(self) -> Arc<Self> {
+        Arc::new(self)
+    }
+
+    pub async fn self_id(&self) -> String {
+        self.self_id.read().await.clone()
+    }
+
+    pub(crate) async fn set_id(&self, id: &str) {
+        if &self.self_id().await != id {
+            *self.self_id.write().await = id.to_owned()
         }
     }
 
@@ -72,38 +93,26 @@ where
     /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
     ///
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
-    pub async fn run(&self) -> Result<(), &str> {
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
+    pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
+        if ob.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
 
         #[cfg(feature = "websocket")]
-        if let Some(websocket) = &self.config.websocket {
+        if let Some(websocket) = &ob.config.websocket {
             info!(target: "Walle-core", "Running WebSocket");
-            self.ws_join_handles.write().await.0 = Some(
-                crate::comms::app::websocket_run(
-                    websocket,
-                    self.event_handler.clone(),
-                    self.action_broadcaster.clone(),
-                )
-                .await,
-            );
-            self.status.swap(RUNNING, Ordering::SeqCst);
+            ob.ws_join_handles.write().await.0 =
+                Some(crate::comms::app::websocket_run(websocket, ob.clone()).await);
+            ob.status.swap(RUNNING, Ordering::SeqCst);
             return Ok(());
         }
 
         #[cfg(feature = "websocket")]
-        if let Some(websocket_rev) = &self.config.websocket_rev {
+        if let Some(websocket_rev) = &ob.config.websocket_rev {
             info!(target: "Walle-core", "Running WebSocket");
-            self.ws_join_handles.write().await.1 = Some(
-                crate::comms::app::websocket_rev_run(
-                    websocket_rev,
-                    self.event_handler.clone(),
-                    self.action_broadcaster.clone(),
-                )
-                .await,
-            );
-            self.status.swap(RUNNING, Ordering::SeqCst);
+            ob.ws_join_handles.write().await.1 =
+                Some(crate::comms::app::websocket_rev_run(websocket_rev, ob.clone()).await);
+            ob.status.swap(RUNNING, Ordering::SeqCst);
             return Ok(());
         }
 
@@ -151,11 +160,14 @@ where
     }
 
     pub async fn call_action_resp(&self, action: A) -> Option<ActionResp<R>> {
-        info!(target:"Walle-core", "Sending action:{:?}", action);
-        let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
-        self.action_broadcaster.send((action, sender)).unwrap();
+        use colored::*;
+        debug!(target:"Walle-core", "[{}] Sending action:{:?}", self.self_id().await.red(), action);
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let echo = EchoS::new(&self.self_id().await);
+        self.echo_map.insert(echo.clone(), sender);
+        self.action_sender.send(echo.clone().pack(action)).unwrap();
         match tokio::time::timeout(tokio::time::Duration::from_secs(15), async {
-            if let Some(r) = receiver.recv().await {
+            if let Ok(r) = receiver.await {
                 Some(r)
             } else {
                 None
@@ -164,7 +176,10 @@ where
         .await
         {
             Ok(r) => r,
-            Err(_) => None,
+            Err(_) => {
+                self.echo_map.remove(&echo);
+                None
+            }
         }
     }
 }

@@ -1,14 +1,10 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use tokio::task::JoinHandle;
 
-use crate::config::WebSocketRev;
+use crate::{app::CustomOneBot, config::WebSocketRev};
 
-pub async fn run<E, A, R>(
-    config: &WebSocketRev,
-    event_handler: crate::app::ArcEventHandler<E>,
-    action_broadcaster: crate::app::CustomActionBroadcaster<A, R>,
-) -> JoinHandle<()>
+pub async fn run<E, A, R>(config: &WebSocketRev, ob: Arc<CustomOneBot<E, A, R>>) -> JoinHandle<()>
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
@@ -18,12 +14,7 @@ where
     tokio::spawn(async move {
         loop {
             if let Some(ws_stream) = super::util::try_connect(&config).await {
-                super::websocket_loop(
-                    ws_stream,
-                    event_handler.clone(),
-                    action_broadcaster.subscribe(),
-                )
-                .await;
+                super::websocket_loop(ws_stream, ob.clone()).await;
             }
             tokio::time::sleep(Duration::from_secs(config.reconnect_interval as u64)).await;
         }

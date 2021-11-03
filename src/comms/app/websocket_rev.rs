@@ -4,13 +4,9 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::{comms::WebSocketServer, config::WebSocket};
+use crate::{app::CustomOneBot, comms::WebSocketServer, config::WebSocket};
 
-pub async fn run<E, A, R>(
-    config: &WebSocket,
-    event_handler: crate::app::ArcEventHandler<E>,
-    action_broadcaster: crate::app::CustomActionBroadcaster<A, R>,
-) -> WebSocketServer
+pub async fn run<E, A, R>(config: &WebSocket, ob: Arc<CustomOneBot<E, A, R>>) -> WebSocketServer
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
@@ -23,12 +19,7 @@ where
     let access_token = config.access_token.clone();
     let join = tokio::spawn(async move {
         while let Ok((stream, _)) = tcp_listener.accept().await {
-            let join = tokio::spawn(handle_conn(
-                access_token.clone(),
-                stream,
-                event_handler.clone(),
-                action_broadcaster.subscribe(),
-            ));
+            let join = tokio::spawn(handle_conn(access_token.clone(), stream, ob.clone()));
             {
                 let mut lockconns = move_conns.write().await;
                 lockconns.push(join);
@@ -44,14 +35,13 @@ where
 async fn handle_conn<E, A, R>(
     access_token: Option<String>,
     stream: TcpStream,
-    event_handler: crate::app::ArcEventHandler<E>,
-    action_listener: crate::app::CustomActionListenr<A, R>,
+    ob: Arc<CustomOneBot<E, A, R>>,
 ) where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
     if let Some(ws_stream) = crate::comms::util::upgrade_websocket(&access_token, stream).await {
-        super::websocket_loop(ws_stream, event_handler, action_listener).await
+        super::websocket_loop(ws_stream, ob).await
     }
 }

@@ -12,7 +12,7 @@ authors = ["Abrahum<307887491@qq.com>"]
 qq = []
 http = ["hyper"]
 websocket = ["tokio-tungstenite", "futures-util"]
-app = []
+app = ["dashmap"]
 impl = ["uuid"]
 
 [dependencies]
@@ -22,6 +22,7 @@ rmp-serde = "0.15"
 async-trait = "0.1"
 tracing = "0.1"
 colored = "2"
+dashmap = { version = "4.0", optional = true }
 uuid = { version = "0.8", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }

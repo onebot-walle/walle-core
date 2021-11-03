@@ -2,7 +2,7 @@
 
 use crate::{
     action_resp::StatusContent, comms, event::BaseEvent, Action, ActionResp, ActionRespContent,
-    EventContent, ImplConfig, RUNNING, SHUTDOWN,
+    EventContent, ImplConfig, Message, RUNNING, SHUTDOWN,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::{
@@ -10,7 +10,7 @@ use std::sync::{
     Arc,
 };
 use tokio::{sync::RwLock, task::JoinHandle};
-use tracing::info;
+use tracing::{info, trace};
 
 #[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<BaseEvent<E>>;
@@ -76,6 +76,10 @@ where
         }
     }
 
+    pub fn arc(self) -> Arc<Self> {
+        Arc::new(self)
+    }
+
     pub fn get_status(&self) -> StatusContent {
         StatusContent {
             good: if self.status.load(Ordering::SeqCst) == RUNNING {
@@ -92,47 +96,47 @@ where
     /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
     ///
     /// 当重复运行同一个实例，将会返回 Err
-    pub async fn run(&self, ob: Arc<Self>) -> Result<(), &'static str> {
+    pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
         use colored::*;
 
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
+        if ob.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
 
-        info!(target: "Walle-core", "{} is booting", self.r#impl.red());
+        info!(target: "Walle-core", "{} is booting", ob.r#impl.red());
 
         #[cfg(feature = "http")]
-        if !self.config.http.is_empty() {
+        if !ob.config.http.is_empty() {
             info!(target: "Walle-core", "Strating HTTP");
-            let http_joins = &mut self.http_join_handles.write().await.0;
-            for http in &self.config.http {
+            let http_joins = &mut ob.http_join_handles.write().await.0;
+            for http in &ob.config.http {
                 http_joins.push(crate::comms::impls::http_run(
                     http,
-                    self.action_handler.clone(),
+                    ob.action_handler.clone(),
                 ));
             }
         }
 
         #[cfg(feature = "http")]
-        if !self.config.http_webhook.is_empty() {
+        if !ob.config.http_webhook.is_empty() {
             info!(target: "Walle-core", "Strating HTTP Webhook");
-            let webhook_joins = &mut self.http_join_handles.write().await.1;
-            let clients = self.build_webhook_clients(self.action_handler.clone());
+            let webhook_joins = &mut ob.http_join_handles.write().await.1;
+            let clients = ob.build_webhook_clients(ob.action_handler.clone());
             for client in clients {
                 webhook_joins.push(client.run());
             }
         }
 
         #[cfg(feature = "websocket")]
-        if !self.config.websocket.is_empty() {
+        if !ob.config.websocket.is_empty() {
             info!(target: "Walle-core", "Strating WebSocket");
-            let ws_joins = &mut self.ws_join_handles.write().await.0;
-            for websocket in &self.config.websocket {
+            let ws_joins = &mut ob.ws_join_handles.write().await.0;
+            for websocket in &ob.config.websocket {
                 ws_joins.push(
                     crate::comms::impls::websocket_run(
                         websocket,
-                        self.broadcaster.clone(),
-                        self.action_handler.clone(),
+                        ob.broadcaster.clone(),
+                        ob.action_handler.clone(),
                     )
                     .await,
                 );
@@ -140,26 +144,25 @@ where
         }
 
         #[cfg(feature = "websocket")]
-        if !self.config.websocket_rev.is_empty() {
+        if !ob.config.websocket_rev.is_empty() {
             info!(target: "Walle-core", "Strating WebSocket Reverse");
-            let wsrev_joins = &mut self.ws_join_handles.write().await.1;
-            for websocket_rev in &self.config.websocket_rev {
+            let wsrev_joins = &mut ob.ws_join_handles.write().await.1;
+            for websocket_rev in &ob.config.websocket_rev {
                 wsrev_joins.push(
                     crate::comms::impls::websocket_rev_run(
                         websocket_rev,
-                        self.broadcaster.clone(),
-                        self.action_handler.clone(),
+                        ob.broadcaster.clone(),
+                        ob.action_handler.clone(),
                     )
                     .await,
                 );
             }
         }
-        if self.config.heartbeat.enabled {
-            self.start_heartbeat(ob);
+        if ob.config.heartbeat.enabled {
+            ob.start_heartbeat(ob.clone());
         }
 
-        self.status
-            .swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
+        ob.status.swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 
@@ -223,6 +226,29 @@ where
         }
     }
 
+    pub fn new_message_event(
+        &self,
+        user_id: String,
+        group_id: Option<String>,
+        message: Message,
+    ) -> BaseEvent<E> {
+        let message_c = crate::event::Message {
+            ty: if let Some(group_id) = group_id {
+                crate::event::MessageEventType::Group { group_id }
+            } else {
+                crate::event::MessageEventType::Private
+            },
+            message_id: crate::utils::new_uuid(),
+            message,
+            alt_message: "".to_owned(), //todo
+            user_id,
+            sub_type: "".to_owned(),
+        };
+        self.new_event(E::from_standard(crate::event::EventContent::Message(
+            message_c,
+        )))
+    }
+
     fn start_heartbeat(&self, ob: Arc<Self>) {
         let mut interval = self.config.heartbeat.interval;
         if interval <= 0 {
@@ -230,10 +256,11 @@ where
         }
         tokio::spawn(async move {
             loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
                 if ob.status.load(Ordering::SeqCst) != RUNNING {
                     break;
                 }
-                tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
+                trace!(target:"Walle-core", "Heartbeating");
                 let hb = ob.new_event(E::from_standard(EventContent::Meta(
                     crate::event::Meta::Heartbeat {
                         interval,

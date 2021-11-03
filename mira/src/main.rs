@@ -14,7 +14,7 @@ static CONFIG_FILE: &str = "mira.toml";
 
 #[tokio::main]
 async fn main() {
-    let env = tracing_subscriber::EnvFilter::from("walle_core=trace,Walle-core=info,mira=info");
+    let env = tracing_subscriber::EnvFilter::from("walle_core=trace,Walle-core=debug,mira=info");
     tracing_subscriber::fmt().with_env_filter(env).init();
     let root = root::Root::parse();
     let config = match root.sub_comand {
@@ -38,8 +38,8 @@ async fn main() {
             config
         }
     };
-    let cli = OneBot::new(config, DefaultHandler::arc());
-    cli.run().await.unwrap();
+    let cli = OneBot::new(config, DefaultHandler::arc()).arc();
+    OneBot::run(cli.clone()).await.unwrap();
     loop {
         let stdin = std::io::stdin();
         let mut input = String::new();
