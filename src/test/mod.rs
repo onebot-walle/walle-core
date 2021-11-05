@@ -6,7 +6,7 @@ fn event() {
         BaseEvent, EventContent, Message as MsgContent, MessageEventType, Meta, Notice,
     };
     use crate::MessageSegment;
-
+    use std::collections::HashMap;
     let data = vec![
         (
             r#"{
@@ -81,9 +81,11 @@ fn event() {
                     message: vec![
                         MessageSegment::Text {
                             text: "OneBot is not a bot".to_owned(),
+                            extend: HashMap::new(),
                         },
                         MessageSegment::Image {
                             file_id: "e30f9684-3d54-4f65-b2da-db291a477f16".to_owned(),
+                            extend: HashMap::new(),
                         },
                     ],
                     alt_message: "OneBot is not a bot[图片]".to_owned(),
@@ -133,6 +135,7 @@ fn action() {
     use crate::action::GetLatestEventsContent;
     use crate::action::*;
     use crate::{Action, EmptyContent, MessageSegment};
+    use std::collections::HashMap;
 
     let data = vec![
         (
@@ -170,6 +173,7 @@ fn action() {
                 user_id: None,
                 message: vec![MessageSegment::Text {
                     text: "我是文字巴拉巴拉巴拉".to_owned(),
+                    extend: HashMap::new(),
                 }],
             }),
         ),
@@ -247,7 +251,7 @@ fn action_resp() {
 
 #[test]
 fn message() {
-    use crate::message::MessageSegment;
+    use crate::message::{Message, MessageBuild, MessageSegment};
     let message = r#"{
         "type": "ctext",
         "data": {
@@ -265,12 +269,7 @@ fn message() {
     }"#;
     let text: MessageSegment = serde_json::from_str(message).unwrap();
     let loc: MessageSegment = serde_json::from_str(location_message).unwrap();
-    let location = MessageSegment::Location {
-        latitude: 1.1,
-        longitude: 2.2,
-        title: "aa".to_owned(),
-        content: "bb".to_owned(),
-    };
+    let location = Message::new().location(1.1, 2.2, "title".to_owned(), "content".to_owned());
     println!("{:?}\n{:?}", text, loc);
     println!("{}", serde_json::to_string(&location).unwrap())
 }

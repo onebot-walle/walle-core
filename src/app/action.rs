@@ -108,14 +108,14 @@ where
         user_id: String
     );
     action_api!(
-        set_grop_admin,
+        set_group_admin,
         SetGroupAdmin,
         IdsContent,
         group_id: String,
         user_id: String
     );
     action_api!(
-        unset_grop_admin,
+        unset_group_admin,
         UnsetGroupAdmin,
         IdsContent,
         group_id: String,

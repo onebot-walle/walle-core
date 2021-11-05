@@ -30,6 +30,7 @@ pub use config::*;
 pub use event::*;
 pub use handle::{ActionHandler, DefaultHandler, EventHandler};
 pub use message::{Message, MessageBuild, MessageSegment};
+pub use utils::*;
 
 pub use async_trait::async_trait;
 

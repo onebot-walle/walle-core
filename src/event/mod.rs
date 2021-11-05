@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 /// OneBot 12 标准事件
 pub type Event = BaseEvent<EventContent>;
 
+/// 将 ExtendedEventContent 转化为 StandardEventContent
 pub trait EventContentExt {
-    // fn as_standard(self) -> Result<Event, Self>;
     fn from_standard(content: EventContent) -> Self;
 }
 
@@ -49,6 +49,9 @@ pub enum EventContent {
     Request(Request),
 }
 
+/// 扩展 EventContent 的枚举
+///
+/// 当不需要所有泛型时，请使用 AlwaysFailSturct 占位
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]

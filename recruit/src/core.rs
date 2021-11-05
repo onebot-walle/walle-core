@@ -22,13 +22,14 @@ pub(crate) struct Bots {
 impl Bot {
     pub(crate) fn new(self_id: String, config: ImplConfig) -> Self {
         Bot {
-            inner: Arc::new(OneBot::new(
+            inner: OneBot::new(
                 NAME.to_owned(),
                 PLATFORM.to_owned(),
                 self_id,
                 config,
                 Arc::new(super::handle::Handler),
-            )),
+            )
+            .arc(),
             // event_count: 0,
         }
     }

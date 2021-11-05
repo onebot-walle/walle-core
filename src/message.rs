@@ -2,52 +2,70 @@ use std::collections::HashMap;
 
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Serialize};
 
-use crate::EmptyContent;
+use crate::utils::{ExtendedMap, ExtendedValue};
 
 /// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
 
-/// 消息段
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type", content = "data")]
-#[serde(rename_all = "snake_case")]
-pub enum OldMessageSegment {
-    Text {
-        text: String,
-    },
-    Mention {
-        user_id: String,
-    },
-    MentionAll,
-    Image {
-        file_id: String,
-    },
-    Voice {
-        file_id: String,
-    },
-    Audio {
-        file_id: String,
-    },
-    Video {
-        file_id: String,
-    },
-    File {
-        file_id: String,
-    },
-    Location {
+// 消息段
+// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+// #[serde(tag = "type", content = "data")]
+// #[serde(rename_all = "snake_case")]
+// pub enum OldMessageSegment {
+//     Text {
+//         text: String,
+//     },
+//     Mention {
+//         user_id: String,
+//     },
+//     MentionAll,
+//     Image {
+//         file_id: String,
+//     },
+//     Voice {
+//         file_id: String,
+//     },
+//     Audio {
+//         file_id: String,
+//     },
+//     Video {
+//         file_id: String,
+//     },
+//     File {
+//         file_id: String,
+//     },
+//     Location {
+//         latitude: f64,
+//         longitude: f64,
+//         title: String,
+//         content: String,
+//     },
+//     Reply {
+//         message_id: String,
+//         user_id: String,
+//     },
+// }
+
+/// Message 构建 trait
+pub trait MessageBuild {
+    fn text_with_extend(self, text: String, extend: ExtendedMap) -> Self;
+    fn mention_with_extend(self, user_id: String, extend: ExtendedMap) -> Self;
+    fn mention_all_with_extend(self, extend: ExtendedMap) -> Self;
+    fn image_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn voice_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn audio_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn video_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn file_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn location_with_extend(
+        self,
         latitude: f64,
         longitude: f64,
         title: String,
         content: String,
-    },
-    Reply {
-        message_id: String,
-        user_id: String,
-    },
-}
+        extend: ExtendedMap,
+    ) -> Self;
+    fn reply_with_extend(self, message_id: String, user_id: String, extend: ExtendedMap) -> Self;
 
-/// Message 构建 trait
-pub trait MessageBuild {
     fn text(self, text: String) -> Self;
     fn mention(self, user_id: String) -> Self;
     fn mention_all(self) -> Self;
@@ -58,59 +76,103 @@ pub trait MessageBuild {
     fn file(self, file_id: String) -> Self;
     fn location(self, latitude: f64, longitude: f64, title: String, content: String) -> Self;
     fn reply(self, message_id: String, user_id: String) -> Self;
-    fn custom(self, ty: String, data: HashMap<String, MessageValue>) -> Self;
+    fn custom(self, ty: String, data: ExtendedMap) -> Self;
 }
 
 impl MessageBuild for Message {
-    fn text(mut self, text: String) -> Self {
-        self.push(MessageSegment::Text { text });
+    fn text_with_extend(mut self, text: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Text { text, extend });
         self
     }
-    fn mention(mut self, user_id: String) -> Self {
-        self.push(MessageSegment::Mention { user_id });
+    fn mention_with_extend(mut self, user_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Mention { user_id, extend });
         self
     }
-    fn mention_all(mut self) -> Self {
-        self.push(MessageSegment::MentionAll);
+    fn mention_all_with_extend(mut self, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::MentionAll { extend });
         self
     }
-    fn image(mut self, file_id: String) -> Self {
-        self.push(MessageSegment::Image { file_id });
+    fn file_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::File { file_id, extend });
         self
     }
-    fn voice(mut self, file_id: String) -> Self {
-        self.push(MessageSegment::Voice { file_id });
+    fn image_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Image { file_id, extend });
         self
     }
-    fn audio(mut self, file_id: String) -> Self {
-        self.push(MessageSegment::Audio { file_id });
+    fn voice_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Voice { file_id, extend });
         self
     }
-    fn video(mut self, file_id: String) -> Self {
-        self.push(MessageSegment::Video { file_id });
+    fn audio_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Audio { file_id, extend });
         self
     }
-    fn file(mut self, file_id: String) -> Self {
-        self.push(MessageSegment::File { file_id });
+    fn video_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
+        self.push(MessageSegment::Video { file_id, extend });
         self
     }
-    fn location(mut self, latitude: f64, longitude: f64, title: String, content: String) -> Self {
+    fn location_with_extend(
+        mut self,
+        latitude: f64,
+        longitude: f64,
+        title: String,
+        content: String,
+        extend: ExtendedMap,
+    ) -> Self {
         self.push(MessageSegment::Location {
             latitude,
             longitude,
             title,
             content,
+            extend,
         });
         self
     }
-    fn reply(mut self, message_id: String, user_id: String) -> Self {
+    fn reply_with_extend(
+        mut self,
+        message_id: String,
+        user_id: String,
+        extend: ExtendedMap,
+    ) -> Self {
         self.push(MessageSegment::Reply {
             message_id,
             user_id,
+            extend,
         });
         self
     }
-    fn custom(mut self, ty: String, data: HashMap<String, MessageValue>) -> Self {
+    fn text(self, text: String) -> Self {
+        self.text_with_extend(text, ExtendedMap::new())
+    }
+    fn mention(self, user_id: String) -> Self {
+        self.mention_with_extend(user_id, ExtendedMap::new())
+    }
+    fn mention_all(self) -> Self {
+        self.mention_all_with_extend(ExtendedMap::new())
+    }
+    fn image(self, file_id: String) -> Self {
+        self.image_with_extend(file_id, ExtendedMap::new())
+    }
+    fn voice(self, file_id: String) -> Self {
+        self.voice_with_extend(file_id, ExtendedMap::new())
+    }
+    fn audio(self, file_id: String) -> Self {
+        self.audio_with_extend(file_id, ExtendedMap::new())
+    }
+    fn video(self, file_id: String) -> Self {
+        self.video_with_extend(file_id, ExtendedMap::new())
+    }
+    fn file(self, file_id: String) -> Self {
+        self.file_with_extend(file_id, ExtendedMap::new())
+    }
+    fn location(self, latitude: f64, longitude: f64, title: String, content: String) -> Self {
+        self.location_with_extend(latitude, longitude, title, content, ExtendedMap::new())
+    }
+    fn reply(self, message_id: String, user_id: String) -> Self {
+        self.reply_with_extend(message_id, user_id, ExtendedMap::new())
+    }
+    fn custom(mut self, ty: String, data: ExtendedMap) -> Self {
         self.push(MessageSegment::Custom { ty, data });
         self
     }
@@ -133,105 +195,96 @@ impl MessageAlt for Message {
 impl MessageAlt for MessageSegment {
     fn alt(&self) -> String {
         match self {
-            Self::Text { text } => text.to_owned(),
-            Self::Mention { user_id } => format!("[Mention={}]", user_id),
-            Self::MentionAll => "[MentionAll]".to_owned(),
-            Self::Image { file_id: _ } => "[Image]".to_owned(),
-            Self::Voice { file_id: _ } => "[Voice]".to_owned(),
-            Self::Audio { file_id: _ } => "[Audio]".to_owned(),
-            Self::Video { file_id: _ } => "[Video]".to_owned(),
-            Self::File { file_id: _ } => "[File]".to_owned(),
+            Self::Text { text, extend: _ } => text.to_owned(),
+            Self::Mention { user_id, extend: _ } => format!("[Mention={}]", user_id),
+            Self::MentionAll { extend: _ } => "[MentionAll]".to_owned(),
+            Self::Image {
+                file_id: _,
+                extend: _,
+            } => "[Image]".to_owned(),
+            Self::Voice {
+                file_id: _,
+                extend: _,
+            } => "[Voice]".to_owned(),
+            Self::Audio {
+                file_id: _,
+                extend: _,
+            } => "[Audio]".to_owned(),
+            Self::Video {
+                file_id: _,
+                extend: _,
+            } => "[Video]".to_owned(),
+            Self::File {
+                file_id: _,
+                extend: _,
+            } => "[File]".to_owned(),
             Self::Location {
                 latitude: _,
                 longitude: _,
                 title: _,
                 content: _,
+                extend: _,
             } => "[Location]".to_owned(),
             Self::Reply {
                 message_id: _,
                 user_id,
+                extend: _,
             } => format!("[Reply={}]", user_id),
             Self::Custom { ty, data: _ } => format!("[{}]", ty),
         }
     }
 }
 
+/// 消息段
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageSegment {
     Text {
         text: String,
+        extend: ExtendedMap,
     },
     Mention {
         user_id: String,
+        extend: ExtendedMap,
     },
-    MentionAll,
+    MentionAll {
+        extend: ExtendedMap,
+    },
     Image {
         file_id: String,
+        extend: ExtendedMap,
     },
     Voice {
         file_id: String,
+        extend: ExtendedMap,
     },
     Audio {
         file_id: String,
+        extend: ExtendedMap,
     },
     Video {
         file_id: String,
+        extend: ExtendedMap,
     },
     File {
         file_id: String,
+        extend: ExtendedMap,
     },
     Location {
         latitude: f64,
         longitude: f64,
         title: String,
         content: String,
+        extend: ExtendedMap,
     },
     Reply {
         message_id: String,
         user_id: String,
+        extend: ExtendedMap,
     },
     Custom {
         ty: String,
-        data: HashMap<String, MessageValue>,
+        data: ExtendedMap,
     },
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(untagged)]
-pub enum MessageValue {
-    Str(String),
-    F64(f64),
-    Int(i64),
-    Bool(bool),
-}
-
-impl MessageValue {
-    pub fn as_str(self) -> Option<String> {
-        match self {
-            Self::Str(v) => Some(v),
-            _ => None,
-        }
-    }
-    pub fn as_f64(self) -> Option<f64> {
-        match self {
-            Self::F64(v) => Some(v),
-            _ => None,
-        }
-    }
-    #[allow(dead_code)]
-    pub fn as_int(self) -> Option<i64> {
-        match self {
-            Self::Int(v) => Some(v),
-            _ => None,
-        }
-    }
-    #[allow(dead_code)]
-    pub fn as_bool(self) -> Option<bool> {
-        match self {
-            Self::Bool(v) => Some(v),
-            _ => None,
-        }
-    }
 }
 
 impl Serialize for MessageSegment {
@@ -245,90 +298,64 @@ impl Serialize for MessageSegment {
             longitude: &'a f64,
             title: &'a str,
             content: &'a str,
+            #[serde(flatten)]
+            extend: &'a ExtendedMap,
+        }
+
+        fn smap<S>(
+            serializer: S,
+            ty: &str,
+            key_word: &str,
+            value: &str,
+            extended_map: &ExtendedMap,
+        ) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let mut map = serializer.serialize_map(Some(2))?;
+            map.serialize_entry("type", ty)?;
+            let v = ExtendedValue::Str(value.to_owned());
+            map.serialize_entry("data", &{
+                let mut datamap = HashMap::new();
+                datamap.insert(key_word, &v);
+                for (key, value) in extended_map {
+                    datamap.insert(key, value);
+                }
+                datamap
+            })?;
+            map.end()
         }
 
         match self {
-            Self::Text { text } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "text")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("text", text);
-                    datamap
-                })?;
-                map.end()
+            Self::Text { text, extend } => smap(serializer, "text", "text", text, extend),
+            Self::Mention { user_id, extend } => {
+                smap(serializer, "mention", "user_id", user_id, extend)
             }
-            Self::Mention { user_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "mention")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("user_id", user_id);
-                    datamap
-                })?;
-                map.end()
-            }
-            Self::MentionAll => {
+            Self::MentionAll { extend } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "mention_all")?;
-                map.serialize_entry("data", &EmptyContent::default())?;
+                map.serialize_entry("data", &extend)?;
                 map.end()
             }
-            Self::Image { file_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "image")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("file_id", file_id);
-                    datamap
-                })?;
-                map.end()
+            Self::Image { file_id, extend } => {
+                smap(serializer, "image", "file_id", file_id, extend)
             }
-            Self::Voice { file_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "voice")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("file_id", file_id);
-                    datamap
-                })?;
-                map.end()
+            Self::Voice { file_id, extend } => {
+                smap(serializer, "voice", "file_id", file_id, extend)
             }
-            Self::Audio { file_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "audio")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("file_id", file_id);
-                    datamap
-                })?;
-                map.end()
+            Self::Audio { file_id, extend } => {
+                smap(serializer, "audio", "file_id", file_id, extend)
             }
-            Self::Video { file_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "video")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("file_id", file_id);
-                    datamap
-                })?;
-                map.end()
+            Self::Video { file_id, extend } => {
+                smap(serializer, "video", "file_id", file_id, extend)
             }
-            Self::File { file_id } => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "file")?;
-                map.serialize_entry("data", &{
-                    let mut datamap = HashMap::new();
-                    datamap.insert("file_id", file_id);
-                    datamap
-                })?;
-                map.end()
-            }
+            Self::File { file_id, extend } => smap(serializer, "file", "file_id", file_id, extend),
             Self::Location {
                 latitude,
                 longitude,
                 title,
                 content,
+                extend,
             } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "location")?;
@@ -339,6 +366,7 @@ impl Serialize for MessageSegment {
                         longitude,
                         title,
                         content,
+                        extend,
                     },
                 )?;
                 map.end()
@@ -346,13 +374,17 @@ impl Serialize for MessageSegment {
             Self::Reply {
                 message_id,
                 user_id,
+                extend,
             } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "location")?;
                 map.serialize_entry("data", &{
                     let mut datamap = HashMap::new();
-                    datamap.insert("message_id", message_id);
-                    datamap.insert("user_id", user_id);
+                    datamap.insert("message_id", ExtendedValue::Str(message_id.to_owned()));
+                    datamap.insert("user_id", ExtendedValue::Str(user_id.to_owned()));
+                    for (key, value) in extend {
+                        datamap.insert(key, value.clone());
+                    }
                     datamap
                 })?;
                 map.end()
@@ -387,8 +419,20 @@ impl<'de> Visitor<'de> for MSVister {
     where
         A: serde::de::MapAccess<'de>,
     {
+        fn get_data<'de, A>(
+            map: &mut ExtendedMap,
+            key_word: &'static str,
+        ) -> Result<String, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            map.remove(key_word)
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| serde::de::Error::missing_field(key_word))
+        }
+
         let mut ty = None;
-        let mut data: Option<HashMap<String, MessageValue>> = None;
+        let mut data: Option<ExtendedMap> = None;
         while let Some(key) = map.next_key()? {
             match key {
                 Field::Type => ty = Some(map.next_value()?),
@@ -399,56 +443,51 @@ impl<'de> Visitor<'de> for MSVister {
         let mut data = data.ok_or_else(|| serde::de::Error::missing_field("data"))?;
         match ty {
             "text" => {
-                if let Some(text) = data.remove("text") {
-                    Ok(Self::Value::Text {
-                        text: text.as_str().unwrap(),
-                    })
-                } else {
-                    Err(serde::de::Error::missing_field("text"))
-                }
+                let text = get_data::<A>(&mut data, "text")?;
+                Ok(MessageSegment::Text { text, extend: data })
             }
             "mention" => {
-                let user_id = data
-                    .remove("user_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("user_id"))?;
-                Ok(Self::Value::Mention { user_id })
+                let user_id = get_data::<A>(&mut data, "user_id")?;
+                Ok(Self::Value::Mention {
+                    user_id,
+                    extend: data,
+                })
             }
-            "mention_all" => Ok(Self::Value::MentionAll),
+            "mention_all" => Ok(Self::Value::MentionAll { extend: data }),
             "image" => {
-                let file_id = data
-                    .remove("file_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("file_id"))?;
-                Ok(Self::Value::Image { file_id })
+                let file_id = get_data::<A>(&mut data, "file_id")?;
+                Ok(Self::Value::Image {
+                    file_id,
+                    extend: data,
+                })
             }
             "voice" => {
-                let file_id = data
-                    .remove("file_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("file_id"))?;
-                Ok(Self::Value::Voice { file_id })
+                let file_id = get_data::<A>(&mut data, "file_id")?;
+                Ok(Self::Value::Voice {
+                    file_id,
+                    extend: data,
+                })
             }
             "audio" => {
-                let file_id = data
-                    .remove("file_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("file_id"))?;
-                Ok(Self::Value::Audio { file_id })
+                let file_id = get_data::<A>(&mut data, "file_id")?;
+                Ok(Self::Value::Audio {
+                    file_id,
+                    extend: data,
+                })
             }
             "video" => {
-                let file_id = data
-                    .remove("file_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("file_id"))?;
-                Ok(Self::Value::Video { file_id })
+                let file_id = get_data::<A>(&mut data, "file_id")?;
+                Ok(Self::Value::Video {
+                    file_id,
+                    extend: data,
+                })
             }
             "file" => {
-                let file_id = data
-                    .remove("file_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("file_id"))?;
-                Ok(Self::Value::File { file_id })
+                let file_id = get_data::<A>(&mut data, "file_id")?;
+                Ok(Self::Value::File {
+                    file_id,
+                    extend: data,
+                })
             }
             "location" => {
                 let latitude = data
@@ -459,33 +498,23 @@ impl<'de> Visitor<'de> for MSVister {
                     .remove("longitude")
                     .and_then(|v| v.as_f64())
                     .ok_or_else(|| serde::de::Error::missing_field("longitude"))?;
-                let title = data
-                    .remove("title")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("title"))?;
-                let content = data
-                    .remove("content")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("content"))?;
+                let title = get_data::<A>(&mut data, "title")?;
+                let content = get_data::<A>(&mut data, "content")?;
                 Ok(Self::Value::Location {
                     latitude,
                     longitude,
                     title,
                     content,
+                    extend: data,
                 })
             }
             "reply" => {
-                let message_id = data
-                    .remove("message_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("message_id"))?;
-                let user_id = data
-                    .remove("user_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| serde::de::Error::missing_field("user_id"))?;
+                let message_id = get_data::<A>(&mut data, "message_id")?;
+                let user_id = get_data::<A>(&mut data, "user_id")?;
                 Ok(Self::Value::Reply {
                     message_id,
                     user_id,
+                    extend: data,
                 })
             }
             _ => Ok(Self::Value::Custom {

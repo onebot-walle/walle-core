@@ -53,3 +53,103 @@ impl EchoS {
         return Self(Some(format!("{}-{}", tag, timestamp_nano())));
     }
 }
+
+use std::collections::HashMap;
+
+/// 扩展字段 Map
+pub type ExtendedMap = HashMap<String, ExtendedValue>;
+
+/// 扩展字段 MapValue
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedValue {
+    Str(String),
+    F64(f64),
+    Int(i64),
+    Bool(bool),
+    Map(HashMap<String, ExtendedValue>),
+    List(Vec<ExtendedValue>),
+    Empty(crate::EmptyContent),
+}
+
+#[allow(dead_code)]
+impl ExtendedValue {
+    pub fn as_str(self) -> Option<String> {
+        match self {
+            Self::Str(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn as_f64(self) -> Option<f64> {
+        match self {
+            Self::F64(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn as_int(self) -> Option<i64> {
+        match self {
+            Self::Int(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn as_bool(self) -> Option<bool> {
+        match self {
+            Self::Bool(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn as_map(self) -> Option<HashMap<String, ExtendedValue>> {
+        match self {
+            Self::Map(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn as_list(self) -> Option<Vec<ExtendedValue>> {
+        match self {
+            Self::List(v) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn is_str(&self) -> bool {
+        match self {
+            Self::Str(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_f64(&self) -> bool {
+        match self {
+            Self::F64(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_int(&self) -> bool {
+        match self {
+            Self::Int(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_bool(&self) -> bool {
+        match self {
+            Self::Bool(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_map(&self) -> bool {
+        match self {
+            Self::Map(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_list(&self) -> bool {
+        match self {
+            Self::List(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::Empty(_) => true,
+            _ => false,
+        }
+    }
+}
