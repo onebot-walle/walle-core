@@ -1443,6 +1443,15 @@ dependencies = [
  "pyo3",
  "pyo3-asyncio",
  "tokio",
+ "tracing-subscriber 0.2.25",
+ "walle-core",
+]
+
+[[package]]
+name = "walle-v11"
+version = "0.1.0"
+dependencies = [
+ "serde",
  "walle-core",
 ]
 

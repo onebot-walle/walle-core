@@ -21,6 +21,7 @@ impl ContentTpye {
 use std::sync::Arc;
 #[cfg(feature = "websocket")]
 use tokio::{net::TcpStream, sync::RwLock, task::JoinHandle};
+#[cfg(feature = "websocket")]
 use tokio_tungstenite::WebSocketStream;
 
 #[cfg(feature = "websocket")]

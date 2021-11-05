@@ -173,7 +173,8 @@ pub struct Message {
     pub message: crate::Message,
     pub alt_message: String,
     pub user_id: String,
-    pub(crate) sub_type: String, // just for Deserialize
+    /// just for Deserialize
+    pub sub_type: String,
 }
 
 /// ## 扩展消息事件

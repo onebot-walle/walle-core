@@ -12,9 +12,7 @@ use std::sync::{
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, trace};
 
-#[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<BaseEvent<E>>;
-#[cfg(any(feature = "http", feature = "websocket"))]
 pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<BaseEvent<E>>;
 pub(crate) type ArcActionHandler<A, R> =
     Arc<dyn crate::handle::ActionHandler<A, ActionResp<R>> + Send + Sync>;

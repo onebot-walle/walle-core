@@ -34,12 +34,13 @@ pub(crate) struct Echo<I> {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct EchoS(Option<String>);
 
+#[allow(dead_code)]
 impl<I> Echo<I> {
     pub fn unpack(self) -> (I, EchoS) {
         return (self.inner, EchoS(self.echo));
     }
 }
-
+#[allow(dead_code)]
 impl EchoS {
     pub fn pack<I>(self, i: I) -> Echo<I> {
         return Echo {
@@ -48,7 +49,6 @@ impl EchoS {
         };
     }
 
-    #[allow(dead_code)]
     pub fn new(tag: &str) -> Self {
         return Self(Some(format!("{}-{}", tag, timestamp_nano())));
     }
