@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use tracing::{info, warn};
 use walle_core::{
     app::OneBot,
     config::{AppConfig, WebSocket, WebSocketRev},
@@ -14,29 +15,43 @@ static CONFIG_FILE: &str = "mira.toml";
 
 #[tokio::main]
 async fn main() {
-    let env = tracing_subscriber::EnvFilter::from("walle_core=trace,Walle-core=debug,mira=info");
-    tracing_subscriber::fmt().with_env_filter(env).init();
     let root = root::Root::parse();
-    let config = match root.sub_comand {
-        root::Commands::Run(r) => load_or_new(r.config),
-        root::Commands::Ws(ws) => {
-            let mut wsc = WebSocketRev::default();
-            then_do(&ws.url, &mut wsc.url);
-            then_do(&ws.reconnect_interval, &mut wsc.reconnect_interval);
-            wsc.access_token = ws.access_token;
-            let mut config = AppConfig::empty();
-            config.websocket = Some(wsc);
-            config
-        }
-        root::Commands::Wsr(wsr) => {
-            let mut wsrc = WebSocket::default();
-            then_do(&wsr.ip, &mut wsrc.host);
-            then_do(&wsr.port, &mut wsrc.port);
-            wsrc.access_token = wsr.access_token;
-            let mut config = AppConfig::empty();
-            config.websocket_rev = Some(wsrc);
-            config
-        }
+    if root.output_config {
+        new_config_file();
+        return;
+    }
+    let env = tracing_subscriber::EnvFilter::from(if root.trace {
+        "trace"
+    } else if root.debug {
+        "debug"
+    } else {
+        "info"
+    });
+    tracing_subscriber::fmt().with_env_filter(env).init();
+    let config = if let Some(url) = root.ws {
+        let mut config = AppConfig::empty();
+        let ws = WebSocketRev {
+            url,
+            access_token: root.access_token,
+            reconnect_interval: if let Some(interval) = root.reconnect_interval {
+                interval
+            } else {
+                4
+            },
+        };
+        config.websocket = Some(ws);
+        config
+    } else if let Some(addr) = root.wsr {
+        let mut config = AppConfig::empty();
+        let wsr = WebSocket {
+            host: addr.ip(),
+            port: addr.port(),
+            access_token: root.access_token,
+        };
+        config.websocket_rev = Some(wsr);
+        config
+    } else {
+        load_config(root.config)
     };
     let cli = OneBot::new(config, DefaultHandler::arc()).arc();
     OneBot::run(cli.clone()).await.unwrap();
@@ -44,35 +59,39 @@ async fn main() {
         let stdin = std::io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-        // println!("in:{}", input);
-        cli.send_message(
-            "private".to_owned(),
-            None,
-            Some("recruit".to_owned()),
-            Message::new().text(input),
-        )
-        .await;
-        // println!("{}", input);
-        // tokio::time::sleep(std::time::Duration::from_secs(1)).await
+        input = input.replace("\r", "");
+        input.remove(input.len() - 1);
+        if !input.is_empty() {
+            cli.send_message(
+                "private".to_owned(),
+                None,
+                Some("recruit".to_owned()),
+                Message::new().text(input),
+            )
+            .await;
+        }
     }
 }
 
-fn then_do<T>(t: &Option<T>, o: &mut T)
-where
-    T: Clone,
-{
-    if let Some(t) = t {
-        *o = t.clone();
-    }
-}
-
-fn load_or_new(path: Option<String>) -> AppConfig {
-    use tracing::{info, warn};
-
-    let (path, default) = if let Some(p) = &path {
-        (p.as_str(), false)
+fn new_config_file() {
+    let path = PathBuf::from(CONFIG_FILE);
+    if !path.exists() {
+        let config = AppConfig::default();
+        info!("saving default config to {}", CONFIG_FILE);
+        std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
     } else {
-        (CONFIG_FILE, true)
+        info!(
+            "file {} exist, please delete or rename it first",
+            CONFIG_FILE
+        );
+    }
+}
+
+fn load_config(path: Option<String>) -> AppConfig {
+    let path = if let Some(p) = &path {
+        p.as_str()
+    } else {
+        CONFIG_FILE
     };
     let path = PathBuf::from(path);
 
@@ -82,10 +101,6 @@ fn load_or_new(path: Option<String>) -> AppConfig {
             path.to_str().unwrap()
         );
         let config = AppConfig::default();
-        if default {
-            info!("saving default config to {}", CONFIG_FILE);
-            std::fs::write(&path, toml::to_string(&config).unwrap()).unwrap();
-        }
         return config;
     }
 

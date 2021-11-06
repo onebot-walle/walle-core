@@ -4,48 +4,28 @@ use clap::Parser;
 #[clap(name = "mira", version = "0.1.0", author = "Abrahum")]
 /// A OneBot v12 test client
 pub(crate) struct Root {
-    #[clap(subcommand)]
-    pub(crate) sub_comand: Commands,
-}
-
-#[derive(Parser)]
-pub(crate) enum Commands {
-    /// Run clinet with Websocket
-    Ws(Ws),
-    /// Run client with Websocket-Rev
-    Wsr(Wsr),
-    /// Run from config file
-    Run(Run),
-}
-
-#[derive(Parser)]
-pub(crate) struct Ws {
-    /// url for websocket
-    pub url: Option<String>,
+    /// log debug level
     #[clap(short, long)]
-    /// access_token
-    pub access_token: Option<String>,
+    pub(crate) debug: bool,
+    /// log trace level
     #[clap(short, long)]
-    /// reconnect_interval
-    pub reconnect_interval: Option<u32>,
-}
-
-#[derive(Parser)]
-pub(crate) struct Wsr {
+    pub(crate) trace: bool,
+    /// set access_token
     #[clap(short, long)]
-    /// host ip
-    pub ip: Option<std::net::IpAddr>,
-    /// port
+    pub(crate) access_token: Option<String>,
+    /// set ws url (default: ws://127.0.0.1:8844)
+    #[clap(long)]
+    pub(crate) ws: Option<String>,
+    /// set reconnect_interval (default: 4)
     #[clap(short, long)]
-    pub port: Option<u16>,
-    /// access_token
+    pub(crate) reconnect_interval: Option<u32>,
+    /// wsr address(if set ws, wsr will be ignored)
+    #[clap(long)]
+    pub(crate) wsr: Option<std::net::SocketAddr>,
+    /// config file path (file > mira.toml > default)
     #[clap(short, long)]
-    pub access_token: Option<String>,
-}
-
-#[derive(Parser)]
-pub(crate) struct Run {
-    #[clap(short, long)]
-    /// Config file path
     pub(crate) config: Option<String>,
+    /// output default config to mira.toml
+    #[clap(long)]
+    pub(crate) output_config: bool,
 }
