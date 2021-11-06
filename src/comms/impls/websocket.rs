@@ -1,4 +1,4 @@
-use super::util::WebSocketServer;
+use crate::comms::util::WebSocketServer;
 use crate::config::WebSocket;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;

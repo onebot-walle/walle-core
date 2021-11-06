@@ -8,8 +8,9 @@ pub(crate) use websocket::run as websocket_run;
 #[cfg(feature = "websocket")]
 pub(crate) use websocket_rev::run as websocket_rev_run;
 
-use super::util;
+#[cfg(feature = "websocket")]
 use crate::app::CustomOneBot;
+#[cfg(feature = "websocket")]
 use std::sync::Arc;
 
 #[cfg(feature = "websocket")]

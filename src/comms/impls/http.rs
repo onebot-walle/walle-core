@@ -46,7 +46,7 @@ where
         let _content_type = match &req
             .headers()
             .get("Content-Type")
-            .and_then(|t| super::util::ContentTpye::new(t.to_str().unwrap()))
+            .and_then(|t| crate::comms::util::ContentTpye::new(t.to_str().unwrap()))
         {
             Some(t) => t,
             None => return Box::pin(async { Ok(empty_error_response(415)) }),

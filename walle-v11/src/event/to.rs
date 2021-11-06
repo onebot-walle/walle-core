@@ -69,3 +69,22 @@ impl super::To12 for super::Event {
         }
     }
 }
+
+// impl super::To11 for v12Evnet {
+//     fn to_11(self) -> Result<super::Event, &'static str> {
+//         match self.content {
+//             v12EventContent::Message(m) => Ok(super::Event {
+//                 self_id: self.self_id,
+//                 time: self.time as i64,
+//                 content: super::EventContent::Message(super::Message{
+//                     message_id: 
+//                 })
+//             }),
+//             v12EventContent::Meta(m) => Ok(super::Event {
+//                 self_id: self.self_id,
+//                 time: self.time as i64,
+//             }),
+//             _ => Err("Unsupport event content"),
+//         }
+//     }
+// }

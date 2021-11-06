@@ -1,10 +1,11 @@
 [package]
 name = "walle-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "Onebot Lib in Rust"
 authors = ["Abrahum<307887491@qq.com>"]
+homepage = "https://github.com/abrahum/Walle-core"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

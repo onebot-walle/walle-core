@@ -81,38 +81,4 @@ async fn websocket_loop<E, A, R>(
             }
         }
     }
-    // let sink_join = tokio::spawn(async move {
-    //     loop {
-    //         let s = tokio::select! {
-    //             event = listener.recv() => {
-    //                 if let Ok(event) = event {
-    //                     serde_json::to_string(&event).unwrap()
-    //                 }
-    //                 else { panic!() }
-    //             }
-    //             resp = resp_receiver.recv() => { serde_json::to_string(&resp).unwrap() }
-    //         };
-    //         sink.send(Message::Text(s)).await.unwrap();
-    //     }
-    // });
-    // let stream_join = tokio::spawn(async move {
-    //     loop {
-    //         if let Some(data) = stream.next().await {
-    //             if let Ok(message) = data {
-    //                 match serde_json::from_str(&message.to_string()) {
-    //                     Ok(action) => {
-    //                         sender
-    //                             .send((action, crate::impls::CustomARSS::Mpsc(resp_sender.clone())))
-    //                             .await
-    //                             .unwrap();
-    //                     }
-    //                     Err(_) => {}
-    //                 }
-    //             }
-    //         }
-    //     }
-    // });
-    // (sink_join, stream_join)
 }
-
-use super::util;

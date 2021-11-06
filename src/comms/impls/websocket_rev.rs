@@ -17,7 +17,7 @@ where
 {
     let config = config.clone();
     tokio::spawn(async move {
-        while let Some(ws_stream) = super::util::try_connect(&config).await {
+        while let Some(ws_stream) = crate::comms::util::try_connect(&config).await {
             super::websocket_loop(ws_stream, broadcaster.subscribe(), handler.clone()).await;
             tokio::time::sleep(Duration::from_secs(config.reconnect_interval as u64)).await;
         }

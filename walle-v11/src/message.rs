@@ -66,3 +66,13 @@ impl MessageTo12 for Message {
         todo!()
     }
 }
+
+pub trait MessageTo11 {
+    fn to_11(self) -> Message;
+}
+
+impl MessageTo11 for walle_core::Message {
+    fn to_11(self) -> Message {
+        todo!()
+    }
+}

@@ -1,6 +1,5 @@
 // use pyo3::prelude::*;
 // use pyo3::wrap_pyfunction;
-// use std::sync::Arc;
 
 // #[pyfunction]
 // /// just build and run a onebot application

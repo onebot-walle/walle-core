@@ -13,7 +13,7 @@ where
     let config = config.clone();
     tokio::spawn(async move {
         loop {
-            if let Some(ws_stream) = super::util::try_connect(&config).await {
+            if let Some(ws_stream) = crate::comms::util::try_connect(&config).await {
                 super::websocket_loop(ws_stream, ob.clone()).await;
             }
             tokio::time::sleep(Duration::from_secs(config.reconnect_interval as u64)).await;

@@ -1,7 +1,7 @@
 #![doc = include_str!("README.md")]
 
 use crate::{
-    action_resp::StatusContent, comms, event::BaseEvent, message::MessageAlt, Action, ActionResp,
+    action_resp::StatusContent, event::BaseEvent, message::MessageAlt, Action, ActionResp,
     ActionRespContent, EventContent, ImplConfig, Message, RUNNING, SHUTDOWN,
 };
 use serde::{de::DeserializeOwned, Serialize};
@@ -9,6 +9,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU8, Ordering},
     Arc,
 };
+#[cfg(any(feature = "http", feature = "websocket"))]
 use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, trace};
 
@@ -38,7 +39,7 @@ pub struct CustomOneBot<E, A, R> {
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
     #[cfg(feature = "websocket")]
-    ws_join_handles: RwLock<(Vec<comms::WebSocketServer>, Vec<JoinHandle<()>>)>,
+    ws_join_handles: RwLock<(Vec<crate::comms::WebSocketServer>, Vec<JoinHandle<()>>)>,
 
     status: AtomicU8,
     online: AtomicBool,

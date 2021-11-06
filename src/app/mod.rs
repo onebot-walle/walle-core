@@ -3,7 +3,7 @@ use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
 };
-use tokio::{sync::RwLock, task::JoinHandle};
+use tokio::sync::RwLock;
 use tracing::{debug, info};
 
 use crate::{
@@ -39,14 +39,16 @@ pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
 pub struct CustomOneBot<E, A, R> {
     self_id: RwLock<String>,
     pub config: AppConfig,
+    #[allow(dead_code)]
     pub(crate) event_handler: ArcEventHandler<E>,
     action_sender: CustomActionSender<A>,
+    #[allow(dead_code)]
     pub(crate) action_receiver: RwLock<CustomActionReceiver<A>>,
     pub(crate) echo_map: DashMap<EchoS, ActionRespSender<R>>,
 
     #[cfg(feature = "websocket")]
     ws_join_handles: RwLock<(
-        Option<JoinHandle<()>>,
+        Option<tokio::task::JoinHandle<()>>,
         Option<crate::comms::WebSocketServer>,
     )>,
 
@@ -82,6 +84,7 @@ where
         self.self_id.read().await.clone()
     }
 
+    #[allow(dead_code)]
     pub(crate) async fn set_id(&self, id: &str) {
         if &self.self_id().await != id {
             *self.self_id.write().await = id.to_owned()
@@ -96,9 +99,10 @@ where
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
     pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
-        if ob.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
+        if ob.status.load(Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
+        info!("OneBot is starting...");
 
         #[cfg(feature = "websocket")]
         if let Some(websocket) = &ob.config.websocket {
@@ -122,7 +126,7 @@ where
     }
 
     pub fn is_shutdown(&self) -> bool {
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == SHUTDOWN {
+        if self.status.load(Ordering::SeqCst) == SHUTDOWN {
             true
         } else {
             false
@@ -130,7 +134,7 @@ where
     }
 
     pub fn is_running(&self) -> bool {
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == SHUTDOWN {
+        if self.status.load(Ordering::SeqCst) == SHUTDOWN {
             false
         } else {
             true
@@ -139,9 +143,9 @@ where
 
     /// 关闭实例
     pub async fn shutdown(&self) {
-        use std::mem::swap;
         #[cfg(feature = "websocket")]
         {
+            use std::mem::swap;
             let mut joins = self.ws_join_handles.write().await;
             if let Some(j) = &joins.0 {
                 j.abort();
@@ -153,8 +157,7 @@ where
                 j.unwrap().abort().await;
             }
         }
-        self.status
-            .swap(SHUTDOWN, std::sync::atomic::Ordering::SeqCst);
+        self.status.swap(SHUTDOWN, Ordering::SeqCst);
     }
 
     pub async fn call_action(&self, action: A) {
