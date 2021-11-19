@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 
+mod fnt;
+
 /// 实现端处理 Action 需要实现的 Trait
 ///
 /// 请注意，请务必实现默认返回 `ActionResp::unsupported_action()`
@@ -90,7 +92,7 @@ impl EventHandler<crate::Event> for DefaultHandler {
     async fn handle(&self, event: crate::Event) {
         use crate::EventContent;
         use colored::*;
-        use tracing::info;
+        use tracing::{info, trace};
 
         match &event.content {
             EventContent::Meta(m) => info!(
@@ -118,7 +120,7 @@ impl EventHandler<crate::Event> for DefaultHandler {
                 )
             }
             EventContent::Notice(_) => {
-                info!(target: "Walle-core","[{}] NoticeEvent ->", event.self_id.red())
+                trace!(target: "Walle-core","[{}] NoticeEvent ->", event.self_id.red())
             }
             EventContent::Request(_) => {
                 info!(target: "Walle-core","[{}]RequestEvent ->", event.self_id.red())

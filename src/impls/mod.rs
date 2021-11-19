@@ -97,47 +97,47 @@ where
     /// 当重复运行同一个实例，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
+    pub async fn run(self: &Arc<Self>) -> Result<(), &'static str> {
         use colored::*;
 
-        if ob.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
+        if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
 
-        info!(target: "Walle-core", "{} is booting", ob.r#impl.red());
+        info!(target: "Walle-core", "{} is booting", self.r#impl.red());
 
         #[cfg(feature = "http")]
-        if !ob.config.http.is_empty() {
+        if !self.config.http.is_empty() {
             info!(target: "Walle-core", "Strating HTTP");
-            let http_joins = &mut ob.http_join_handles.write().await.0;
-            for http in &ob.config.http {
+            let http_joins = &mut self.http_join_handles.write().await.0;
+            for http in &self.config.http {
                 http_joins.push(crate::comms::impls::http_run(
                     http,
-                    ob.action_handler.clone(),
+                    self.action_handler.clone(),
                 ));
             }
         }
 
         #[cfg(feature = "http")]
-        if !ob.config.http_webhook.is_empty() {
+        if !self.config.http_webhook.is_empty() {
             info!(target: "Walle-core", "Strating HTTP Webhook");
-            let webhook_joins = &mut ob.http_join_handles.write().await.1;
-            let clients = ob.build_webhook_clients(ob.action_handler.clone());
+            let webhook_joins = &mut self.http_join_handles.write().await.1;
+            let clients = self.build_webhook_clients(self.action_handler.clone());
             for client in clients {
                 webhook_joins.push(client.run());
             }
         }
 
         #[cfg(feature = "websocket")]
-        if !ob.config.websocket.is_empty() {
+        if !self.config.websocket.is_empty() {
             info!(target: "Walle-core", "Strating WebSocket");
-            let ws_joins = &mut ob.ws_join_handles.write().await.0;
-            for websocket in &ob.config.websocket {
+            let ws_joins = &mut self.ws_join_handles.write().await.0;
+            for websocket in &self.config.websocket {
                 ws_joins.push(
                     crate::comms::impls::websocket_run(
                         websocket,
-                        ob.broadcaster.clone(),
-                        ob.action_handler.clone(),
+                        self.broadcaster.clone(),
+                        self.action_handler.clone(),
                     )
                     .await,
                 );
@@ -145,25 +145,26 @@ where
         }
 
         #[cfg(feature = "websocket")]
-        if !ob.config.websocket_rev.is_empty() {
+        if !self.config.websocket_rev.is_empty() {
             info!(target: "Walle-core", "Strating WebSocket Reverse");
-            let wsrev_joins = &mut ob.ws_join_handles.write().await.1;
-            for websocket_rev in &ob.config.websocket_rev {
+            let wsrev_joins = &mut self.ws_join_handles.write().await.1;
+            for websocket_rev in &self.config.websocket_rev {
                 wsrev_joins.push(
                     crate::comms::impls::websocket_rev_run(
                         websocket_rev,
-                        ob.broadcaster.clone(),
-                        ob.action_handler.clone(),
+                        self.broadcaster.clone(),
+                        self.action_handler.clone(),
                     )
                     .await,
                 );
             }
         }
-        if ob.config.heartbeat.enabled {
-            ob.start_heartbeat(ob.clone());
+        if self.config.heartbeat.enabled {
+            self.start_heartbeat(self.clone());
         }
 
-        ob.status.swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
+        self.status
+            .swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 

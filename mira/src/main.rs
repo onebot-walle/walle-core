@@ -5,7 +5,7 @@ use tracing::{info, warn};
 use walle_core::{
     app::OneBot,
     config::{AppConfig, WebSocket, WebSocketRev},
-    DefaultHandler, Message, MessageBuild,
+    DefaultHandler,
 };
 
 mod root;
@@ -54,7 +54,8 @@ async fn main() {
         load_config(root.config)
     };
     let cli = OneBot::new(config, DefaultHandler::arc()).arc();
-    OneBot::run(cli.clone()).await.unwrap();
+    let mut cache = shell::Cache::new(cli.clone());
+    cli.run().await.unwrap();
     loop {
         let stdin = std::io::stdin();
         let mut input = String::new();
@@ -62,13 +63,7 @@ async fn main() {
         input = input.replace("\r", "");
         input.remove(input.len() - 1);
         if !input.is_empty() {
-            cli.send_message(
-                "private".to_owned(),
-                None,
-                Some("recruit".to_owned()),
-                Message::new().text(input),
-            )
-            .await;
+            cache.handle_input(&input).await
         }
     }
 }

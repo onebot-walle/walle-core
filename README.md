@@ -48,7 +48,7 @@ async fn main() {
         config,
         DefaultHandler::arc(), // ActionHandler
         ).arc();
-    OneBot::run(ob).await
+    ob.run().await
 }
 ```
 
@@ -66,6 +66,6 @@ async fn main() {
         config, 
         DefaultHandler::arc(), // EventHandler
     ).arc();
-    OneBot::run(ob).await
+    ob.run().await
 }
 ```

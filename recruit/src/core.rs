@@ -47,7 +47,7 @@ impl Bot {
 
 impl Bots {
     pub(crate) async fn add_bot(&mut self, bot_id: String, bot: Bot) -> Option<Bot> {
-        OneBot::run(bot.inner.clone()).await.unwrap();
+        bot.inner.run().await.unwrap();
         self.inner.insert(bot_id, bot)
     }
 

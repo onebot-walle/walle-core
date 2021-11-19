@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, Error};
+use walle_core::{Message, MessageBuild};
 
 pub(crate) struct Cache {
     pub(crate) clap: App<'static>,
@@ -19,21 +20,38 @@ impl Cache {
         }
     }
 
-    pub(crate) fn handle_input(&mut self, input: String) {
+    pub(crate) async fn handle_input(&mut self, input: &str) {
         if input.starts_with(":") {
             match parse(input, &mut self.clap) {
-                Ok(m) => {}
+                Ok(m) => self.handle_matches(m).await,
                 Err(e) => e.print().unwrap(),
             }
+        } else {
+            self.cli
+                .send_message(
+                    "private".to_owned(),
+                    None,
+                    Some(self.user_id.clone()),
+                    Message::new().text(input.to_owned()),
+                )
+                .await;
         }
     }
 
-    pub(crate) fn handle_matches(&mut self, matches: ArgMatches) {
-        if let Some(user_id) = matches.value_of("user_id") {
+    pub(crate) async fn handle_matches(&mut self, matches: ArgMatches) {
+        if let Some(user_id) = matches
+            .subcommand_matches("set_user_id")
+            .and_then(|a| a.value_of("user_id"))
+        {
             self.user_id = user_id.to_string();
+            return;
         }
-        if let Some(group_id) = matches.value_of("group_id") {
+        if let Some(group_id) = matches
+            .subcommand_matches("set_group_id")
+            .and_then(|a| a.value_of("group_id"))
+        {
             self.group_id = group_id.to_string();
+            return;
         }
     }
 }
@@ -59,15 +77,15 @@ fn build_app() -> App<'static> {
     app
 }
 
-fn parse(mut input: String, app: &mut App<'static>) -> Result<ArgMatches, Error> {
-    input.insert(1, ' ');
+fn parse(input: &str, app: &mut App<'static>) -> Result<ArgMatches, Error> {
+    let input = format!(": {}", input.split_at(1).1);
     app.try_get_matches_from_mut(input.split_whitespace())
 }
 
 #[test]
 fn parse_test() {
     let mut app = build_app();
-    match parse(": -h".to_owned(), &mut app) {
+    match parse(": -h", &mut app) {
         Ok(matches) => println!("{:?}", matches),
         Err(e) => e.print().unwrap(), // app.print_help().unwrap(),
     }

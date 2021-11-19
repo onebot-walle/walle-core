@@ -98,27 +98,27 @@ where
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(ob: Arc<Self>) -> Result<(), &'static str> {
-        if ob.status.load(Ordering::SeqCst) == RUNNING {
+    pub async fn run(self: &Arc<Self>) -> Result<(), &'static str> {
+        if self.status.load(Ordering::SeqCst) == RUNNING {
             return Err("OneBot is already running");
         }
         info!("OneBot is starting...");
 
         #[cfg(feature = "websocket")]
-        if let Some(websocket) = &ob.config.websocket {
+        if let Some(websocket) = &self.config.websocket {
             info!(target: "Walle-core", "Running WebSocket");
-            ob.ws_join_handles.write().await.0 =
-                Some(crate::comms::app::websocket_run(websocket, ob.clone()).await);
-            ob.status.swap(RUNNING, Ordering::SeqCst);
+            self.ws_join_handles.write().await.0 =
+                Some(crate::comms::app::websocket_run(websocket, self.clone()).await);
+            self.status.swap(RUNNING, Ordering::SeqCst);
             return Ok(());
         }
 
         #[cfg(feature = "websocket")]
-        if let Some(websocket_rev) = &ob.config.websocket_rev {
+        if let Some(websocket_rev) = &self.config.websocket_rev {
             info!(target: "Walle-core", "Running WebSocket");
-            ob.ws_join_handles.write().await.1 =
-                Some(crate::comms::app::websocket_rev_run(websocket_rev, ob.clone()).await);
-            ob.status.swap(RUNNING, Ordering::SeqCst);
+            self.ws_join_handles.write().await.1 =
+                Some(crate::comms::app::websocket_rev_run(websocket_rev, self.clone()).await);
+            self.status.swap(RUNNING, Ordering::SeqCst);
             return Ok(());
         }
 
