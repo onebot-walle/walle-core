@@ -1,11 +1,19 @@
 pub(crate) mod core;
 mod handle;
 
+use clap::Parser;
 use walle_core::config::ImplConfig;
 
 #[tokio::main]
 async fn main() {
-    let env = tracing_subscriber::EnvFilter::from("walle_core=trace,Walle-core=trace");
+    let root = Root::parse();
+    let env = tracing_subscriber::EnvFilter::from(if root.trace {
+        "trace"
+    } else if root.debug {
+        "debug"
+    } else {
+        "info"
+    });
     tracing_subscriber::fmt().with_env_filter(env).init();
     let mut bots = core::Bots::default();
     let bot = core::Bot::new("recruit".to_owned(), ImplConfig::default());
@@ -21,4 +29,15 @@ async fn main() {
         // )
         // .await;
     }
+}
+
+#[derive(Parser)]
+#[clap(name = "recruit", version = "0.1.0", author = "Abrahum")]
+pub(crate) struct Root {
+    /// log debug level
+    #[clap(short, long)]
+    pub(crate) debug: bool,
+    /// log trace level
+    #[clap(short, long)]
+    pub(crate) trace: bool,
 }

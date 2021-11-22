@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, Error};
+use tracing::{info, warn};
 use walle_core::{Message, MessageBuild};
 
 pub(crate) struct Cache {
@@ -27,14 +28,27 @@ impl Cache {
                 Err(e) => e.print().unwrap(),
             }
         } else {
-            self.cli
-                .send_message(
-                    "private".to_owned(),
-                    None,
-                    Some(self.user_id.clone()),
-                    Message::new().text(input.to_owned()),
-                )
-                .await;
+            if !self.user_id.is_empty() {
+                self.cli
+                    .send_message(
+                        "private".to_owned(),
+                        None,
+                        Some(self.user_id.clone()),
+                        Message::new().text(input.to_owned()),
+                    )
+                    .await;
+            } else if !self.group_id.is_empty() {
+                self.cli
+                    .send_message(
+                        "group".to_owned(),
+                        Some(self.group_id.clone()),
+                        None,
+                        Message::new().text(input.to_owned()),
+                    )
+                    .await;
+            } else {
+                warn!("no group or user id is setted");
+            }
         }
     }
 
@@ -44,6 +58,8 @@ impl Cache {
             .and_then(|a| a.value_of("user_id"))
         {
             self.user_id = user_id.to_string();
+            self.group_id = String::default();
+            info!(target:"mira", "Set UserId {}", user_id);
             return;
         }
         if let Some(group_id) = matches
@@ -51,6 +67,8 @@ impl Cache {
             .and_then(|a| a.value_of("group_id"))
         {
             self.group_id = group_id.to_string();
+            self.user_id = String::default();
+            info!(target:"mira", "Set GroupId {}", group_id);
             return;
         }
     }
@@ -59,11 +77,6 @@ impl Cache {
 fn build_app() -> App<'static> {
     let app = App::new(":")
         .version("0.1.0")
-        .subcommand(
-            App::new("send")
-                .about("send the message")
-                .arg(Arg::new("message").required(true)),
-        )
         .subcommand(
             App::new("set_user_id")
                 .about("set a glodal user_id ")

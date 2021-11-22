@@ -92,10 +92,10 @@ impl EventHandler<crate::Event> for DefaultHandler {
     async fn handle(&self, event: crate::Event) {
         use crate::EventContent;
         use colored::*;
-        use tracing::{info, trace};
+        use tracing::{debug, info, trace};
 
         match &event.content {
-            EventContent::Meta(m) => info!(
+            EventContent::Meta(m) => debug!(
                 target: "Walle-core",
                 "[{}] MetaEvent -> Type {}",
                 event.self_id.red(),
@@ -123,7 +123,7 @@ impl EventHandler<crate::Event> for DefaultHandler {
                 trace!(target: "Walle-core","[{}] NoticeEvent ->", event.self_id.red())
             }
             EventContent::Request(_) => {
-                info!(target: "Walle-core","[{}]RequestEvent ->", event.self_id.red())
+                info!(target: "Walle-core","[{}] RequestEvent ->", event.self_id.red())
             }
         }
     }

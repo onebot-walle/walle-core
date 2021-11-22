@@ -29,7 +29,7 @@ async fn websocket_loop<E, A, R>(
     use futures_util::{SinkExt, StreamExt};
     use serde::Deserialize;
     use tokio_tungstenite::tungstenite::Message;
-    use tracing::{debug, warn};
+    use tracing::{trace, warn};
 
     #[derive(Debug, Deserialize)]
     #[serde(untagged)]
@@ -46,7 +46,8 @@ async fn websocket_loop<E, A, R>(
         while let Some(action) = receiver.recv().await {
             let action = serde_json::to_string(&action).unwrap();
             if let Err(e) = w.send(Message::text(action)).await {
-                warn!(target: "Walle-core", "[{}] ws disconnect with error {}", move_ob.self_id().await.red(), e);
+                let self_id = move_ob.self_id().await;
+                warn!(target: "Walle-core", "[{}] ws disconnect with error {}", self_id.red(), e);
                 return;
             }
         }
@@ -54,19 +55,20 @@ async fn websocket_loop<E, A, R>(
 
     let rj = tokio::spawn(async move {
         while let Some(message) = r.next().await {
+            let self_id = ob.self_id().await;
             match message {
                 Ok(message) => {
                     match serde_json::from_str::<ReceiveItem<E, R>>(&message.to_string()) {
                         Ok(item) => match item {
                             ReceiveItem::Event(e) => {
-                                debug!(target:"Walle-core","[{}] receive event {:?}", ob.self_id().await.red(), e);
+                                trace!(target:"Walle-core","[{}] receive event {:?}", self_id.red(), e);
                                 let handler = ob.event_handler.clone();
                                 ob.set_id(&e.self_id).await;
                                 tokio::spawn(async move { handler.handle(e).await });
                             }
                             ReceiveItem::Resp(r) => {
                                 let (resp, echo) = r.unpack();
-                                debug!(target:"Walle-core","[{}] receive action_resp {:?}", ob.self_id().await.red(), resp);
+                                trace!(target:"Walle-core","[{}] receive action_resp {:?}", self_id.red(), resp);
                                 if let Some((_, s)) = ob.echo_map.remove(&echo) {
                                     match s.send(resp) {
                                         _ => {}
@@ -77,13 +79,13 @@ async fn websocket_loop<E, A, R>(
                         Err(_) => warn!(
                             target: "Walle-core",
                             "[{}] receive illegal event or resp {:?}",
-                            ob.self_id().await.red(),
+                            self_id.red(),
                             message.to_string()
                         ),
                     }
                 }
                 Err(e) => {
-                    warn!(target: "Walle-core", "[{}] ws disconnect with error {}", ob.self_id().await.red(), e);
+                    warn!(target: "Walle-core", "[{}] ws disconnect with error {}", self_id.red(), e);
                     return;
                 }
             }

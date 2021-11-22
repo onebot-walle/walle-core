@@ -24,4 +24,3 @@ where
         self(event).await
     }
 }
-

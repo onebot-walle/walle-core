@@ -36,4 +36,4 @@ tokio-tungstenite = { version = "0.15", optional = true }
 futures-util = { version = "0.3", features = ["sink"], optional = true }
 
 [workspace]
-members = ["recruit", "mira", "walle-py", "walle-v11"]
+members = ["recruit", "mira", "walle-py", "walle-v11", "walle-actix"]

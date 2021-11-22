@@ -50,9 +50,26 @@ pub enum ExtendedActionRespContent<T> {
     Extended(T),
 }
 
+/// 转化标准动作响应为扩展动作响应
+pub trait FromStandard {
+    fn from_standard(standard: ActionRespContent) -> Self;
+}
+
+impl<T> FromStandard for ExtendedActionRespContent<T> {
+    fn from_standard(standard: ActionRespContent) -> Self {
+        ExtendedActionRespContent::Standard(standard)
+    }
+}
+
 impl ActionRespContent {
     pub fn empty() -> Self {
         Self::Empty(EmptyContent::default())
+    }
+}
+
+impl FromStandard for ActionRespContent {
+    fn from_standard(standard: ActionRespContent) -> Self {
+        standard
     }
 }
 
@@ -92,16 +109,21 @@ macro_rules! empty_err_resp {
     };
 }
 
-impl ActionResp<ActionRespContent> {
+impl<T> ActionResp<T>
+where
+    T: FromStandard,
+{
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(ActionRespContent::Empty(EmptyContent::default()))
+        Self::success(T::from_standard(ActionRespContent::Empty(
+            EmptyContent::default(),
+        )))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
         Self::fail(
-            ActionRespContent::Empty(EmptyContent::default()),
+            T::from_standard(ActionRespContent::Empty(EmptyContent::default())),
             retcode,
             message,
         )
@@ -114,20 +136,6 @@ impl ActionResp<ActionRespContent> {
     empty_err_resp!(unsupported_segment, 10005, "不支持的消息段类型");
     empty_err_resp!(bad_segment_data, 10006, "无效的消息段参数");
     empty_err_resp!(unsupported_segment_data, 10007, "不支持的消息段参数");
-}
-
-#[cfg(feature = "echo")]
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct EchoActionResp<T> {
-    /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
-    pub status: String,
-    /// 返回码，必须符合返回码规则
-    pub retcode: i64,
-    /// 响应数据
-    pub data: T,
-    /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
-    pub message: String,
-    pub echo: String,
 }
 
 // meta
