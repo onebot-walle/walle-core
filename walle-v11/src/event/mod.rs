@@ -1,3 +1,4 @@
+use crate::utils::ExtendedMap;
 use serde::{Deserialize, Serialize};
 
 mod to;
@@ -37,6 +38,8 @@ pub struct Message {
     pub font: i32,
     #[serde(flatten)]
     pub sub: MessageSub,
+    #[serde(flatten)]
+    pub extend_data: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -45,33 +48,12 @@ pub struct Message {
 pub enum MessageSub {
     Private {
         sub_type: String,
-        sender: PrivateSender,
+        sender: crate::utils::PrivateSender,
     },
     Group {
         group_id: i64,
-        sender: GroupSender,
+        sender: crate::utils::GroupSender,
     },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PrivateSender {
-    pub user_id: i64,
-    pub nickname: String,
-    pub sex: String,
-    pub age: i32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct GroupSender {
-    pub user_id: i64,
-    pub nickname: String,
-    pub card: String,
-    pub sex: String,
-    pub age: i32,
-    pub area: String,
-    pub level: String,
-    pub role: String,
-    pub title: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

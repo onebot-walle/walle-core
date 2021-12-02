@@ -2544,7 +2544,12 @@ dependencies = [
 name = "walle-v11"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "futures-util",
  "serde",
+ "serde_json",
+ "tokio 1.12.0",
+ "tokio-tungstenite",
  "walle-core",
 ]
 

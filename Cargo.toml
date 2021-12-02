@@ -16,7 +16,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 qq = []
 http = ["hyper"]
-websocket = ["tokio-tungstenite", "futures-util"]
+websocket = ["tokio-tungstenite"]
 app = ["dashmap"]
 impl = ["uuid"]
 full = ["qq", "http", "websocket", "app", "impl"]
@@ -33,7 +33,7 @@ uuid = { version = "0.8", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
 tokio-tungstenite = { version = "0.15", optional = true }
-futures-util = { version = "0.3", features = ["sink"], optional = true }
+futures-util = { version = "0.3", features = ["sink"] }
 
 [workspace]
 members = ["recruit", "mira", "walle-py", "walle-v11", "walle-actix"]

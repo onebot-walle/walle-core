@@ -114,7 +114,7 @@ impl Default for HttpWebhook {
 }
 
 /// OneBot Impl 正向 WebSocket 通讯设置
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WebSocket {
     pub host: std::net::IpAddr,
     pub port: u16,
