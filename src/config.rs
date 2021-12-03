@@ -8,8 +8,8 @@ pub struct ImplConfig {
     pub heartbeat: Heartbeat,
     pub http: Vec<Http>,
     pub http_webhook: Vec<HttpWebhook>,
-    pub websocket: Vec<WebSocket>,
-    pub websocket_rev: Vec<WebSocketRev>,
+    pub websocket: Vec<WebSocketServer>,
+    pub websocket_rev: Vec<WebSocketClient>,
 }
 
 impl Default for ImplConfig {
@@ -18,7 +18,7 @@ impl Default for ImplConfig {
             heartbeat: Heartbeat::default(),
             http: vec![],
             http_webhook: vec![],
-            websocket: vec![WebSocket::default()],
+            websocket: vec![WebSocketServer::default()],
             websocket_rev: vec![],
         }
     }
@@ -47,8 +47,8 @@ impl Default for Heartbeat {
 pub struct AppConfig {
     pub http: Option<Http>,
     pub http_webhook: Option<HttpWebhook>,
-    pub websocket: Option<WebSocketRev>,
-    pub websocket_rev: Option<WebSocket>,
+    pub websocket: Option<WebSocketClient>,
+    pub websocket_rev: Option<WebSocketServer>,
 }
 
 impl Default for AppConfig {
@@ -56,7 +56,7 @@ impl Default for AppConfig {
         Self {
             http: None,
             http_webhook: None,
-            websocket: Some(WebSocketRev::default()),
+            websocket: Some(WebSocketClient::default()),
             websocket_rev: None,
         }
     }
@@ -113,15 +113,15 @@ impl Default for HttpWebhook {
     }
 }
 
-/// OneBot Impl 正向 WebSocket 通讯设置
+/// OneBot WebSocket 服务器设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct WebSocket {
+pub struct WebSocketServer {
     pub host: std::net::IpAddr,
     pub port: u16,
     pub access_token: Option<String>,
 }
 
-impl Default for WebSocket {
+impl Default for WebSocketServer {
     fn default() -> Self {
         Self {
             host: std::net::IpAddr::from([127, 0, 0, 1]),
@@ -133,13 +133,13 @@ impl Default for WebSocket {
 
 /// OneBot Impl 反向 WebSocket 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct WebSocketRev {
+pub struct WebSocketClient {
     pub url: String,
     pub access_token: Option<String>,
     pub reconnect_interval: u32,
 }
 
-impl Default for WebSocketRev {
+impl Default for WebSocketClient {
     fn default() -> Self {
         Self {
             url: "ws://127.0.0.1:8844".to_owned(),

@@ -14,7 +14,7 @@ pub trait To11 {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub time: i64,
-    pub self_id: String,
+    pub self_id: i32,
     #[serde(flatten)]
     pub content: EventContent,
 }

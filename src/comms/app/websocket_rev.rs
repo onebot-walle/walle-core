@@ -4,9 +4,9 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::{app::CustomOneBot, comms::WebSocketServer, config::WebSocket};
+use crate::{app::CustomOneBot, comms::WebSocketServer, config::WebSocketServer as wssc};
 
-pub async fn run<E, A, R>(config: &WebSocket, ob: Arc<CustomOneBot<E, A, R>>) -> WebSocketServer
+pub async fn run<E, A, R>(config: &wssc, ob: Arc<CustomOneBot<E, A, R>>) -> WebSocketServer
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,

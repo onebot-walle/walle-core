@@ -40,7 +40,7 @@ impl super::To12 for super::Event {
                         user_id: format!("{}", m.user_id),
                         sub_type: "".to_owned(),
                     }),
-                    self_id: self.self_id,
+                    self_id: self.self_id.to_string(),
                 })
             }
             EventContent::Notice(_n) => {
@@ -57,7 +57,7 @@ impl super::To12 for super::Event {
                         time: self.time as u64,
                         r#impl: IMPL.to_owned(),
                         platform: PLATFORM.to_owned(),
-                        self_id: self.self_id,
+                        self_id: self.self_id.to_string(),
                         content: v12EventContent::Meta(v12MetaContent::Heartbeat {
                             status: status,
                             interval: interval as u32,
@@ -77,7 +77,7 @@ impl super::To12 for super::Event {
 //                 self_id: self.self_id,
 //                 time: self.time as i64,
 //                 content: super::EventContent::Message(super::Message{
-//                     message_id: 
+//                     message_id:
 //                 })
 //             }),
 //             v12EventContent::Meta(m) => Ok(super::Event {

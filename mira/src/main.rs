@@ -6,7 +6,7 @@ use clap::Parser;
 use tracing::{info, warn};
 use walle_core::{
     app::OneBot,
-    config::{AppConfig, WebSocket, WebSocketRev},
+    config::{AppConfig, WebSocketClient, WebSocketServer},
     DefaultHandler,
 };
 
@@ -32,7 +32,7 @@ async fn main() {
     tracing_subscriber::fmt().with_env_filter(env).init();
     let config = if let Some(url) = root.ws {
         let mut config = AppConfig::empty();
-        let ws = WebSocketRev {
+        let ws = WebSocketClient {
             url,
             access_token: root.access_token,
             reconnect_interval: if let Some(interval) = root.reconnect_interval {
@@ -45,7 +45,7 @@ async fn main() {
         config
     } else if let Some(addr) = root.wsr {
         let mut config = AppConfig::empty();
-        let wsr = WebSocket {
+        let wsr = WebSocketServer {
             host: addr.ip(),
             port: addr.port(),
             access_token: root.access_token,

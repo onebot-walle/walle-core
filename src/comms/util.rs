@@ -43,7 +43,7 @@ impl WebSocketServer {
 
 #[cfg(feature = "websocket")]
 pub(crate) async fn try_connect(
-    config: &crate::config::WebSocketRev,
+    config: &crate::config::WebSocketClient,
 ) -> Option<tokio_tungstenite::WebSocketStream<TcpStream>> {
     use tokio_tungstenite::tungstenite::http::Uri;
     use tracing::{error, info};

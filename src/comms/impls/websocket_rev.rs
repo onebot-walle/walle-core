@@ -3,10 +3,10 @@ use std::time::Duration;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
-use crate::config::WebSocketRev;
+use crate::config::WebSocketClient;
 
 pub async fn run<E, A, R>(
-    config: &WebSocketRev,
+    config: &WebSocketClient,
     broadcaster: crate::impls::CustomEventBroadcaster<E>,
     handler: crate::impls::ArcActionHandler<A, R>,
 ) -> JoinHandle<()>

@@ -1,12 +1,12 @@
 use crate::comms::util::WebSocketServer;
-use crate::config::WebSocket;
+use crate::config::WebSocketServer as wssc;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::RwLock;
 
 pub async fn run<E, A, R>(
-    websocket: &WebSocket,
+    websocket: &wssc,
     broadcaster: crate::impls::CustomEventBroadcaster<E>,
     handler: crate::impls::ArcActionHandler<A, R>,
 ) -> WebSocketServer

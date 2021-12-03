@@ -2,9 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use tokio::task::JoinHandle;
 
-use crate::{app::CustomOneBot, config::WebSocketRev};
+use crate::{app::CustomOneBot, config::WebSocketClient};
 
-pub async fn run<E, A, R>(config: &WebSocketRev, ob: Arc<CustomOneBot<E, A, R>>) -> JoinHandle<()>
+pub async fn run<E, A, R>(
+    config: &WebSocketClient,
+    ob: Arc<CustomOneBot<E, A, R>>,
+) -> JoinHandle<()>
 where
     E: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,

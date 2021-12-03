@@ -1,72 +1,53 @@
-use crate::handler::{default_handler, ArcEventHandler};
+use crate::handler::ArcRespHandler;
 use std::collections::HashMap;
-use std::sync::{
-    atomic::{AtomicBool, AtomicI32},
-    Arc,
-};
+use std::sync::{atomic::AtomicBool, Arc};
 use tokio::sync::RwLock;
 
 pub(crate) type ActionSender = tokio::sync::mpsc::UnboundedSender<crate::action::Action>;
 
 pub struct OneBot {
-    handler: ArcEventHandler,
-    action_sender: RwLock<Option<ActionSender>>,
-    config: crate::config::AppConfig,
-    running: AtomicBool,
+    pub(crate) handler: ArcRespHandler,
+    pub(crate) config: crate::config::AppConfig,
+    pub(crate) running: AtomicBool,
+    bots: Arc<RwLock<HashMap<i32, ArcBot>>>,
 }
 
+pub struct Bot {
+    pub self_id: i32,
+    pub action_sender: ActionSender,
+}
+
+pub type ArcBot = Arc<Bot>;
+
 impl OneBot {
-    pub fn new(handler: ArcEventHandler, config: crate::config::AppConfig) -> Self {
+    pub fn new(handler: ArcRespHandler, config: crate::config::AppConfig) -> Self {
         Self {
             handler,
-            action_sender: RwLock::default(),
             config,
             running: AtomicBool::new(false),
+            bots: Arc::default(),
         }
     }
 
+    pub async fn get_bot(&self, bot_id: i32) -> Option<ArcBot> {
+        self.bots.read().await.get(&bot_id).map(|bot| bot.clone())
+    }
+
+    pub async fn add_bot(&self, self_id: i32, action_sender: ActionSender) -> ArcBot {
+        let bot = Arc::new(Bot {
+            self_id,
+            action_sender,
+        });
+        self.bots.write().await.insert(self_id, bot.clone());
+        bot
+    }
+
+    pub async fn remove_bot(&self, bot_id: i32) {
+        self.bots.write().await.remove(&bot_id);
+    }
+
     pub async fn run(self: &Arc<Self>) {
-        if let Some(wsr) = &self.config.web_socket {
-            let mut rx = crate::ws::wsr(
-                wsr.clone(),
-                (
-                    default_handler(),
-                    self.handler.clone(),
-                    tokio::sync::broadcast::channel(0).0,
-                    tokio::sync::broadcast::channel(0).0,
-                ),
-            )
-            .await;
-            let ob = self.clone();
-            tokio::spawn(async move {
-                while let Some(sender) = rx.recv().await {
-                    ob.action_sender.write().await.replace(sender);
-                }
-            });
-            self.running
-                .store(true, std::sync::atomic::Ordering::SeqCst);
-        }
-        if !self.running.load(std::sync::atomic::Ordering::SeqCst) {
-            if let Some(ws) = &self.config.web_socket_rev {
-                let mut rx = crate::ws::ws(
-                    ws.clone(),
-                    (
-                        default_handler(),
-                        self.handler.clone(),
-                        tokio::sync::broadcast::channel(0).0,
-                        tokio::sync::broadcast::channel(0).0,
-                    ),
-                )
-                .await;
-                let ob = self.clone();
-                tokio::spawn(async move {
-                    while let Some(sender) = rx.recv().await {
-                        ob.action_sender.write().await.replace(sender);
-                    }
-                });
-                self.running
-                    .store(true, std::sync::atomic::Ordering::SeqCst);
-            }
-        }
+        self.ws().await;
+        self.wsr().await;
     }
 }

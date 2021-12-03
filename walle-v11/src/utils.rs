@@ -38,3 +38,10 @@ pub struct GroupSender {
     pub role: String,
     pub title: String,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub(crate) enum EventOrResp {
+    Event(crate::event::Event),
+    Resp(crate::action::Resp),
+}
