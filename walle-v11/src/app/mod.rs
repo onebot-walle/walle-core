@@ -1,7 +1,10 @@
+use crate::action::Resp;
 use crate::handler::ArcRespHandler;
 use std::collections::HashMap;
 use std::sync::{atomic::AtomicBool, Arc};
 use tokio::sync::RwLock;
+
+mod bot;
 
 pub(crate) type ActionSender = tokio::sync::mpsc::UnboundedSender<crate::action::Action>;
 
@@ -9,12 +12,14 @@ pub struct OneBot {
     pub(crate) handler: ArcRespHandler,
     pub(crate) config: crate::config::AppConfig,
     pub(crate) running: AtomicBool,
+    pub(crate) echo_map: Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>,
     bots: Arc<RwLock<HashMap<i32, ArcBot>>>,
 }
 
 pub struct Bot {
     pub self_id: i32,
     pub action_sender: ActionSender,
+    pub echo_map: Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>,
 }
 
 pub type ArcBot = Arc<Bot>;
@@ -25,6 +30,7 @@ impl OneBot {
             handler,
             config,
             running: AtomicBool::new(false),
+            echo_map: Arc::default(),
             bots: Arc::default(),
         }
     }
@@ -37,6 +43,7 @@ impl OneBot {
         let bot = Arc::new(Bot {
             self_id,
             action_sender,
+            echo_map: self.echo_map.clone(),
         });
         self.bots.write().await.insert(self_id, bot.clone());
         bot

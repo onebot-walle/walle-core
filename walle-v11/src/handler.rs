@@ -29,16 +29,27 @@ pub struct DefaultHandler;
 impl EventHandler for DefaultHandler {
     async fn handle(&self, _: ArcBot, _: Event) {}
 }
+
 #[async_trait]
-impl RespHandler for DefaultHandler {
-    async fn handle_resp(&self, _: Arc<OneBot>, _: Resp) {}
+impl<H> RespHandler for H
+where
+    H: EventHandler + Send + Sync,
+{
+    async fn handle_resp(&self, ob: Arc<OneBot>, resp: Resp) {
+        match ob.echo_map.write().await.remove(&resp.echo) {
+            Some(tx) => tx.send(resp).unwrap(),
+            None => todo!(),
+        }
+    }
 }
+
 #[async_trait]
 impl ActionHandler for DefaultHandler {
     async fn handle(&self, action: Action) -> Resp {
         Resp::empty_404(action.echo)
     }
 }
+
 pub fn default_handler() -> Arc<DefaultHandler> {
     Arc::new(DefaultHandler)
 }

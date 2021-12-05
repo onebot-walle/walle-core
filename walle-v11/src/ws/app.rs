@@ -10,7 +10,7 @@ use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 impl OneBot {
     pub(crate) async fn websocket_loop(self: Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-        let mut self_id: Option<i32> = None;
+        let mut bot_ids: Vec<i32> = vec![]; // 记录本连接上的 bot_id
         loop {
             tokio::select! {
                 action = rx.recv() => {
@@ -21,7 +21,7 @@ impl OneBot {
                 msg = ws_stream.next() => {
                     if let Some(msg) = msg {
                         match msg {
-                            Ok(msg) => self.ws_recv(msg, &tx, &mut self_id).await,
+                            Ok(msg) => self.ws_recv(msg, &tx, &mut bot_ids).await,
                             Err(_) => {
                                 break;
                             }
@@ -30,8 +30,9 @@ impl OneBot {
                 }
             }
         }
-        if let Some(id) = self_id {
-            self.remove_bot(id).await;
+        // 断开连接后，移除本连接的 bot
+        for bot_id in bot_ids {
+            self.remove_bot(bot_id).await;
         }
     }
 
@@ -39,7 +40,7 @@ impl OneBot {
         self: &Arc<Self>,
         msg: WsMsg,
         tx: &tokio::sync::mpsc::UnboundedSender<Action>,
-        self_id: &mut Option<i32>,
+        bot_ids: &mut Vec<i32>,
     ) {
         if let WsMsg::Text(text) = msg {
             let income_item: EventOrResp = serde_json::from_str(&text).unwrap();
@@ -48,7 +49,7 @@ impl OneBot {
                     Some(bot) => self.handler.handle(bot, event).await,
                     None => {
                         let bot = self.add_bot(event.self_id, tx.clone()).await;
-                        self_id.replace(event.self_id);
+                        bot_ids.push(event.self_id);
                         self.handler.handle(bot, event).await;
                     }
                 },

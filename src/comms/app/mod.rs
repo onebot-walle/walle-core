@@ -4,6 +4,9 @@ mod websocket;
 mod websocket_rev;
 
 #[cfg(feature = "websocket")]
+mod app_ws_utils;
+
+#[cfg(feature = "websocket")]
 pub(crate) use websocket::run as websocket_run;
 #[cfg(feature = "websocket")]
 pub(crate) use websocket_rev::run as websocket_rev_run;

@@ -49,10 +49,16 @@ pub struct CustomOneBot<E, A, R> {
     #[cfg(feature = "websocket")]
     ws_join_handles: RwLock<(
         Option<tokio::task::JoinHandle<()>>,
-        Option<crate::comms::WebSocketServer>,
+        Option<crate::comms::ws_utils::WebSocketServer>,
     )>,
 
     status: AtomicU8,
+}
+
+pub struct Bot<E, A> {
+    self_id: String,
+    handler: ArcEventHandler<E>,
+    sender: CustomActionSender<A>,
 }
 
 impl<E, A, R> CustomOneBot<E, A, R>

@@ -12,11 +12,11 @@ use crate::message::MessageTo12;
 static IMPL: &str = "Walle-v11";
 static PLATFORM: &str = "v11";
 
-impl super::To12 for super::Event {
-    fn to_12(self) -> Result<v12Evnet, &'static str> {
+impl Into<v12Evnet> for super::Event {
+    fn into(self) -> v12Evnet {
         match self.content {
             EventContent::Message(m) => {
-                Ok(v12Evnet {
+                v12Evnet {
                     id: format!("{}{}", self.self_id, self.time), //todo
                     time: self.time as u64,
                     r#impl: IMPL.to_owned(),
@@ -41,7 +41,7 @@ impl super::To12 for super::Event {
                         sub_type: "".to_owned(),
                     }),
                     self_id: self.self_id.to_string(),
-                })
+                }
             }
             EventContent::Notice(_n) => {
                 todo!()
@@ -50,9 +50,9 @@ impl super::To12 for super::Event {
                 todo!()
             }
             EventContent::MetaEvent(m) => match m {
-                super::MetaEvent::Lifecycle { sub_type: _ } => Err("Lifecycle unsupport yet"),
+                super::MetaEvent::Lifecycle { sub_type: _ } => todo!(),
                 super::MetaEvent::Heartbeat { status, interval } => {
-                    Ok(v12Evnet {
+                    v12Evnet {
                         id: format!("{}{}", self.self_id, self.time), //todo
                         time: self.time as u64,
                         r#impl: IMPL.to_owned(),
@@ -63,7 +63,7 @@ impl super::To12 for super::Event {
                             interval: interval as u32,
                             sub_type: "".to_owned(),
                         }),
-                    })
+                    }
                 }
             },
         }

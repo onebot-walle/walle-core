@@ -9,6 +9,7 @@ use tokio::{net::TcpStream, task::JoinHandle};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 
 impl OneBot {
+    /// 接收 WsMsg 解析为 Action 并 spawn 处理
     pub(crate) async fn ws_recv(
         self: &Arc<Self>,
         msg: WsMsg,
@@ -24,6 +25,7 @@ impl OneBot {
         }
     }
 
+    /// 启动一个 WsLoop
     pub(crate) async fn websocket_loop(self: Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         let (resp_tx, mut resp_rx) = tokio::sync::mpsc::unbounded_channel();
         let mut event_rx = self.sender.subscribe();
@@ -52,10 +54,8 @@ impl OneBot {
         }
     }
 
+    /// 启动正向 Ws 服务器
     pub(crate) async fn ws(self: &Arc<Self>) -> Option<JoinHandle<()>> {
-        if self.running.load(Ordering::SeqCst) {
-            return None;
-        }
         if let Some(wss) = self.config.web_socket.clone() {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -75,10 +75,8 @@ impl OneBot {
         }
     }
 
+    /// 启动反向 Ws 客户端
     pub(crate) async fn wsr(self: &Arc<Self>) -> Option<JoinHandle<()>> {
-        if self.running.load(Ordering::SeqCst) {
-            return None;
-        }
         if let Some(wsc) = self.config.web_socket_rev.clone() {
             let ob = self.clone();
             self.running.store(true, Ordering::SeqCst);

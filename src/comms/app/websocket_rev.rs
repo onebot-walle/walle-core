@@ -4,7 +4,7 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::{app::CustomOneBot, comms::WebSocketServer, config::WebSocketServer as wssc};
+use crate::{app::CustomOneBot, comms::ws_utils::WebSocketServer, config::WebSocketServer as wssc};
 
 pub async fn run<E, A, R>(config: &wssc, ob: Arc<CustomOneBot<E, A, R>>) -> WebSocketServer
 where
@@ -41,7 +41,7 @@ async fn handle_conn<E, A, R>(
     A: Clone + serde::Serialize + Send + 'static + std::fmt::Debug,
     R: Clone + serde::de::DeserializeOwned + Send + 'static + std::fmt::Debug,
 {
-    if let Some(ws_stream) = crate::comms::util::upgrade_websocket(&access_token, stream).await {
+    if let Ok(ws_stream) = crate::comms::ws_utils::upgrade_websocket(&access_token, stream).await {
         super::websocket_loop(ws_stream, ob).await
     }
 }

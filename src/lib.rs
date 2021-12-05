@@ -12,6 +12,7 @@ pub mod app;
 mod comms;
 /// 相关配置项
 pub mod config;
+mod error;
 /// Onebot Event
 pub mod event;
 mod event_builder;
@@ -27,6 +28,7 @@ mod utils;
 pub use action::Action;
 pub use action_resp::{ActionResp, ActionRespContent, ActionResps};
 pub use config::*;
+pub use error::*;
 pub use event::*;
 pub use handle::{ActionHandler, DefaultHandler, EventHandler};
 pub use message::{Message, MessageBuild, MessageSegment};

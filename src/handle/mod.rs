@@ -1,6 +1,7 @@
+use crate::ActionResp;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 mod fnt;
 
@@ -37,8 +38,8 @@ mod fnt;
 #[async_trait]
 pub trait ActionHandler<A, R>
 where
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
+    A: DeserializeOwned + Debug + Send + 'static,
+    R: Serialize + Debug + Send + 'static,
 {
     async fn handle(&self, action: A) -> R;
 }
@@ -49,7 +50,7 @@ where
 #[async_trait]
 pub trait EventHandler<E>
 where
-    E: Clone + DeserializeOwned + Send + 'static + std::fmt::Debug,
+    E: Clone + DeserializeOwned + Send + 'static + Debug,
 {
     async fn handle(&self, event: E);
 }

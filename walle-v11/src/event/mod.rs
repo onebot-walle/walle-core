@@ -1,15 +1,7 @@
 use crate::utils::ExtendedMap;
 use serde::{Deserialize, Serialize};
 
-mod to;
-
-pub trait To12 {
-    fn to_12(self) -> Result<walle_core::Event, &'static str>;
-}
-
-pub trait To11 {
-    fn to_11(self) -> Result<Event, &'static str>;
-}
+mod from;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {

@@ -39,7 +39,10 @@ pub struct CustomOneBot<E, A, R> {
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
     #[cfg(feature = "websocket")]
-    ws_join_handles: RwLock<(Vec<crate::comms::WebSocketServer>, Vec<JoinHandle<()>>)>,
+    ws_join_handles: RwLock<(
+        Vec<crate::comms::ws_utils::WebSocketServer>,
+        Vec<JoinHandle<()>>,
+    )>,
 
     status: AtomicU8,
     online: AtomicBool,

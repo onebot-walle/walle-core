@@ -1,4 +1,4 @@
-use crate::comms::util::WebSocketServer;
+use crate::comms::ws_utils::WebSocketServer;
 use crate::config::WebSocketServer as wssc;
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
@@ -50,7 +50,7 @@ async fn handle_conn<E, A, R>(
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
 {
-    if let Some(ws_stream) = crate::comms::util::upgrade_websocket(&access_token, stream).await {
+    if let Ok(ws_stream) = crate::comms::ws_utils::upgrade_websocket(&access_token, stream).await {
         super::websocket_loop(ws_stream, listener, handler).await
     }
 }
