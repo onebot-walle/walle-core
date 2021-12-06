@@ -1,10 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    sync::{atomic::Ordering, Arc},
-};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::{mpsc, oneshot, RwLock},
@@ -17,7 +13,8 @@ use tracing::info;
 
 use crate::{
     app::{CustomActionSender, CustomOneBot, CustomRespSender},
-    Action, ActionResp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleResult, RUNNING,
+    Action, ActionResp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleResult,
+    WalleLogExt,
 };
 
 impl<E, A, R> CustomOneBot<E, A, R>
@@ -26,7 +23,10 @@ where
     A: FromStandard<Action> + Clone + Serialize + Send + 'static + Debug,
     R: Clone + DeserializeOwned + Send + 'static + Debug,
 {
-    async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
+    async fn ws_loop(
+        self: &Arc<Self>,
+        mut ws_stream: WebSocketStream<TcpStream>,
+    ) -> WalleResult<()> {
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
         let echo_map = RwLock::default();
@@ -43,7 +43,7 @@ where
                     if let Some(msg) = msg {
                         match msg {
                             Ok(msg) => {
-                                self.ws_recv(msg, &mut bot_ids,&action_tx, &echo_map).await;
+                                self.ws_recv(msg, &mut bot_ids,&action_tx, &echo_map).await.log_err();
                             }
                             Err(_) => {
                                 break;
@@ -56,6 +56,7 @@ where
         for bot_id in bot_ids {
             self.remove_bot(&bot_id).await;
         }
+        Ok(())
     }
 
     async fn ws_send_action(
@@ -78,7 +79,7 @@ where
         bot_ids: &mut Vec<String>,
         action_tx: &CustomActionSender<A, R>,
         echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<ActionResp<R>>>>,
-    ) {
+    ) -> WalleResult<()> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum ReceiveItem<E, R> {
@@ -87,7 +88,8 @@ where
         }
 
         if let WsMsg::Text(text) = ws_msg {
-            let item: ReceiveItem<E, R> = serde_json::from_str(&text).unwrap();
+            let item: ReceiveItem<E, R> =
+                serde_json::from_str(&text).map_err(|e| WalleError::SerdeJsonError(e))?;
             match item {
                 ReceiveItem::Event(event) => {
                     let ob = self.clone();
@@ -108,19 +110,19 @@ where
                 }
             }
         }
+        Ok(())
     }
 
-    pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {
-        if self.status.load(Ordering::SeqCst) == RUNNING {
-            return Err(WalleError::AlreadyRunning);
-        }
+    pub(crate) async fn ws(self: &Arc<Self>) {
         if let Some(wsc) = self.config.websocket.clone() {
             info!(target: "Walle-core", "Running WebSocket");
             let ob = self.clone();
             tokio::spawn(async move {
                 while ob.is_running() {
                     match crate::comms::ws_utils::try_connect(&wsc).await {
-                        Ok(ws_stream) => ob.clone().ws_loop(ws_stream).await,
+                        Ok(ws_stream) => {
+                            ob.clone().ws_loop(ws_stream).await.log_err();
+                        }
                         Err(_) => {
                             tokio::time::sleep(std::time::Duration::from_secs(
                                 wsc.reconnect_interval as u64,
@@ -131,13 +133,9 @@ where
                 }
             });
         }
-        Ok(())
     }
 
     pub(crate) async fn wsr(self: &Arc<Self>) -> WalleResult<()> {
-        if self.status.load(Ordering::SeqCst) == RUNNING {
-            return Err(WalleError::AlreadyRunning);
-        }
         if let Some(wss) = self.config.websocket_rev.clone() {
             info!(target: "Walle-core", "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);

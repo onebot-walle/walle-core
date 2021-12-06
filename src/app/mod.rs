@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     sync::{
-        atomic::{AtomicU8, Ordering},
+        atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
@@ -12,7 +12,7 @@ use tracing::info;
 
 use crate::{
     config::AppConfig, event::BaseEvent, Action, ActionResp, ActionRespContent, EventContent,
-    FromStandard, WalleError, WalleResult, RUNNING, SHUTDOWN,
+    FromStandard, WalleError, WalleResult,
 };
 
 mod bot;
@@ -33,20 +33,17 @@ pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
 /// R: ActionResp 可以参考 crate::action_resp::ActionResps
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-///
-/// 不同于实现端，应用端同时只能启用一种通讯协议，当存在多个通讯设定时，
-/// 其优先级顺序如下：
-///
-/// Http( 未实现 ) >> HttpWebhook( 未实现 ) >> 正向 WebSocket >> 反向 WebSocket
 pub struct CustomOneBot<E, A, R> {
     pub config: AppConfig,
     pub(crate) event_handler: ArcEventHandler<E, A, R>,
-    pub(crate) status: AtomicU8,
+    pub(crate) running: AtomicBool,
     pub bots: RwLock<HashMap<String, ArcBot<A, R>>>,
 }
 
+/// Arc<Bot>
 pub type ArcBot<A, R> = Arc<Bot<A, R>>;
 
+/// Bot 实例
 pub struct Bot<A, R> {
     #[allow(dead_code)]
     self_id: String,
@@ -59,27 +56,32 @@ where
     A: FromStandard<Action> + Clone + Serialize + Send + 'static + Debug,
     R: Clone + DeserializeOwned + Send + 'static + Debug,
 {
+    /// 创建新的 OneBot 实例
     pub fn new(config: AppConfig, event_handler: ArcEventHandler<E, A, R>) -> Self {
         Self {
             config,
             event_handler,
-            status: AtomicU8::default(),
+            running: AtomicBool::default(),
             bots: RwLock::default(),
         }
     }
 
+    /// 返回 Arc<OneBot>
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
     }
 
+    /// 根据 bot_id 获取 Bot 实例
     pub async fn get_bot(&self, bot_id: &str) -> Option<ArcBot<A, R>> {
         self.bots.read().await.get(bot_id).map(|bot| bot.clone())
     }
 
+    /// 获取所有 Bot 实例
     pub async fn get_bots(&self) -> HashMap<String, ArcBot<A, R>> {
         self.bots.read().await.clone()
     }
 
+    /// 添加 Bot 实例
     pub(crate) async fn insert_bot(
         &self,
         bot_id: &str,
@@ -93,6 +95,7 @@ where
         bot
     }
 
+    /// 删除 Bot 实例
     pub(crate) async fn remove_bot(&self, bot_id: &str) -> Option<ArcBot<A, R>> {
         self.bots.write().await.remove(bot_id)
     }
@@ -111,29 +114,27 @@ where
         info!("OneBot is starting...");
 
         #[cfg(feature = "websocket")]
-        self.ws().await?;
+        self.ws().await;
 
         #[cfg(feature = "websocket")]
         self.wsr().await?;
 
-        self.status.store(RUNNING, Ordering::SeqCst);
+        self.running.store(true, Ordering::SeqCst);
         Ok(())
     }
 
+    /// 返回 OneBot 实例是否运行中
     pub fn is_running(&self) -> bool {
-        if self.status.load(Ordering::SeqCst) == SHUTDOWN {
-            false
-        } else {
-            true
-        }
+        self.running.load(Ordering::SeqCst)
     }
 
+    /// 返回 OneBot 实例是否停止运行
     pub fn is_shutdown(&self) -> bool {
         !self.is_running()
     }
 
-    /// 关闭实例
+    /// 关闭 OneBot 实例
     pub async fn shutdown(&self) {
-        self.status.swap(SHUTDOWN, Ordering::SeqCst);
+        self.running.swap(false, Ordering::SeqCst);
     }
 }

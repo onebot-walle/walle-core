@@ -77,8 +77,3 @@ impl Serialize for AlwaysFailSturct {
         ))
     }
 }
-
-#[allow(dead_code)]
-static SHUTDOWN: u8 = 0;
-#[allow(dead_code)]
-static RUNNING: u8 = 1;

@@ -2,11 +2,12 @@
 
 use crate::{
     action_resp::StatusContent, event::BaseEvent, message::MessageAlt, Action, ActionResp,
-    ActionRespContent, EventContent, ImplConfig, Message, RUNNING, SHUTDOWN,
+    ActionRespContent, EventContent, ImplConfig, Message, WalleError, WalleResult,
 };
 use serde::{de::DeserializeOwned, Serialize};
+use std::fmt::Debug;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU8, Ordering},
+    atomic::{AtomicBool, Ordering},
     Arc,
 };
 #[cfg(any(feature = "http", feature = "websocket"))]
@@ -33,26 +34,21 @@ pub struct CustomOneBot<E, A, R> {
     pub platform: String,
     pub self_id: String,
     pub config: ImplConfig,
-    action_handler: ArcActionHandler<A, R>,
+    pub(crate) action_handler: ArcActionHandler<A, R>,
     pub broadcaster: CustomEventBroadcaster<E>,
 
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
-    #[cfg(feature = "websocket")]
-    ws_join_handles: RwLock<(
-        Vec<crate::comms::ws_utils::WebSocketServer>,
-        Vec<JoinHandle<()>>,
-    )>,
 
-    status: AtomicU8,
+    running: AtomicBool,
     online: AtomicBool,
 }
 
 impl<E, A, R> CustomOneBot<E, A, R>
 where
-    E: crate::utils::FromStandard<EventContent> + Clone + Serialize + Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
+    E: crate::utils::FromStandard<EventContent> + Clone + Serialize + Send + 'static + Debug,
+    A: DeserializeOwned + Debug + Send + 'static,
+    R: Serialize + Debug + Send + 'static,
 {
     pub fn new(
         r#impl: String,
@@ -71,9 +67,7 @@ where
             broadcaster,
             #[cfg(feature = "http")]
             http_join_handles: RwLock::default(),
-            #[cfg(feature = "websocket")]
-            ws_join_handles: RwLock::default(),
-            status: AtomicU8::default(),
+            running: AtomicBool::default(),
             online: AtomicBool::default(),
         }
     }
@@ -84,11 +78,7 @@ where
 
     pub fn get_status(&self) -> StatusContent {
         StatusContent {
-            good: if self.status.load(Ordering::SeqCst) == RUNNING {
-                true
-            } else {
-                false
-            },
+            good: self.is_running(),
             online: self.online.load(Ordering::SeqCst),
         }
     }
@@ -100,11 +90,11 @@ where
     /// 当重复运行同一个实例，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(self: &Arc<Self>) -> Result<(), &'static str> {
+    pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
         use colored::*;
 
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == RUNNING {
-            return Err("OneBot is already running");
+        if self.is_running() {
+            return Err(WalleError::AlreadyRunning);
         }
 
         info!(target: "Walle-core", "{} is booting", self.r#impl.red());
@@ -132,85 +122,32 @@ where
         }
 
         #[cfg(feature = "websocket")]
-        if !self.config.websocket.is_empty() {
-            info!(target: "Walle-core", "Strating WebSocket");
-            let ws_joins = &mut self.ws_join_handles.write().await.0;
-            for websocket in &self.config.websocket {
-                ws_joins.push(
-                    crate::comms::impls::websocket_run(
-                        websocket,
-                        self.broadcaster.clone(),
-                        self.action_handler.clone(),
-                    )
-                    .await,
-                );
-            }
-        }
+        self.ws().await?;
 
         #[cfg(feature = "websocket")]
-        if !self.config.websocket_rev.is_empty() {
-            info!(target: "Walle-core", "Strating WebSocket Reverse");
-            let wsrev_joins = &mut self.ws_join_handles.write().await.1;
-            for websocket_rev in &self.config.websocket_rev {
-                wsrev_joins.push(
-                    crate::comms::impls::websocket_rev_run(
-                        websocket_rev,
-                        self.broadcaster.clone(),
-                        self.action_handler.clone(),
-                    )
-                    .await,
-                );
-            }
-        }
+        self.wsr().await;
         if self.config.heartbeat.enabled {
             self.start_heartbeat(self.clone());
         }
 
-        self.status
-            .swap(RUNNING, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 
     pub fn is_shutdown(&self) -> bool {
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == SHUTDOWN {
-            true
-        } else {
-            false
-        }
+        !self.is_running()
     }
 
     pub fn is_running(&self) -> bool {
-        if self.status.load(std::sync::atomic::Ordering::SeqCst) == SHUTDOWN {
-            false
-        } else {
-            true
-        }
+        self.running.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn set_running(&self) {
+        self.running.swap(true, Ordering::SeqCst);
     }
 
     /// 关闭实例
     pub async fn shutdown(&self) {
-        #[cfg(feature = "http")]
-        {
-            let mut joins = self.http_join_handles.write().await;
-            while !joins.0.is_empty() {
-                joins.0.pop().unwrap().abort()
-            }
-            while !joins.1.is_empty() {
-                joins.1.pop().unwrap().abort()
-            }
-        }
-        #[cfg(feature = "websocket")]
-        {
-            let mut joins = self.ws_join_handles.write().await;
-            while !joins.0.is_empty() {
-                joins.0.pop().unwrap().abort().await
-            }
-            while !joins.1.is_empty() {
-                joins.1.pop().unwrap().abort()
-            }
-        }
-        self.status
-            .swap(SHUTDOWN, std::sync::atomic::Ordering::SeqCst);
+        self.running.swap(false, Ordering::SeqCst);
     }
 
     pub fn send_event(&self, event: BaseEvent<E>) -> Result<usize, &str> {
@@ -262,7 +199,7 @@ where
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
-                if ob.status.load(Ordering::SeqCst) != RUNNING {
+                if ob.is_shutdown() {
                     break;
                 }
                 trace!(target:"Walle-core", "Heartbeating");

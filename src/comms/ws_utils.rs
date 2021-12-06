@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use tokio::{net::TcpStream, sync::RwLock, task::JoinHandle};
+use tokio::net::TcpStream;
 use tokio_tungstenite::{
     accept_hdr_async, client_async,
     tungstenite::{
@@ -8,24 +7,8 @@ use tokio_tungstenite::{
     },
     WebSocketStream,
 };
-use tracing::{error, info};
 
-use crate::{WalleError, WalleResult};
-
-pub struct WebSocketServer {
-    pub listner: JoinHandle<()>,
-    pub conns: Arc<RwLock<Vec<JoinHandle<()>>>>,
-}
-
-impl WebSocketServer {
-    pub(crate) async fn abort(self) {
-        let mut conns = self.conns.write().await;
-        for conn in conns.iter_mut() {
-            conn.abort();
-        }
-        self.listner.abort();
-    }
-}
+use crate::{WalleError, WalleLogExt, WalleResult};
 
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketClient,
@@ -40,21 +23,14 @@ pub(crate) async fn try_connect(
     let req = req.body(()).unwrap();
     match client_async(
         req,
-        TcpStream::connect(&addr).await.map_err(|e| {
-            error!(target: "Walle-core", "connect ws server error {}", e);
-            WalleError::TcpConnectFailed
-        })?,
+        TcpStream::connect(&addr)
+            .await
+            .map_err(|e| WalleError::TcpConnectFailed(e))?,
     )
     .await
     {
-        Ok((ws_stream, _)) => {
-            info!(target: "Walle-core", "success connect to {}", ws_url);
-            Ok(ws_stream)
-        }
-        Err(e) => {
-            error!(target: "Walle-core", "upgrade connect to ws error {}", e);
-            Err(WalleError::WebsocketUpgradeFail)
-        }
+        Ok((ws_stream, _)) => Ok(ws_stream).info(format!("success connect to {}", ws_url)),
+        Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
     }
 }
 
@@ -62,10 +38,9 @@ pub(crate) async fn upgrade_websocket(
     access_token: &Option<String>,
     stream: TcpStream,
 ) -> WalleResult<WebSocketStream<TcpStream>> {
-    let addr = stream.peer_addr().map_err(|_| {
-        error!("connectting streams should have a peer address");
-        WalleError::WebsocketNoAddress
-    })?;
+    let addr = stream
+        .peer_addr()
+        .map_err(|_| WalleError::WebsocketNoAddress)?;
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         let headers = req.headers();
@@ -85,13 +60,7 @@ pub(crate) async fn upgrade_websocket(
     };
 
     match accept_hdr_async(stream, callback).await {
-        Ok(s) => {
-            info!(target:"Walle-core","new ws connect from {}",addr);
-            Ok(s)
-        }
-        Err(e) => {
-            error!(target:"Walle-core","ws upgrade fail with error {}", e);
-            Err(WalleError::WebsocketUpgradeFail)
-        }
+        Ok(s) => Ok(s).info(format!("new websocket connectted from {}", addr)),
+        Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
     }
 }
