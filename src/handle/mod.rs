@@ -1,7 +1,9 @@
-use crate::ActionResp;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, sync::Arc};
+
+#[cfg(feature = "app")]
+use crate::app::ArcBot;
 
 mod fnt;
 
@@ -47,12 +49,13 @@ where
 /// 应用端处理 Event 需要实现的 Trait
 ///
 /// 请注意，该出的泛型 E 应为使用 CustomEvent 包装后的 Event 并非 Content
+#[cfg(feature = "app")]
 #[async_trait]
-pub trait EventHandler<E>
+pub trait EventHandler<E, A, R>
 where
     E: Clone + DeserializeOwned + Send + 'static + Debug,
 {
-    async fn handle(&self, event: E);
+    async fn handle(&self, bot: ArcBot<A, R>, event: E);
 }
 
 /// 内置默认 Handler ，可以使用 `DefaultHandler::arc()` 返回打包后的 Handler 直接使用  ( 两种 Handler trait 均已实现 )
@@ -88,9 +91,10 @@ impl ActionHandler<crate::Action, crate::ActionResps> for DefaultHandler {
     }
 }
 
+#[cfg(feature = "app")]
 #[async_trait]
-impl EventHandler<crate::Event> for DefaultHandler {
-    async fn handle(&self, event: crate::Event) {
+impl<A, R> EventHandler<crate::Event, A, R> for DefaultHandler {
+    async fn handle(&self, _: ArcBot<A, R>, event: crate::Event) {
         use crate::EventContent;
         use colored::*;
         use tracing::{debug, info, trace};

@@ -153,3 +153,7 @@ impl ExtendedValue {
         }
     }
 }
+
+pub trait FromStandard<S> {
+    fn from_standard(standard: S) -> Self;
+}

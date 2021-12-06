@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use tracing::trace;
 use walle_core::{
-    action::ExtendedAction, async_trait, Action, ActionHandler, ActionRespContent, ActionResps,
+    action::ExtendedAction, action_resp::SendMessageRespContent, async_trait, Action,
+    ActionHandler, ActionRespContent, ActionResps,
 };
 
 pub(crate) struct Handler;
@@ -21,7 +22,12 @@ impl ActionHandler<ExtendedAction<ExtendAction>, ActionResps> for Handler {
 impl ActionHandler<Action, ActionResps> for Handler {
     async fn handle(&self, action: Action) -> ActionResps {
         match action {
-            // Action::SendMessage(m) => ActionResps::bad_param(),
+            Action::SendMessage(m) => {
+                ActionResps::success(ActionRespContent::SendMessage(SendMessageRespContent {
+                    message_id: format!("SendMessage Action {:?} is received, but not send", m),
+                    time: 0,
+                }))
+            }
             Action::GetVersion(_) => {
                 ActionResps::success(ActionRespContent::Version(crate::core::version()))
             }

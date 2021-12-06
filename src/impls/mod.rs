@@ -50,7 +50,7 @@ pub struct CustomOneBot<E, A, R> {
 
 impl<E, A, R> CustomOneBot<E, A, R>
 where
-    E: crate::EventContentExt + Clone + Serialize + Send + 'static,
+    E: crate::utils::FromStandard<EventContent> + Clone + Serialize + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
 {

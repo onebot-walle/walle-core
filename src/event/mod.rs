@@ -4,17 +4,6 @@ use serde::{Deserialize, Serialize};
 /// OneBot 12 标准事件
 pub type Event = BaseEvent<EventContent>;
 
-/// 将 ExtendedEventContent 转化为 StandardEventContent
-pub trait EventContentExt {
-    fn from_standard(content: EventContent) -> Self;
-}
-
-impl EventContentExt for EventContent {
-    fn from_standard(content: EventContent) -> Self {
-        content
-    }
-}
-
 /// ## OneBot Event 基类
 ///
 /// 持有所有 Event 共有字段，其余字段由 Content 定义
@@ -62,7 +51,13 @@ pub enum ExtendedContent<M, E, N, R> {
     Request(ExtendedRequest<R>),
 }
 
-impl<M, E, N, R> EventContentExt for ExtendedContent<M, E, N, R> {
+impl crate::utils::FromStandard<EventContent> for EventContent {
+    fn from_standard(event_content: EventContent) -> Self {
+        event_content
+    }
+}
+
+impl<M, E, N, R> crate::utils::FromStandard<EventContent> for ExtendedContent<M, E, N, R> {
     fn from_standard(content: EventContent) -> Self {
         match content {
             EventContent::Meta(m) => ExtendedContent::Meta(ExtendedMeta::Standard(m)),

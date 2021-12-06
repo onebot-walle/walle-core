@@ -7,19 +7,20 @@ use tokio::sync::RwLock;
 mod bot;
 
 pub(crate) type ActionSender = tokio::sync::mpsc::UnboundedSender<crate::action::Action>;
+pub(crate) type EchoMap = Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>;
 
 pub struct OneBot {
     pub(crate) handler: ArcRespHandler,
     pub(crate) config: crate::config::AppConfig,
     pub(crate) running: AtomicBool,
-    pub(crate) echo_map: Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>,
+    pub(crate) echo_map: EchoMap,
     bots: Arc<RwLock<HashMap<i32, ArcBot>>>,
 }
 
 pub struct Bot {
     pub self_id: i32,
     pub action_sender: ActionSender,
-    pub echo_map: Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>,
+    pub echo_map: EchoMap,
 }
 
 pub type ArcBot = Arc<Bot>;

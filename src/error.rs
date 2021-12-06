@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use thiserror::Error;
 
 pub type WalleResult<T> = std::result::Result<T, WalleError>;
@@ -15,4 +13,18 @@ pub enum WalleError {
     WebsocketUpgradeFail,
     #[error("Websocket link has no address")]
     WebsocketNoAddress,
+    /// action
+    #[error("Action send error")]
+    ActionSendError,
+    /// resp
+    #[error("Action Response Timeout")]
+    ActionResponseTimeout,
+    #[error("Action Response RecvError:{0}")]
+    ActionResponseRecvError(tokio::sync::oneshot::error::RecvError),
+    /// server
+    #[error("TcpServer bind address error: {0}")]
+    TcpServerBindAddressError(std::io::Error),
+    /// Running Time Error
+    #[error("OneBot is already running")]
+    AlreadyRunning,
 }

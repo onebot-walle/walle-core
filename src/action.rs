@@ -55,6 +55,18 @@ pub enum ExtendedAction<T> {
     Extended(T),
 }
 
+impl crate::utils::FromStandard<Action> for Action {
+    fn from_standard(action: Action) -> Self {
+        action
+    }
+}
+
+impl<T> crate::utils::FromStandard<Action> for ExtendedAction<T> {
+    fn from_standard(action: Action) -> Self {
+        Self::Standard(action)
+    }
+}
+
 /// Action content for GetLatestEvents
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GetLatestEventsContent {

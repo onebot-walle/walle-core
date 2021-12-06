@@ -29,23 +29,31 @@ impl Cache {
             }
         } else {
             if !self.user_id.is_empty() {
-                self.cli
-                    .send_message(
-                        "private".to_owned(),
-                        None,
-                        Some(self.user_id.clone()),
-                        Message::new().text(input.to_owned()),
-                    )
-                    .await;
+                for (_, bot) in self.cli.get_bots().await.iter() {
+                    let resp = bot
+                        .send_message(
+                            "private".to_owned(),
+                            None,
+                            Some(self.user_id.clone()),
+                            Message::new().text(input.to_owned()),
+                        )
+                        .await
+                        .unwrap();
+                    info!("{:?}", resp);
+                }
             } else if !self.group_id.is_empty() {
-                self.cli
-                    .send_message(
-                        "group".to_owned(),
-                        Some(self.group_id.clone()),
-                        None,
-                        Message::new().text(input.to_owned()),
-                    )
-                    .await;
+                for (_, bot) in self.cli.get_bots().await.iter() {
+                    let resp = bot
+                        .send_message(
+                            "group".to_owned(),
+                            Some(self.group_id.clone()),
+                            None,
+                            Message::new().text(input.to_owned()),
+                        )
+                        .await
+                        .unwrap();
+                    info!("{:?}", resp);
+                }
             } else {
                 warn!("no group or user id is setted");
             }
@@ -71,6 +79,12 @@ impl Cache {
             info!(target:"mira", "Set GroupId {}", group_id);
             return;
         }
+        if let Some(_) = matches.subcommand_matches("bots") {
+            let bots = self.cli.get_bots().await;
+            for (id, bot) in bots.iter() {
+                info!(target:"mira", "Bot {}", id);
+            }
+        }
     }
 }
 
@@ -86,7 +100,8 @@ fn build_app() -> App<'static> {
             App::new("set_group_id")
                 .about("set a glodal group_id ")
                 .arg(Arg::new("group_id").required(true)),
-        );
+        )
+        .subcommand(App::new("bots").about("show connectted bot"));
     app
 }
 

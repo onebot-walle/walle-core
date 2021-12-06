@@ -30,8 +30,10 @@ pub use action_resp::{ActionResp, ActionRespContent, ActionResps};
 pub use config::*;
 pub use error::*;
 pub use event::*;
-pub use handle::{ActionHandler, DefaultHandler, EventHandler};
-pub use message::{Message, MessageBuild, MessageSegment};
+#[cfg(feature = "app")]
+pub use handle::EventHandler;
+pub use handle::{ActionHandler, DefaultHandler};
+pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
 pub use utils::*;
 
 pub use async_trait::async_trait;
