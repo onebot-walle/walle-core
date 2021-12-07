@@ -36,4 +36,11 @@ futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "*"
 
 [workspace]
-members = ["recruit", "mira", "walle-py", "walle-v11", "walle-actix"]
+members = [
+    "recruit",
+    "mira",
+    "walle-py",
+    "walle-v11",
+    "walle-actix",
+    "walle-hub",
+]
