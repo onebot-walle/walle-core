@@ -4,14 +4,14 @@ use std::{
     sync::{atomic::Ordering, Arc},
     time::Duration,
 };
-use tokio::{net::TcpStream, task::JoinHandle};
+use tokio::net::TcpStream;
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 
 impl OneBot {
     pub(crate) async fn websocket_loop(self: Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let mut bot_ids: Vec<i32> = vec![]; // 记录本连接上的 bot_id
-        loop {
+        while self.running.load(Ordering::SeqCst) {
             tokio::select! {
                 action = rx.recv() => {
                     if let Some(action) = action {
@@ -58,15 +58,15 @@ impl OneBot {
         }
     }
 
-    pub(crate) async fn ws(self: &Arc<Self>) -> Option<JoinHandle<()>> {
+    pub(crate) async fn ws(self: &Arc<Self>) {
         if self.running.load(Ordering::SeqCst) {
-            return None;
+            return;
         }
-        if let Some(wsc) = self.config.web_socket.clone() {
+        for wsc in self.config.websocket.clone().into_iter() {
             let ob = self.clone();
             self.running.store(true, Ordering::SeqCst);
-            Some(tokio::spawn(async move {
-                loop {
+            tokio::spawn(async move {
+                if ob.running.load(Ordering::SeqCst) {
                     match super::try_connect(&wsc).await {
                         Some(ws_stream) => ob.clone().websocket_loop(ws_stream).await,
                         None => {
@@ -75,22 +75,20 @@ impl OneBot {
                         }
                     }
                 }
-            }))
-        } else {
-            None
+            });
         }
     }
 
-    pub(crate) async fn wsr(self: &Arc<Self>) -> Option<JoinHandle<()>> {
+    pub(crate) async fn wsr(self: &Arc<Self>) {
         if self.running.load(Ordering::SeqCst) {
-            return None;
+            return;
         }
-        if let Some(wsr) = (self.config.web_socket_rev).clone() {
+        for wsr in self.config.websocket_rev.clone().into_iter() {
             let addr = std::net::SocketAddr::new(wsr.host, wsr.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
             let ob = self.clone();
             self.running.store(true, Ordering::SeqCst);
-            Some(tokio::spawn(async move {
+            tokio::spawn(async move {
                 while let Ok((stream, _)) = tcp_listener.accept().await {
                     if let Some(ws_stream) =
                         super::upgrade_websocket(&wsr.access_token, stream).await
@@ -98,9 +96,7 @@ impl OneBot {
                         tokio::spawn(ob.clone().websocket_loop(ws_stream));
                     }
                 }
-            }))
-        } else {
-            None
+            });
         }
     }
 }

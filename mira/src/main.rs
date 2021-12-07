@@ -41,7 +41,7 @@ async fn main() {
                 4
             },
         };
-        config.websocket = Some(ws);
+        config.websocket = vec![ws];
         config
     } else if let Some(addr) = root.wsr {
         let mut config = AppConfig::empty();
@@ -50,7 +50,7 @@ async fn main() {
             port: addr.port(),
             access_token: root.access_token,
         };
-        config.websocket_rev = Some(wsr);
+        config.websocket_rev = vec![wsr];
         config
     } else {
         load_config(root.config)

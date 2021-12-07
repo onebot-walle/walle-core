@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use walle_core::EmptyContent;
 
 use crate::message::Message;
 
@@ -27,7 +28,7 @@ pub enum RespContent {
     Message {
         message_id: i32,
     },
-    None(crate::utils::EmptyStruct),
+    None(EmptyContent),
     MessageDetail {
         time: i32,
         message_type: String,
@@ -40,6 +41,6 @@ pub enum RespContent {
 
 impl RespContent {
     pub fn empty() -> Self {
-        Self::None(crate::utils::EmptyStruct {})
+        Self::None(EmptyContent {})
     }
 }

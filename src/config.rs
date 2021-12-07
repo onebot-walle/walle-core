@@ -45,19 +45,19 @@ impl Default for Heartbeat {
 /// OneBot 应用端设置项
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub http: Option<Http>,
-    pub http_webhook: Option<HttpWebhook>,
-    pub websocket: Option<WebSocketClient>,
-    pub websocket_rev: Option<WebSocketServer>,
+    pub http: Vec<Http>,
+    pub http_webhook: Vec<HttpWebhook>,
+    pub websocket: Vec<WebSocketClient>,
+    pub websocket_rev: Vec<WebSocketServer>,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            http: None,
-            http_webhook: None,
-            websocket: Some(WebSocketClient::default()),
-            websocket_rev: None,
+            http: vec![],
+            http_webhook: vec![],
+            websocket: vec![WebSocketClient::default()],
+            websocket_rev: vec![],
         }
     }
 }
@@ -65,10 +65,10 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn empty() -> Self {
         Self {
-            http: None,
-            http_webhook: None,
-            websocket: None,
-            websocket_rev: None,
+            http: vec![],
+            http_webhook: vec![],
+            websocket: vec![],
+            websocket_rev: vec![],
         }
     }
 }

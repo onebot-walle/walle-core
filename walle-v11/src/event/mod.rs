@@ -1,5 +1,5 @@
-use crate::utils::ExtendedMap;
 use serde::{Deserialize, Serialize};
+use walle_core::ExtendedMap;
 
 mod from;
 

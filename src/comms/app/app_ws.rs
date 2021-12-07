@@ -9,12 +9,10 @@ use tokio_tungstenite::{
     tungstenite::{error::Result as WsResult, Message as WsMsg},
     WebSocketStream,
 };
-use tracing::info;
 
 use crate::{
     app::{CustomActionSender, CustomOneBot, CustomRespSender},
-    Action, ActionResp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleResult,
-    WalleLogExt,
+    Action, ActionResp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleLogExt, WalleResult,
 };
 
 impl<E, A, R> CustomOneBot<E, A, R>
@@ -114,8 +112,8 @@ where
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) {
-        if let Some(wsc) = self.config.websocket.clone() {
-            info!(target: "Walle-core", "Running WebSocket");
+        for wsc in self.config.websocket.clone().into_iter() {
+            // info!(target: "Walle-core", "Running WebSocket");
             let ob = self.clone();
             tokio::spawn(async move {
                 while ob.is_running() {
@@ -136,8 +134,8 @@ where
     }
 
     pub(crate) async fn wsr(self: &Arc<Self>) -> WalleResult<()> {
-        if let Some(wss) = self.config.websocket_rev.clone() {
-            info!(target: "Walle-core", "Running WebSocket Reverse");
+        for wss in self.config.websocket_rev.clone().into_iter() {
+            // info!(target: "Walle-core", "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = TcpListener::bind(&addr)
                 .await

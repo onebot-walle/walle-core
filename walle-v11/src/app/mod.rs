@@ -11,7 +11,7 @@ pub(crate) type EchoMap = Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sende
 
 pub struct OneBot {
     pub(crate) handler: ArcRespHandler,
-    pub(crate) config: crate::config::AppConfig,
+    pub(crate) config: walle_core::AppConfig,
     pub(crate) running: AtomicBool,
     pub(crate) echo_map: EchoMap,
     bots: Arc<RwLock<HashMap<i32, ArcBot>>>,
@@ -26,7 +26,7 @@ pub struct Bot {
 pub type ArcBot = Arc<Bot>;
 
 impl OneBot {
-    pub fn new(handler: ArcRespHandler, config: crate::config::AppConfig) -> Self {
+    pub fn new(handler: ArcRespHandler, config: walle_core::AppConfig) -> Self {
         Self {
             handler,
             config,

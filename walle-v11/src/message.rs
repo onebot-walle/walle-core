@@ -53,7 +53,9 @@ pub enum MessageSegment {
         ty: String,
         id: Option<String>,
     },
-    // todo
+    Reply {
+        id: String,
+    }, // todo
 }
 
 pub trait MessageTo12 {

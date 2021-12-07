@@ -7,18 +7,13 @@ pub struct Status {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct EmptyStruct {}
-
-pub type ExtendedMap = std::collections::HashMap<String, serde_json::Value>;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Sender {
     Private(PrivateSender),
     Group(GroupSender),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct PrivateSender {
     pub user_id: i64,
     pub nickname: String,
@@ -26,7 +21,7 @@ pub struct PrivateSender {
     pub age: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct GroupSender {
     pub user_id: i64,
     pub nickname: String,

@@ -8,7 +8,7 @@ pub struct OneBot {
     pub(crate) handler: ArcActionHandler,
     pub(crate) sender: tokio::sync::broadcast::Sender<crate::event::Event>,
     pub(crate) running: AtomicBool,
-    pub(crate) config: crate::config::ImplConfig,
+    pub(crate) config: walle_core::ImplConfig,
 }
 
 impl OneBot {
@@ -17,7 +17,7 @@ impl OneBot {
         platform: String,
         handler: ArcActionHandler,
         sender: tokio::sync::broadcast::Sender<crate::event::Event>,
-        config: crate::config::ImplConfig,
+        config: walle_core::ImplConfig,
     ) -> Self {
         Self {
             r#impl,
