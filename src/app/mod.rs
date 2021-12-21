@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::{
-    config::AppConfig, event::BaseEvent, Action, ActionResp, ActionRespContent, EventContent,
+    config::AppConfig, event::BaseEvent, Action, Resp, RespContent, EventContent,
     FromStandard, WalleError, WalleResult,
 };
 
@@ -19,12 +19,12 @@ mod bot;
 
 pub(crate) type ArcEventHandler<E, A, R> =
     Arc<dyn crate::handle::EventHandler<BaseEvent<E>, A, R> + Send + Sync>;
-pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<ActionResp<R>>;
+pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<Resp<R>>;
 pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
+pub type OneBot = CustomOneBot<EventContent, Action, RespContent>;
 
 /// OneBot Application 实例
 ///

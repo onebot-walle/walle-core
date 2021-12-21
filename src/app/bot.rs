@@ -1,24 +1,24 @@
 use crate::utils::FromStandard;
-use crate::{action::*, ActionResp, EmptyContent, WalleError, WalleResult};
+use crate::{action::*, Resp, EmptyContent, WalleError, WalleResult};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
 
 macro_rules! action_api {
     ($fn_name: ident,$action_ty:ident,$content:ident) => {
-        pub async fn $fn_name(&self) -> WalleResult<ActionResp<R>> {
+        pub async fn $fn_name(&self) -> WalleResult<Resp<R>> {
             self.call_action_resp(A::from_standard(Action::$action_ty($content::default()))).await
         }
     };
     ($fn_name: ident,$action_ty:ident,$content:ident, $field_name: ident: $field_ty: ty) => {
-        pub async fn $fn_name(&self, $field_name: $field_ty) -> WalleResult<ActionResp<R>> {
+        pub async fn $fn_name(&self, $field_name: $field_ty) -> WalleResult<Resp<R>> {
             self.call_action_resp(A::from_standard(Action::$action_ty($content{
                 $field_name,
             }))).await
         }
     };
     ($fn_name: ident,$action_ty:ident,$content:ident, $($field_name: ident: $field_ty: ty),*) => {
-        pub async fn $fn_name(&self, $($field_name: $field_ty,)*) -> WalleResult<ActionResp<R>> {
+        pub async fn $fn_name(&self, $($field_name: $field_ty,)*) -> WalleResult<Resp<R>> {
             self.call_action_resp(A::from_standard(Action::$action_ty($content{
                 $($field_name,)*
             }))).await
@@ -35,7 +35,7 @@ where
         Self { self_id, sender }
     }
 
-    pub async fn call_action_resp(&self, action: A) -> WalleResult<ActionResp<R>> {
+    pub async fn call_action_resp(&self, action: A) -> WalleResult<Resp<R>> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
             .send((action, tx))

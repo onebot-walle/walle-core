@@ -1,10 +1,13 @@
+use crate::ExtendedMap;
+
 #[test]
 fn event() {
-    use crate::action_resp::StatusContent;
     use crate::event::Event;
     use crate::event::{
-        BaseEvent, EventContent, Message as MsgContent, MessageEventType, Meta, Notice,
+        BaseEvent, EventContent, MessageContent as MsgContent, MessageEventType, MetaContent,
+        NoticeContent,
     };
+    use crate::resp::StatusContent;
     use crate::MessageSegment;
     use std::collections::HashMap;
     let data = vec![
@@ -30,7 +33,7 @@ fn event() {
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
                 time: 1632847927,
-                content: EventContent::Meta(Meta::Heartbeat {
+                content: EventContent::Meta(MetaContent::Heartbeat {
                     interval: 5000,
                     status: StatusContent {
                         good: true,
@@ -90,6 +93,7 @@ fn event() {
                     ],
                     alt_message: "OneBot is not a bot[图片]".to_owned(),
                     user_id: "123456788".to_owned(),
+                    extra: ExtendedMap::default(),
                 }),
             },
         ),
@@ -113,7 +117,7 @@ fn event() {
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
                 time: 1632847927,
-                content: EventContent::Notice(Notice::GroupMemberIncrease {
+                content: EventContent::Notice(NoticeContent::GroupMemberIncrease {
                     sub_type: "join".to_owned(),
                     group_id: "87654321".to_owned(),
                     user_id: "123456788".to_owned(),
@@ -195,7 +199,7 @@ fn action() {
 
 #[test]
 fn action_resp() {
-    use crate::action_resp::*;
+    use crate::resp::*;
     use crate::EmptyContent;
 
     let status_data = (
@@ -208,11 +212,11 @@ fn action_resp() {
             },
             "message": ""
         }"#,
-        ActionResp::success(StatusContent {
+        Resp::success(StatusContent {
             good: true,
             online: true,
         }),
-        ActionResp::success(ActionRespContent::Status(StatusContent {
+        Resp::success(RespContent::Status(StatusContent {
             good: true,
             online: true,
         })),
@@ -224,27 +228,27 @@ fn action_resp() {
             "data": {},
             "message": ""
         }"#,
-        ActionResp::success(EmptyContent::default()),
-        ActionResp::success(ActionRespContent::Empty(EmptyContent::default())),
+        Resp::success(EmptyContent::default()),
+        Resp::success(RespContent::Empty(EmptyContent::default())),
     );
 
     assert_eq!(
-        serde_json::from_str::<ActionResp<StatusContent>>(status_data.0).unwrap(),
+        serde_json::from_str::<Resp<StatusContent>>(status_data.0).unwrap(),
         status_data.1
     );
     let json_str = serde_json::to_string(&status_data.1).unwrap();
     assert_eq!(
-        serde_json::from_str::<ActionResp<ActionRespContent>>(&json_str).unwrap(),
+        serde_json::from_str::<Resp<RespContent>>(&json_str).unwrap(),
         status_data.2
     );
 
     assert_eq!(
-        serde_json::from_str::<ActionResp<EmptyContent>>(empty_data.0).unwrap(),
+        serde_json::from_str::<Resp<EmptyContent>>(empty_data.0).unwrap(),
         empty_data.1
     );
     let json_str = serde_json::to_string(&empty_data.1).unwrap();
     assert_eq!(
-        serde_json::from_str::<ActionResp<ActionRespContent>>(&json_str).unwrap(),
+        serde_json::from_str::<Resp<RespContent>>(&json_str).unwrap(),
         empty_data.2
     );
 }

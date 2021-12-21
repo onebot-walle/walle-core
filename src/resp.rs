@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::{EmptyContent, Event};
 
 /// ## OneBot 12 标准动作响应
-pub type ActionResps = ActionResp<ActionRespContent>;
+pub type Resps = Resp<RespContent>;
 
 /// ## 动作响应
 ///
 /// **动作响应**是 OneBot 实现收到应用端的动作请求并处理完毕后，发回应用端的数据。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ActionResp<T> {
+pub struct Resp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
     pub status: String,
     /// 返回码，必须符合返回码规则
@@ -22,7 +22,7 @@ pub struct ActionResp<T> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
-pub enum ActionRespContent {
+pub enum RespContent {
     SendMessage(SendMessageRespContent),
     LatestEvents(Vec<Event>),
     SupportActions(Vec<String>),
@@ -46,37 +46,37 @@ pub enum ActionRespContent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum ExtendedActionRespContent<T> {
-    Standard(ActionRespContent),
+    Standard(RespContent),
     Extended(T),
 }
 
 /// 转化标准动作响应为扩展动作响应
 pub trait FromStandard {
-    fn from_standard(standard: ActionRespContent) -> Self;
+    fn from_standard(standard: RespContent) -> Self;
 }
 
 impl<T> FromStandard for ExtendedActionRespContent<T> {
-    fn from_standard(standard: ActionRespContent) -> Self {
+    fn from_standard(standard: RespContent) -> Self {
         ExtendedActionRespContent::Standard(standard)
     }
 }
 
-impl ActionRespContent {
+impl RespContent {
     pub fn empty() -> Self {
         Self::Empty(EmptyContent::default())
     }
 }
 
-impl FromStandard for ActionRespContent {
-    fn from_standard(standard: ActionRespContent) -> Self {
+impl FromStandard for RespContent {
+    fn from_standard(standard: RespContent) -> Self {
         standard
     }
 }
 
-impl<T> ActionResp<T> {
+impl<T> Resp<T> {
     #[allow(dead_code)]
     pub fn success(data: T) -> Self {
-        ActionResp {
+        Resp {
             status: "ok".to_owned(),
             retcode: 0,
             data,
@@ -86,7 +86,7 @@ impl<T> ActionResp<T> {
 
     #[allow(dead_code)]
     pub fn fail(data: T, retcode: i64, message: String) -> Self {
-        ActionResp {
+        Resp {
             status: "failed".to_owned(),
             retcode,
             data,
@@ -109,13 +109,13 @@ macro_rules! empty_err_resp {
     };
 }
 
-impl<T> ActionResp<T>
+impl<T> Resp<T>
 where
     T: FromStandard,
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from_standard(ActionRespContent::Empty(
+        Self::success(T::from_standard(RespContent::Empty(
             EmptyContent::default(),
         )))
     }
@@ -123,7 +123,7 @@ where
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
         Self::fail(
-            T::from_standard(ActionRespContent::Empty(EmptyContent::default())),
+            T::from_standard(RespContent::Empty(EmptyContent::default())),
             retcode,
             message,
         )
@@ -139,10 +139,10 @@ where
 }
 
 // meta
-pub type LatestEvents = ActionResp<Vec<Event>>;
-pub type SupportActions = ActionResp<Vec<String>>;
-pub type Status = ActionResp<StatusContent>;
-pub type Version = ActionResp<VersionContent>;
+pub type LatestEvents = Resp<Vec<Event>>;
+pub type SupportActions = Resp<Vec<String>>;
+pub type Status = Resp<StatusContent>;
+pub type Version = Resp<VersionContent>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StatusContent {
@@ -171,7 +171,7 @@ impl Default for VersionContent {
 
 // message
 /// Resp for send_message
-pub type SendMessageResp = ActionResp<SendMessageRespContent>;
+pub type SendMessageResp = Resp<SendMessageRespContent>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
@@ -181,9 +181,9 @@ pub struct SendMessageRespContent {
 
 // user
 /// Resp for get_self_info && get_user_info
-pub type UserInfo = ActionResp<UserInfoContent>;
+pub type UserInfo = Resp<UserInfoContent>;
 /// Resp for get_friend_list
-pub type FriendList = ActionResp<Vec<UserInfoContent>>;
+pub type FriendList = Resp<Vec<UserInfoContent>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfoContent {
@@ -193,9 +193,9 @@ pub struct UserInfoContent {
 
 // group
 /// Resp for get_group_info
-pub type GroupInfo = ActionResp<GroupInfoContent>;
+pub type GroupInfo = Resp<GroupInfoContent>;
 /// Resp for get_group_list
-pub type GroupList = ActionResp<Vec<GroupInfoContent>>;
+pub type GroupList = Resp<Vec<GroupInfoContent>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupInfoContent {
@@ -205,11 +205,11 @@ pub struct GroupInfoContent {
 
 // file
 /// Resp for upload_file
-pub type FileId = ActionResp<String>;
+pub type FileId = Resp<String>;
 /// Resp for upload_file_fragmented
-pub type PrepareFileFragmented = ActionResp<FileFragmentedHead>;
+pub type PrepareFileFragmented = Resp<FileFragmentedHead>;
 /// Resp for upload_file_fragmented
-pub type TransferFileFragmented = ActionResp<Vec<u8>>;
+pub type TransferFileFragmented = Resp<Vec<u8>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileContent {

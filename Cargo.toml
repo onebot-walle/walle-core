@@ -19,6 +19,7 @@ http = ["hyper"]
 websocket = ["tokio-tungstenite"]
 app = []
 impl = ["uuid"]
+v11 = []
 full = ["qq", "http", "websocket", "app", "impl"]
 
 [dependencies]

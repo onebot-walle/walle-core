@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use walle_core::{
-    action_resp::VersionContent, impls::OneBot, Event, EventContent, ImplConfig, Message,
-};
+use walle_core::{impls::OneBot, resp::VersionContent, Event, EventContent, ImplConfig, Message};
 
 static NAME: &str = "Recruit";
 static PLATFORM: &str = "shell";
@@ -28,6 +26,7 @@ impl Bot {
                 self_id,
                 config,
                 Arc::new(super::handle::Handler),
+                walle_core::DefaultHooks.arc(),
             )
             .arc(),
             // event_count: 0,

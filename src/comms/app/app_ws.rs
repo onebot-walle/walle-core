@@ -12,7 +12,7 @@ use tokio_tungstenite::{
 
 use crate::{
     app::{CustomActionSender, CustomOneBot, CustomRespSender},
-    Action, ActionResp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleLogExt, WalleResult,
+    Action, Resp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleLogExt, WalleResult,
 };
 
 impl<E, A, R> CustomOneBot<E, A, R>
@@ -76,13 +76,13 @@ where
         ws_msg: WsMsg,
         bot_ids: &mut Vec<String>,
         action_tx: &CustomActionSender<A, R>,
-        echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<ActionResp<R>>>>,
+        echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<Resp<R>>>>,
     ) -> WalleResult<()> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum ReceiveItem<E, R> {
             Event(BaseEvent<E>),
-            Resp(Echo<ActionResp<R>>),
+            Resp(Echo<Resp<R>>),
         }
 
         if let WsMsg::Text(text) = ws_msg {

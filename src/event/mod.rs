@@ -1,6 +1,8 @@
 #![doc = include_str!("README.md")]
 use serde::{Deserialize, Serialize};
 
+use crate::ExtendedMap;
+
 /// OneBot 12 标准事件
 pub type Event = BaseEvent<EventContent>;
 
@@ -32,39 +34,15 @@ pub struct BaseEvent<T> {
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum EventContent {
-    Meta(Meta),
-    Message(Message),
-    Notice(Notice),
-    Request(Request),
-}
-
-/// 扩展 EventContent 的枚举
-///
-/// 当不需要所有泛型时，请使用 AlwaysFailSturct 占位
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
-pub enum ExtendedContent<M, E, N, R> {
-    Meta(ExtendedMeta<M>),
-    Message(ExtendedMessage<E>),
-    Notice(ExtendedNotice<N>),
-    Request(ExtendedRequest<R>),
+    Meta(MetaContent),
+    Message(MessageContent),
+    Notice(NoticeContent),
+    Request(RequestContent),
 }
 
 impl crate::utils::FromStandard<EventContent> for EventContent {
     fn from_standard(event_content: EventContent) -> Self {
         event_content
-    }
-}
-
-impl<M, E, N, R> crate::utils::FromStandard<EventContent> for ExtendedContent<M, E, N, R> {
-    fn from_standard(content: EventContent) -> Self {
-        match content {
-            EventContent::Meta(m) => ExtendedContent::Meta(ExtendedMeta::Standard(m)),
-            EventContent::Message(m) => ExtendedContent::Message(ExtendedMessage::Standard(m)),
-            EventContent::Notice(m) => ExtendedContent::Notice(ExtendedNotice::Standard(m)),
-            EventContent::Request(m) => ExtendedContent::Request(ExtendedRequest::Standard(m)),
-        }
     }
 }
 
@@ -77,13 +55,14 @@ impl EventContent {
         alt_message: String,
         user_id: String,
     ) -> Self {
-        Self::Message(Message {
+        Self::Message(MessageContent {
             ty,
             message_id,
             message,
             alt_message,
             user_id,
             sub_type: "".to_owned(),
+            extra: ExtendedMap::default(),
         })
     }
 
@@ -128,19 +107,19 @@ impl EventContent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
-pub enum Meta {
+pub enum MetaContent {
     /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
     Heartbeat {
         interval: u32,
-        status: crate::action_resp::StatusContent,
+        status: crate::resp::StatusContent,
         sub_type: String, // just for Deserialize
     },
 }
 
-impl Meta {
+impl MetaContent {
     pub fn detail_type(&self) -> &str {
         match self {
-            Meta::Heartbeat { .. } => "Heartbeat",
+            MetaContent::Heartbeat { .. } => "Heartbeat",
         }
     }
 }
@@ -153,7 +132,7 @@ impl Meta {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum ExtendedMeta<T> {
-    Standard(Meta),
+    Standard(MetaContent),
     Extended(T),
 }
 
@@ -161,7 +140,7 @@ pub enum ExtendedMeta<T> {
 ///
 /// 消息事件是聊天机器人收到其他用户发送的消息对应的一类事件，例如私聊消息等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Message {
+pub struct MessageContent {
     #[serde(flatten)]
     pub ty: MessageEventType,
     pub message_id: String,
@@ -170,6 +149,8 @@ pub struct Message {
     pub user_id: String,
     /// just for Deserialize
     pub sub_type: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 /// ## 扩展消息事件
@@ -180,7 +161,7 @@ pub struct Message {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum ExtendedMessage<T> {
-    Standard(Message),
+    Standard(MessageContent),
     Extended(T),
 }
 
@@ -199,7 +180,7 @@ pub enum MessageEventType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
 #[serde(rename_all = "snake_case")]
-pub enum Notice {
+pub enum NoticeContent {
     GroupMemberIncrease {
         sub_type: String,
         group_id: String,
@@ -266,7 +247,7 @@ pub enum Notice {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ExtendedNotice<T> {
-    Standard(Notice),
+    Standard(NoticeContent),
     Extended(T),
 }
 
@@ -275,7 +256,7 @@ pub enum ExtendedNotice<T> {
 /// 请求事件是聊天机器人收到其他用户发送的请求对应的一类事件，例如加好友请求等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "detail_type")]
-pub enum Request {
+pub enum RequestContent {
     Empty { sub_type: String },
 }
 
@@ -287,6 +268,6 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ExtendedRequest<T> {
-    Standard(Request),
+    Standard(RequestContent),
     Extended(T),
 }

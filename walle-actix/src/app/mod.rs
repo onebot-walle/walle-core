@@ -1,6 +1,6 @@
 use actix::{dev::MessageResponse, Actor, Context, Handler, Message};
 use std::marker::PhantomData;
-use walle_core::{action_resp::FromStandard, Action as ObAction, ActionResp as ObActionResp};
+use walle_core::{resp::FromStandard, Resp as ObResp};
 
 pub struct CustomOneBot {}
 
@@ -18,7 +18,7 @@ where
 
 #[derive(Debug)]
 pub struct ActionResp<R: std::fmt::Debug> {
-    pub inner: ObActionResp<R>,
+    pub inner: ObResp<R>,
 }
 
 impl Actor for CustomOneBot {
@@ -51,7 +51,7 @@ where
     type Result = ActionResp<R>;
     fn handle(&mut self, _: Action<A, R>, _: &mut Self::Context) -> Self::Result {
         ActionResp {
-            inner: ObActionResp::unsupported_action(),
+            inner: ObResp::unsupported_action(),
         }
     }
 }

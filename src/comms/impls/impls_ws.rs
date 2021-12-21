@@ -1,5 +1,5 @@
 use crate::{
-    impls::CustomOneBot, ActionResp, Echo, EventContent, FromStandard, WalleError, WalleLogExt,
+    impls::CustomOneBot, Echo, EventContent, FromStandard, Resp, WalleError, WalleLogExt,
     WalleResult,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -8,7 +8,7 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 
-type RespSender<R> = tokio::sync::mpsc::UnboundedSender<Echo<ActionResp<R>>>;
+type RespSender<R> = tokio::sync::mpsc::UnboundedSender<Echo<Resp<R>>>;
 
 impl<E, A, R> CustomOneBot<E, A, R>
 where
@@ -55,6 +55,7 @@ where
                 }
             }
         }
+        self.hooks.on_ws_disconnect(self.clone()).await;
         Ok(())
     }
 
@@ -92,9 +93,11 @@ where
                             crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
-                            let ob = ob.clone();
+                            ob.hooks.on_ws_connect(ob.clone()).await; // hook
+                            let moved_ob = ob.clone();
                             tokio::spawn(async move {
-                                ob.ws_loop(ws_stream).await.unwrap();
+                                // spawn to handle connect
+                                moved_ob.ws_loop(ws_stream).await.unwrap();
                             });
                         }
                     }

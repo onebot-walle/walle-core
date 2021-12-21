@@ -75,18 +75,18 @@ impl DefaultHandler {
 }
 
 #[async_trait]
-impl ActionHandler<crate::Action, crate::ActionResps> for DefaultHandler {
-    async fn handle(&self, action: crate::Action) -> crate::ActionResps {
+impl ActionHandler<crate::Action, crate::Resps> for DefaultHandler {
+    async fn handle(&self, action: crate::Action) -> crate::Resps {
         use crate::{
-            action_resp::{ActionResp, ActionRespContent},
+            resp::{Resp, RespContent},
             Action,
         };
 
         match action {
             Action::GetVersion(_) => {
-                ActionResp::success(ActionRespContent::Version(get_version().await))
+                Resp::success(RespContent::Version(get_version().await))
             }
-            _ => ActionResp::unsupported_action(),
+            _ => Resp::unsupported_action(),
         }
     }
 }
@@ -134,6 +134,6 @@ impl<A, R> EventHandler<crate::Event, A, R> for DefaultHandler {
     }
 }
 
-async fn get_version() -> crate::action_resp::VersionContent {
-    crate::action_resp::VersionContent::default()
+async fn get_version() -> crate::resp::VersionContent {
+    crate::resp::VersionContent::default()
 }

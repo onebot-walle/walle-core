@@ -1,8 +1,10 @@
 #![doc = include_str!("README.md")]
 
+use crate::hooks::ArcImplHooks;
+use crate::ExtendedMap;
 use crate::{
-    action_resp::StatusContent, event::BaseEvent, message::MessageAlt, Action, ActionResp,
-    ActionRespContent, EventContent, ImplConfig, Message, WalleError, WalleResult,
+    event::BaseEvent, message::MessageAlt, resp::StatusContent, Action, EventContent, ImplConfig,
+    Message, Resp, RespContent, WalleError, WalleResult,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
@@ -17,10 +19,10 @@ use tracing::{info, trace};
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<BaseEvent<E>>;
 pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<BaseEvent<E>>;
 pub(crate) type ArcActionHandler<A, R> =
-    Arc<dyn crate::handle::ActionHandler<A, ActionResp<R>> + Send + Sync>;
+    Arc<dyn crate::handle::ActionHandler<A, Resp<R>> + Send + Sync>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<EventContent, Action, ActionRespContent>;
+pub type OneBot = CustomOneBot<EventContent, Action, RespContent>;
 
 /// OneBot Implementation 实例
 ///
@@ -36,6 +38,7 @@ pub struct CustomOneBot<E, A, R> {
     pub config: ImplConfig,
     pub(crate) action_handler: ArcActionHandler<A, R>,
     pub broadcaster: CustomEventBroadcaster<E>,
+    pub(crate) hooks: crate::hooks::ArcImplHooks<E, A, R>,
 
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
@@ -56,6 +59,7 @@ where
         self_id: String,
         config: ImplConfig,
         action_handler: ArcActionHandler<A, R>,
+        hooks: ArcImplHooks<E, A, R>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {
@@ -64,6 +68,7 @@ where
             self_id,
             config,
             action_handler,
+            hooks,
             broadcaster,
             #[cfg(feature = "http")]
             http_join_handles: RwLock::default(),
@@ -174,7 +179,7 @@ where
         group_id: Option<String>,
         message: Message,
     ) -> BaseEvent<E> {
-        let message_c = crate::event::Message {
+        let message_c = crate::event::MessageContent {
             ty: if let Some(group_id) = group_id {
                 crate::event::MessageEventType::Group { group_id }
             } else {
@@ -185,6 +190,7 @@ where
             message,
             user_id,
             sub_type: "".to_owned(),
+            extra: ExtendedMap::default(),
         };
         self.new_event(E::from_standard(crate::event::EventContent::Message(
             message_c,
@@ -204,7 +210,7 @@ where
                 }
                 trace!(target:"Walle-core", "Heartbeating");
                 let hb = ob.new_event(E::from_standard(EventContent::Meta(
-                    crate::event::Meta::Heartbeat {
+                    crate::event::MetaContent::Heartbeat {
                         interval,
                         status: ob.get_status(),
                         sub_type: "".to_owned(),

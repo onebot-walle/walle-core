@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use walle_core::ExtendedMap;
 
-mod from;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub time: i64,
@@ -15,14 +13,14 @@ pub struct Event {
 #[serde(tag = "post_type")]
 #[serde(rename_all = "snake_case")]
 pub enum EventContent {
-    Message(Message),
-    Notice(Notice),
-    Request(Request),
-    MetaEvent(MetaEvent),
+    Message(MessageContent),
+    Notice(NoticeContent),
+    Request(RequestContent),
+    MetaEvent(MetaContent),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Message {
+pub struct MessageContent {
     pub message_id: i32,
     pub user_id: i64,
     pub message: crate::message::Message,
@@ -51,7 +49,7 @@ pub enum MessageSub {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "notice_type")]
 #[serde(rename_all = "snake_case")]
-pub enum Notice {
+pub enum NoticeContent {
     GroupUpload {
         group_id: i64,
         user_id: i64,
@@ -129,7 +127,7 @@ pub struct File {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "request_type")]
 #[serde(rename_all = "snake_case")]
-pub enum Request {
+pub enum RequestContent {
     Friend {
         user_id: i64,
         comment: String,
@@ -147,12 +145,12 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "meta_event_type")]
 #[serde(rename_all = "snake_case")]
-pub enum MetaEvent {
+pub enum MetaContent {
     Lifecycle {
         sub_type: String,
     },
     Heartbeat {
-        status: walle_core::action_resp::StatusContent,
+        status: walle_core::resp::StatusContent,
         interval: i64,
     },
 }

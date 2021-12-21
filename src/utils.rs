@@ -157,3 +157,7 @@ impl ExtendedValue {
 pub trait FromStandard<S> {
     fn from_standard(standard: S) -> Self;
 }
+
+/// 空结构体，用于对应 Json 中的空 Map
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct EmptyContent {}
