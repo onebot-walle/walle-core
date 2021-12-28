@@ -25,6 +25,7 @@ where
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
     ) -> WalleResult<()> {
+        self.ws_hooks.on_connect(&self).await;
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
         let echo_map = RwLock::default();
@@ -54,6 +55,7 @@ where
         for bot_id in bot_ids {
             self.remove_bot(&bot_id).await;
         }
+        self.ws_hooks.on_disconnect(&self).await;
         Ok(())
     }
 
@@ -116,6 +118,7 @@ where
             // info!(target: "Walle-core", "Running WebSocket");
             let ob = self.clone();
             tokio::spawn(async move {
+                ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
                     match crate::comms::ws_utils::try_connect(&wsc).await {
                         Ok(ws_stream) => {
@@ -126,9 +129,11 @@ where
                                 wsc.reconnect_interval as u64,
                             ))
                             .await;
+                            ob.ws_hooks.before_reconnect(&ob).await;
                         }
                     }
                 }
+                ob.ws_hooks.on_shutdown(&ob).await;
             });
         }
     }
@@ -142,6 +147,7 @@ where
                 .map_err(|e| WalleError::TcpServerBindAddressError(e))?;
             let ob = self.clone();
             tokio::spawn(async move {
+                ob.ws_hooks.on_start(&ob).await;
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
@@ -153,6 +159,7 @@ where
                         }
                     }
                 }
+                ob.ws_hooks.on_shutdown(&ob).await;
             });
         }
         Ok(())

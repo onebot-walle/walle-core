@@ -1,37 +1,29 @@
-use crate::action::Resp;
-use crate::handler::ArcRespHandler;
+use crate::handler::ArcEventHandler;
 use std::collections::HashMap;
 use std::sync::{atomic::AtomicBool, Arc};
 use tokio::sync::RwLock;
 
 mod bot;
 
-pub(crate) type ActionSender = tokio::sync::mpsc::UnboundedSender<crate::action::Action>;
-pub(crate) type EchoMap = Arc<RwLock<HashMap<String, tokio::sync::oneshot::Sender<Resp>>>>;
+pub use bot::{ArcBot, Bot};
+
+pub(crate) type RespSender = tokio::sync::oneshot::Sender<crate::action::Resp>;
+pub(crate) type ActionSender =
+    tokio::sync::mpsc::UnboundedSender<(crate::action::Action, RespSender)>;
 
 pub struct OneBot {
-    pub(crate) handler: ArcRespHandler,
+    pub(crate) handler: ArcEventHandler,
     pub(crate) config: walle_core::AppConfig,
     pub(crate) running: AtomicBool,
-    pub(crate) echo_map: EchoMap,
     bots: Arc<RwLock<HashMap<i32, ArcBot>>>,
 }
 
-pub struct Bot {
-    pub self_id: i32,
-    pub action_sender: ActionSender,
-    pub echo_map: EchoMap,
-}
-
-pub type ArcBot = Arc<Bot>;
-
 impl OneBot {
-    pub fn new(handler: ArcRespHandler, config: walle_core::AppConfig) -> Self {
+    pub fn new(handler: ArcEventHandler, config: walle_core::AppConfig) -> Self {
         Self {
             handler,
             config,
             running: AtomicBool::new(false),
-            echo_map: Arc::default(),
             bots: Arc::default(),
         }
     }
@@ -44,7 +36,6 @@ impl OneBot {
         let bot = Arc::new(Bot {
             self_id,
             action_sender,
-            echo_map: self.echo_map.clone(),
         });
         self.bots.write().await.insert(self_id, bot.clone());
         bot

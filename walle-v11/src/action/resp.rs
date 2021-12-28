@@ -8,16 +8,14 @@ pub struct Resp {
     pub status: String,
     pub retcode: u16,
     pub data: RespContent,
-    pub echo: String,
 }
 
 impl Resp {
-    pub fn empty_404(echo: String) -> Self {
+    pub fn empty_404() -> Self {
         Resp {
             status: "failed".to_string(),
             retcode: 1404,
             data: RespContent::empty(),
-            echo,
         }
     }
 }

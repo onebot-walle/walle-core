@@ -3,6 +3,7 @@ use crate::{
     impls::OneBot,
 };
 use futures_util::StreamExt;
+use walle_core::Echo;
 use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
 use tokio::net::TcpStream;
@@ -13,13 +14,15 @@ impl OneBot {
     pub(crate) async fn ws_recv(
         self: &Arc<Self>,
         msg: WsMsg,
-        sender: tokio::sync::mpsc::UnboundedSender<Resp>,
+        sender: tokio::sync::mpsc::UnboundedSender<Echo<Resp>>,
     ) {
         if let WsMsg::Text(text) = msg {
-            let action: Action = serde_json::from_str(&text).unwrap();
+            let action: Echo<Action> = serde_json::from_str(&text).unwrap();
             let ob = self.clone();
             tokio::spawn(async move {
+                let (action, echo_s) = action.unpack();
                 let resp = ob.handler.handle(action).await;
+                let resp = echo_s.pack(resp);
                 sender.send(resp).unwrap();
             });
         }

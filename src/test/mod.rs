@@ -1,5 +1,3 @@
-use crate::ExtendedMap;
-
 #[test]
 fn event() {
     use crate::event::Event;
@@ -8,6 +6,7 @@ fn event() {
         NoticeContent,
     };
     use crate::resp::StatusContent;
+    use crate::ExtendedMap;
     use crate::MessageSegment;
     use std::collections::HashMap;
     let data = vec![

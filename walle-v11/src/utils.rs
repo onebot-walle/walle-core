@@ -38,5 +38,5 @@ pub struct GroupSender {
 #[serde(untagged)]
 pub(crate) enum EventOrResp {
     Event(crate::event::Event),
-    Resp(crate::action::Resp),
+    Resp(walle_core::Echo<crate::action::Resp>),
 }

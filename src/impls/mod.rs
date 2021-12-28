@@ -1,6 +1,5 @@
 #![doc = include_str!("README.md")]
 
-use crate::hooks::ArcImplHooks;
 use crate::ExtendedMap;
 use crate::{
     event::BaseEvent, message::MessageAlt, resp::StatusContent, Action, EventContent, ImplConfig,
@@ -38,7 +37,7 @@ pub struct CustomOneBot<E, A, R> {
     pub config: ImplConfig,
     pub(crate) action_handler: ArcActionHandler<A, R>,
     pub broadcaster: CustomEventBroadcaster<E>,
-    pub(crate) hooks: crate::hooks::ArcImplHooks<E, A, R>,
+    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
 
     #[cfg(feature = "http")]
     http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
@@ -59,7 +58,6 @@ where
         self_id: String,
         config: ImplConfig,
         action_handler: ArcActionHandler<A, R>,
-        hooks: ArcImplHooks<E, A, R>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {
@@ -68,8 +66,8 @@ where
             self_id,
             config,
             action_handler,
-            hooks,
             broadcaster,
+            ws_hooks: crate::hooks::empty_ws_hooks(),
             #[cfg(feature = "http")]
             http_join_handles: RwLock::default(),
             running: AtomicBool::default(),

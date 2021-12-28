@@ -3,8 +3,8 @@ use std::sync::{atomic::AtomicBool, Arc};
 use crate::ArcActionHandler;
 
 pub struct OneBot {
-    pub(crate) r#impl: String,
-    pub(crate) platform: String,
+    // pub(crate) r#impl: String,
+    // pub(crate) platform: String,
     pub(crate) handler: ArcActionHandler,
     pub(crate) sender: tokio::sync::broadcast::Sender<crate::event::Event>,
     pub(crate) running: AtomicBool,
@@ -13,15 +13,15 @@ pub struct OneBot {
 
 impl OneBot {
     pub fn new(
-        r#impl: String,
-        platform: String,
+        // r#impl: String,
+        // platform: String,
         handler: ArcActionHandler,
         sender: tokio::sync::broadcast::Sender<crate::event::Event>,
         config: walle_core::ImplConfig,
     ) -> Self {
         Self {
-            r#impl,
-            platform,
+            // r#impl,
+            // platform,
             handler,
             sender,
             running: AtomicBool::new(false),

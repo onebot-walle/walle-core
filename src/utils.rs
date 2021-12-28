@@ -24,15 +24,15 @@ pub(crate) fn new_uuid() -> String {
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub(crate) struct Echo<I> {
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Echo<I> {
     #[serde(flatten)]
     pub inner: I,
     pub echo: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-pub(crate) struct EchoS(Option<String>);
+pub struct EchoS(Option<String>);
 
 #[allow(dead_code)]
 impl<I> Echo<I> {
@@ -42,10 +42,10 @@ impl<I> Echo<I> {
 }
 #[allow(dead_code)]
 impl EchoS {
-    pub fn pack<I>(self, i: I) -> Echo<I> {
+    pub fn pack<I>(&self, i: I) -> Echo<I> {
         return Echo {
             inner: i,
-            echo: self.0,
+            echo: self.0.clone(),
         };
     }
 
