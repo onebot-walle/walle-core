@@ -1,27 +1,33 @@
-use crate::{action::Action, app::OneBot, utils::EventOrResp};
+use crate::{app::OneBot, utils::EventOrResp};
 use futures_util::StreamExt;
 use std::{
+    collections::HashMap,
     sync::{atomic::Ordering, Arc},
     time::Duration,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
+use walle_core::EchoS;
 
 impl OneBot {
     pub(crate) async fn websocket_loop(self: Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let mut bot_ids: Vec<i32> = vec![]; // 记录本连接上的 bot_id
+        let mut echo_map = HashMap::new();
         while self.running.load(Ordering::SeqCst) {
             tokio::select! {
                 action = rx.recv() => {
-                    if let Some(action) = action {
-                        super::ws_action_send(&mut ws_stream, action).await;
+                    if let Some((action, tx)) = action {
+                        let echo_s = EchoS::new("v11action");
+                        let echo_action = echo_s.pack(action);
+                        super::ws_action_send(&mut ws_stream, echo_action).await;
+                        echo_map.insert(echo_s, tx);
                     }
                 },
                 msg = ws_stream.next() => {
                     if let Some(msg) = msg {
                         match msg {
-                            Ok(msg) => self.ws_recv(msg, &tx, &mut bot_ids).await,
+                            Ok(msg) => self.ws_recv(msg, &tx, &mut bot_ids, &mut echo_map).await,
                             Err(_) => {
                                 break;
                             }
@@ -39,8 +45,9 @@ impl OneBot {
     pub(crate) async fn ws_recv(
         self: &Arc<Self>,
         msg: WsMsg,
-        tx: &tokio::sync::mpsc::UnboundedSender<Action>,
+        tx: &crate::app::ActionSender,
         bot_ids: &mut Vec<i32>,
+        echo_map: &mut HashMap<EchoS, crate::app::RespSender>,
     ) {
         if let WsMsg::Text(text) = msg {
             let income_item: EventOrResp = serde_json::from_str(&text).unwrap();
@@ -53,7 +60,12 @@ impl OneBot {
                         self.handler.handle(bot, event).await;
                     }
                 },
-                EventOrResp::Resp(resp) => self.handler.handle_resp(self.clone(), resp).await,
+                EventOrResp::Resp(resp) => {
+                    let (resp, echo_s) = resp.unpack();
+                    if let Some(tx) = echo_map.remove(&echo_s) {
+                        tx.send(resp).unwrap();
+                    }
+                }
             }
         }
     }

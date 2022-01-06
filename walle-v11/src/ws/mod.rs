@@ -9,6 +9,7 @@ use tokio_tungstenite::{
     },
     WebSocketStream,
 };
+use walle_core::Echo;
 
 pub(crate) mod app;
 
@@ -70,11 +71,22 @@ pub(crate) async fn ws_send(ws_stream: &mut WebSocketStream<TcpStream>, msg: WsM
 
 pub(crate) async fn ws_action_send(
     ws_stream: &mut WebSocketStream<TcpStream>,
-    action: crate::action::Action,
+    action: walle_core::Echo<crate::action::Action>,
 ) {
     ws_send(
         ws_stream,
         WsMsg::Text(serde_json::to_string(&action).unwrap()),
+    )
+    .await
+}
+
+pub(crate) async fn ws_resp_send(
+    ws_stream: &mut WebSocketStream<TcpStream>,
+    resp: Echo<crate::action::Resp>,
+) {
+    ws_send(
+        ws_stream,
+        WsMsg::Text(serde_json::to_string(&resp).unwrap()),
     )
     .await
 }

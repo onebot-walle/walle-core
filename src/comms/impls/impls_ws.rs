@@ -17,6 +17,7 @@ where
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
     ) -> WalleResult<()> {
+        self.ws_hooks.on_connect(&self).await;
         let mut listener = self.broadcaster.subscribe();
         let (resp_tx, mut resp_rx) = tokio::sync::mpsc::unbounded_channel();
         loop {
@@ -52,7 +53,7 @@ where
                 }
             }
         }
-        self.hooks.on_ws_disconnect(self.clone()).await;
+        self.ws_hooks.on_disconnect(&self).await;
         Ok(())
     }
 
@@ -84,21 +85,22 @@ where
                 .map_err(|e| WalleError::TcpServerBindAddressError(e))?;
             let ob = self.clone();
             tokio::spawn(async move {
+                ob.ws_hooks.on_start(&ob).await;
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
                             crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
-                            ob.hooks.on_ws_connect(ob.clone()).await; // hook
-                            let moved_ob = ob.clone();
+                            let ob = ob.clone();
                             tokio::spawn(async move {
                                 // spawn to handle connect
-                                moved_ob.ws_loop(ws_stream).await.unwrap();
+                                ob.ws_loop(ws_stream).await.unwrap();
                             });
                         }
                     }
                 }
+                ob.ws_hooks.on_shutdown(&ob).await;
             });
             self.set_running();
         }
@@ -109,15 +111,18 @@ where
         for wsr in self.config.websocket_rev.clone().into_iter() {
             let ob = self.clone();
             tokio::spawn(async move {
+                ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
                     match crate::comms::ws_utils::try_connect(&wsr).await {
                         Ok(ws_stream) => ob.ws_loop(ws_stream).await.log_err(),
                         Err(_) => {
                             tokio::time::sleep(Duration::from_secs(wsr.reconnect_interval as u64))
-                                .await
+                                .await;
+                            ob.ws_hooks.before_reconnect(&ob).await;
                         }
                     }
                 }
+                ob.ws_hooks.on_shutdown(&ob).await;
             });
             self.set_running();
         }

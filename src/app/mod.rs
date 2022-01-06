@@ -38,6 +38,7 @@ pub struct CustomOneBot<E, A, R> {
     pub(crate) event_handler: ArcEventHandler<E, A, R>,
     pub(crate) running: AtomicBool,
     pub bots: RwLock<HashMap<String, ArcBot<A, R>>>,
+    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
 }
 
 /// Arc<Bot>
@@ -63,6 +64,7 @@ where
             event_handler,
             running: AtomicBool::default(),
             bots: RwLock::default(),
+            ws_hooks: crate::hooks::empty_ws_hooks(),
         }
     }
 

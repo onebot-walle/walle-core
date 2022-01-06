@@ -2,26 +2,40 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use crate::{impls::CustomOneBot, Action, RespContent, Event};
-
 #[async_trait]
-pub trait ImplHooks<E, A, R>: Sync + Send {
-    async fn on_ws_connect(&self, _: Arc<CustomOneBot<E, A, R>>) {}
-    async fn on_ws_disconnect(&self, _: Arc<CustomOneBot<E, A, R>>) {}
+pub trait WsHooks<T>: Sync + Send {
+    /// only available on server side
+    async fn before_start(&self, _: &Arc<T>) {}
+    /// only available on server side
+    async fn on_start(&self, _: &Arc<T>) {}
+    /// only available on client side
+    async fn before_connect(&self, _: &Arc<T>) {}
+    /// only available on client side
+    async fn before_reconnect(&self, _: &Arc<T>) {}
+    async fn on_connect(&self, _: &Arc<T>) {}
+    async fn on_disconnect(&self, _: &Arc<T>) {}
+    async fn on_shutdown(&self, _: &Arc<T>) {}
 }
 
-pub type ArcImplHooks<E, A, R> = Arc<dyn ImplHooks<E, A, R>>;
+pub type ArcWsHooks<T> = Arc<dyn WsHooks<T>>;
 
-#[async_trait]
-pub trait AppHooks: Sync {
-    async fn on_ws_connect() {}
-    async fn on_ws_disconnect() {}
+/// default empty ws hooks
+pub(crate) struct EmptyWsHooks<T> {
+    _phantom: std::marker::PhantomData<T>,
 }
 
-pub struct DefaultHooks;
-impl ImplHooks<Event, Action, RespContent> for DefaultHooks {}
-impl DefaultHooks {
-    pub fn arc(self) -> Arc<Self> {
-        Arc::new(self)
+impl<T> EmptyWsHooks<T> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
+}
+
+#[async_trait]
+impl<T: Send + Sync> WsHooks<T> for EmptyWsHooks<T> {}
+
+/// default empty ws hooks
+pub(crate) fn empty_ws_hooks<T: Send + Sync + 'static>() -> ArcWsHooks<T> {
+    Arc::new(EmptyWsHooks::new())
 }

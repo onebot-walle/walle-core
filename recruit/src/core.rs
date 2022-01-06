@@ -26,7 +26,6 @@ impl Bot {
                 self_id,
                 config,
                 Arc::new(super::handle::Handler),
-                walle_core::DefaultHooks.arc(),
             )
             .arc(),
             // event_count: 0,

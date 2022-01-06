@@ -1,27 +1,29 @@
-use std::time::Duration;
-
 use crate::action::{Action, Resp};
+use std::sync::Arc;
+use std::time::Duration;
 use walle_core::{WalleError, WalleResult};
 
-use super::{ActionSender, EchoMap};
+use super::ActionSender;
 
-impl super::Bot {
-    pub fn new(bot_id: i32, action_sender: ActionSender, echo_map: EchoMap) -> Self {
+pub struct Bot {
+    pub self_id: i32,
+    pub action_sender: ActionSender,
+}
+
+pub type ArcBot = Arc<Bot>;
+
+impl Bot {
+    pub fn new(bot_id: i32, action_sender: ActionSender) -> Self {
         Self {
             self_id: bot_id,
             action_sender,
-            echo_map,
         }
     }
 
     pub async fn call_action(&self, action: Action) -> WalleResult<Resp> {
         let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
-        self.echo_map
-            .write()
-            .await
-            .insert(action.echo.clone(), resp_tx);
         self.action_sender
-            .send(action.clone())
+            .send((action, resp_tx))
             .map_err(|_| WalleError::ActionSendError)?;
         tokio::time::timeout(Duration::from_secs(10), resp_rx)
             .await

@@ -1,21 +1,16 @@
 use std::sync::Arc;
 
 use crate::action::{Action, Resp};
-use crate::app::{ArcBot, OneBot};
+use crate::app::ArcBot;
 use crate::event::Event;
 use async_trait::async_trait;
 
-pub(crate) type ArcRespHandler = Arc<dyn RespHandler + Send + Sync + 'static>;
+pub(crate) type ArcEventHandler = Arc<dyn EventHandler + Send + Sync + 'static>;
 pub(crate) type ArcActionHandler = Arc<dyn ActionHandler + Send + Sync + 'static>;
 
 #[async_trait]
 pub trait EventHandler {
     async fn handle(&self, bot: ArcBot, _: Event);
-}
-
-#[async_trait]
-pub trait RespHandler: EventHandler {
-    async fn handle_resp(&self, ob: Arc<OneBot>, _: Resp);
 }
 
 #[async_trait]
@@ -31,22 +26,9 @@ impl EventHandler for DefaultHandler {
 }
 
 #[async_trait]
-impl<H> RespHandler for H
-where
-    H: EventHandler + Send + Sync,
-{
-    async fn handle_resp(&self, ob: Arc<OneBot>, resp: Resp) {
-        match ob.echo_map.write().await.remove(&resp.echo) {
-            Some(tx) => tx.send(resp).unwrap(),
-            None => todo!(),
-        }
-    }
-}
-
-#[async_trait]
 impl ActionHandler for DefaultHandler {
-    async fn handle(&self, action: Action) -> Resp {
-        Resp::empty_404(action.echo)
+    async fn handle(&self, _: Action) -> Resp {
+        Resp::empty_404()
     }
 }
 

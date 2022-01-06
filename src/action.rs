@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "action", content = "params")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "action", content = "params", rename_all = "snake_case")]
 pub enum Action {
     // meta action
     GetLatestEvents(GetLatestEventsContent),

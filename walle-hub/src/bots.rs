@@ -5,13 +5,15 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 use walle_core::WalleResult;
 
+type RwMap<K, V> = RwLock<HashMap<K, V>>;
+
 pub struct UnionBot {
     self_id: String,
     inner: RwLock<LruCache<String, Bot>>,
     event_tx: tokio::sync::mpsc::UnboundedSender<v12Event>,
     event_rx: tokio::sync::mpsc::UnboundedReceiver<v12Event>,
-    group_map: RwLock<HashMap<String, Vec<String>>>,
-    friend_map: RwLock<HashMap<String, Vec<String>>>,
+    group_map: RwMap<String, Vec<String>>,
+    friend_map: RwMap<String, Vec<String>>,
     config: UnionConfig,
 }
 
