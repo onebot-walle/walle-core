@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use crate::{impls::CustomOneBot, EventContent, Action, RespContent};
+use crate::{impls::CustomOneBot, Action, RespContent, Event};
 
 #[async_trait]
 pub trait ImplHooks<E, A, R>: Sync + Send {
@@ -19,7 +19,7 @@ pub trait AppHooks: Sync {
 }
 
 pub struct DefaultHooks;
-impl ImplHooks<EventContent, Action, RespContent> for DefaultHooks {}
+impl ImplHooks<Event, Action, RespContent> for DefaultHooks {}
 impl DefaultHooks {
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)

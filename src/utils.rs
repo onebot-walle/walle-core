@@ -158,6 +158,11 @@ pub trait FromStandard<S> {
     fn from_standard(standard: S) -> Self;
 }
 
+/// 创建心跳事件
+pub trait HeartbeatBuild: Sized {
+    fn build_heartbeat<A, R>(ob: &crate::impls::CustomOneBot<Self, A, R>, interval: u32) -> Self;
+}
+
 /// 空结构体，用于对应 Json 中的空 Map
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EmptyContent {}

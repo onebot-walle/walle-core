@@ -11,7 +11,6 @@ use tokio_tungstenite::{
 };
 
 pub(crate) mod app;
-pub(crate) mod impls;
 
 pub(crate) async fn try_connect(
     wsc: &walle_core::config::WebSocketClient,
@@ -69,17 +68,6 @@ pub(crate) async fn ws_send(ws_stream: &mut WebSocketStream<TcpStream>, msg: WsM
     ws_stream.send(msg).await.unwrap();
 }
 
-pub(crate) async fn ws_event_send(
-    ws_stream: &mut WebSocketStream<TcpStream>,
-    event: crate::event::Event,
-) {
-    ws_send(
-        ws_stream,
-        WsMsg::Text(serde_json::to_string(&event).unwrap()),
-    )
-    .await
-}
-
 pub(crate) async fn ws_action_send(
     ws_stream: &mut WebSocketStream<TcpStream>,
     action: crate::action::Action,
@@ -87,17 +75,6 @@ pub(crate) async fn ws_action_send(
     ws_send(
         ws_stream,
         WsMsg::Text(serde_json::to_string(&action).unwrap()),
-    )
-    .await
-}
-
-pub(crate) async fn ws_resp_send(
-    ws_stream: &mut WebSocketStream<TcpStream>,
-    resp: crate::action::Resp,
-) {
-    ws_send(
-        ws_stream,
-        WsMsg::Text(serde_json::to_string(&resp).unwrap()),
     )
     .await
 }

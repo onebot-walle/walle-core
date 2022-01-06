@@ -271,3 +271,13 @@ pub enum ExtendedRequest<T> {
     Standard(RequestContent),
     Extended(T),
 }
+
+impl crate::HeartbeatBuild for Event {
+    fn build_heartbeat<A, R>(ob: &crate::impls::CustomOneBot<Self, A, R>, interval: u32) -> Self {
+        ob.new_event(EventContent::Meta(MetaContent::Heartbeat {
+            interval,
+            status: ob.get_status(),
+            sub_type: "".to_string(),
+        }))
+    }
+}

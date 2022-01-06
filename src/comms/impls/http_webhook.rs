@@ -2,7 +2,7 @@ use hyper::{body::Buf, client::HttpConnector, Body, Client as HyperClient, Metho
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::task::JoinHandle;
 
-use crate::{event::BaseEvent, utils::Echo};
+use crate::utils::Echo;
 
 #[cfg(feature = "impl")]
 impl<E, A, R> crate::impls::CustomOneBot<E, A, R>
@@ -92,7 +92,7 @@ where
         })
     }
 
-    async fn push(&self, event: BaseEvent<E>) -> Option<Vec<A>> {
+    async fn push(&self, event: E) -> Option<Vec<A>> {
         let data = match serde_json::to_string(&event) {
             Ok(s) => s,
             Err(_) => {

@@ -1,7 +1,4 @@
-use crate::{
-    impls::CustomOneBot, Echo, EventContent, FromStandard, Resp, WalleError, WalleLogExt,
-    WalleResult,
-};
+use crate::{impls::CustomOneBot, Echo, Resp, WalleError, WalleLogExt, WalleResult};
 use futures_util::{SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, sync::Arc, time::Duration};
@@ -12,7 +9,7 @@ type RespSender<R> = tokio::sync::mpsc::UnboundedSender<Echo<Resp<R>>>;
 
 impl<E, A, R> CustomOneBot<E, A, R>
 where
-    E: FromStandard<EventContent> + Clone + Serialize + Send + 'static + Debug,
+    E: Clone + Serialize + Send + 'static + Debug,
     A: DeserializeOwned + Send + 'static + Debug,
     R: Serialize + Send + 'static + Debug,
 {

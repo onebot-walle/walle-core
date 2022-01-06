@@ -3,7 +3,7 @@ use tokio_tungstenite::{
     accept_hdr_async, client_async,
     tungstenite::{
         handshake::client::{Request, Response},
-        http::{Response as HttpResp, Uri},
+        http::{header::USER_AGENT, Response as HttpResp, Uri},
     },
     WebSocketStream,
 };
@@ -18,7 +18,9 @@ pub(crate) async fn try_connect(
     let ws_url = format!("ws://{}", addr);
     let mut req = Request::builder().uri(&ws_url);
     if let Some(token) = &config.access_token {
-        req = req.header("Authorization", format!("Bearer {}", token));
+        req = req
+            .header("Authorization", format!("Bearer {}", token))
+            .header(USER_AGENT, "OneBot Walle".to_string()); // ToDo
     }
     let req = req.body(()).unwrap();
     match client_async(
@@ -45,14 +47,14 @@ pub(crate) async fn upgrade_websocket(
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         let headers = req.headers();
         match access_token {
-            Some(token) => match headers.get("Authorization") {
-                Some(get_token) => {
-                    if get_token == token {
-                        Ok(resp)
-                    } else {
-                        Err(HttpResp::new(None))
-                    }
+            Some(token) => match headers.get("Authorization").and_then(|a| {
+                if a == token {
+                    Some(())
+                } else {
+                    None
                 }
+            }) {
+                Some(_) => Ok(resp),
                 None => Err(HttpResp::new(None)),
             },
             None => Ok(resp),
