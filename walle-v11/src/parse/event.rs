@@ -17,7 +17,7 @@ impl TryFrom<v12Event> for v11Event {
     type Error = WalleParseError;
 
     fn try_from(event: v12Event) -> Result<Self, Self::Error> {
-        let self_id = i32::from_str(&event.self_id).map_err(|e| WalleParseError::Id(e))?;
+        let self_id = i64::from_str(&event.self_id).map_err(|e| WalleParseError::Id(e))?;
         match event.content {
 
             v12Content::Message(msg) => Ok(v11Event {

@@ -22,7 +22,7 @@ dependencies = [
  "parking_lot",
  "pin-project-lite 0.2.7",
  "smallvec",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-util 0.6.8",
 ]
 
@@ -153,7 +153,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a0c218d0a17c120f10ee0c69c9f0c45d87319e8f66b1f065e8412b612fc3e24"
 dependencies = [
  "futures-core",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
@@ -903,7 +903,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-util 0.6.8",
  "tracing",
 ]
@@ -998,7 +998,7 @@ dependencies = [
  "itoa",
  "pin-project-lite 0.2.7",
  "socket2 0.4.2",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tower-service",
  "tracing",
  "want",
@@ -1261,6 +1261,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mio-named-pipes"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0840c1c50fd55e521b247f949c241c9997709f23bd7f023b9762cd561e935656"
+dependencies = [
+ "log",
+ "mio 0.6.23",
+ "miow 0.3.7",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "mio-uds"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1297,7 +1309,7 @@ name = "mira"
 version = "0.1.0"
 dependencies = [
  "clap",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "toml",
  "tracing",
  "tracing-subscriber 0.2.25",
@@ -1544,9 +1556,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.14.5"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35100f9347670a566a67aa623369293703322bb9db77d99d7df7313b575ae0c8"
+checksum = "7cf01dbf1c05af0a14c7779ed6f3aa9deac9c3419606ac9de537a2d649005720"
 dependencies = [
  "cfg-if 1.0.0",
  "indoc",
@@ -1560,9 +1572,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-asyncio"
-version = "0.14.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4c1305dd07022dff29a85b0a9fcf414bee3139d35730acd4d0268b352c02e57"
+checksum = "0897c7e36110a32b726b975359b2bbe90c37fcf1266046d3b1c08c616a47a886"
 dependencies = [
  "futures",
  "inventory",
@@ -1570,14 +1582,14 @@ dependencies = [
  "pin-project-lite 0.2.7",
  "pyo3",
  "pyo3-asyncio-macros",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
 name = "pyo3-asyncio-macros"
-version = "0.14.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a93d8c020d68356d2ecb36b3462529f38e7b87ca6c54d2a8cc5479fb731e699"
+checksum = "4daada7260db6d6dbc1f9b50f3e3d21f9eb28c034722c9a61ac05ff56ffd62db"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1586,18 +1598,18 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.14.5"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d12961738cacbd7f91b7c43bc25cfeeaa2698ad07a04b3be0aa88b950865738f"
+checksum = "dbf9e4d128bfbddc898ad3409900080d8d5095c379632fbbfbb9c8cfb1fb852b"
 dependencies = [
  "once_cell",
 ]
 
 [[package]]
 name = "pyo3-macros"
-version = "0.14.5"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc0bc5215d704824dfddddc03f93cb572e1155c68b6761c37005e1c288808ea8"
+checksum = "67701eb32b1f9a9722b4bc54b548ff9d7ebfded011c12daece7b9063be1fd755"
 dependencies = [
  "pyo3-macros-backend",
  "quote",
@@ -1606,9 +1618,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.14.5"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71623fc593224afaab918aa3afcaf86ed2f43d34f6afde7f3922608f253240df"
+checksum = "f44f09e825ee49a105f2c7b23ebee50886a9aee0746f4dd5a704138a64b0218a"
 dependencies = [
  "proc-macro2",
  "pyo3-build-config",
@@ -1718,7 +1730,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "serde",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tracing",
  "tracing-subscriber 0.3.1",
  "walle-core",
@@ -2157,26 +2169,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6703a273949a90131b290be1fe7b039d0fc884aa1935860dfcbe056f28cd8092"
 dependencies = [
  "bytes 0.5.6",
+ "fnv",
  "futures-core",
  "iovec",
  "lazy_static",
  "libc",
  "memchr",
  "mio 0.6.23",
+ "mio-named-pipes",
  "mio-uds",
+ "num_cpus",
  "pin-project-lite 0.1.12",
  "signal-hook-registry",
  "slab",
+ "tokio-macros 0.2.6",
  "winapi 0.3.9",
 ]
 
 [[package]]
 name = "tokio"
-version = "1.12.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2c2416fdedca8443ae44b4527de1ea633af61d8f7169ffa6e72c5b53d24efcc"
+checksum = "fbbf1c778ec206785635ce8ad57fe52b3009ae9e0c9f574a728f3049d3e55838"
 dependencies = [
- "autocfg",
  "bytes 1.1.0",
  "libc",
  "memchr",
@@ -2186,15 +2201,26 @@ dependencies = [
  "parking_lot",
  "pin-project-lite 0.2.7",
  "signal-hook-registry",
- "tokio-macros",
+ "tokio-macros 1.7.0",
  "winapi 0.3.9",
 ]
 
 [[package]]
 name = "tokio-macros"
-version = "1.5.0"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2dd85aeaba7b68df939bd357c6afb36c87951be9e80bf9c859f2fc3e9fca0fd"
+checksum = "e44da00bfc73a25f814cd8d7e57a68a5c31b74b3152a0a1d1f590c97ed06265a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b557f72f448c511a979e2564e55d74e6c4432fc96ff4f6241bc6bded342643b7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2210,7 +2236,7 @@ dependencies = [
  "futures-util",
  "log",
  "pin-project 1.0.8",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tungstenite",
 ]
 
@@ -2239,7 +2265,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.2.7",
- "tokio 1.12.0",
+ "tokio 1.15.0",
 ]
 
 [[package]]
@@ -2536,7 +2562,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-tungstenite",
  "tracing",
  "uuid",
@@ -2549,7 +2575,7 @@ dependencies = [
  "async-trait",
  "lru",
  "serde",
- "tokio 1.12.0",
+ "tokio 0.2.25",
  "toml",
  "walle-core",
  "walle-v11",
@@ -2561,9 +2587,10 @@ version = "0.1.0"
 dependencies = [
  "pyo3",
  "pyo3-asyncio",
- "tokio 1.12.0",
- "tracing-subscriber 0.2.25",
+ "tokio 1.15.0",
+ "tracing-subscriber 0.3.1",
  "walle-core",
+ "walle-v11",
 ]
 
 [[package]]
@@ -2571,12 +2598,15 @@ name = "walle-v11"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "colored",
  "futures-util",
  "serde",
  "serde_json",
  "thiserror",
- "tokio 1.12.0",
+ "tokio 1.15.0",
  "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber 0.2.25",
  "walle-core",
 ]
 

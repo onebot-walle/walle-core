@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use walle_core::ExtendedMap;
+use walle_core::{BasicEvent, ExtendedMap};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub time: i64,
-    pub self_id: i32,
+    pub self_id: i64,
     #[serde(flatten)]
     pub content: EventContent,
 }
@@ -33,7 +33,7 @@ pub struct MessageContent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "post_type")]
+#[serde(tag = "message_type")]
 #[serde(rename_all = "snake_case")]
 pub enum MessageSub {
     Private {
@@ -153,4 +153,19 @@ pub enum MetaContent {
         status: walle_core::resp::StatusContent,
         interval: i64,
     },
+}
+
+impl MetaContent {
+    pub fn detail_type(&self) -> &str {
+        match self {
+            Self::Lifecycle { .. } => "lifecycle",
+            Self::Heartbeat { .. } => "heartbeat",
+        }
+    }
+}
+
+impl BasicEvent for Event {
+    fn self_id(&self) -> String {
+        self.self_id.to_string()
+    }
 }

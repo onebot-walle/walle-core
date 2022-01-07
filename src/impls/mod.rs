@@ -1,10 +1,7 @@
 #![doc = include_str!("README.md")]
 
-use crate::{
-    event::BaseEvent, resp::StatusContent, Action, ImplConfig, Resp, RespContent, WalleError,
-    WalleResult,
-};
-use crate::{Event, FromStandard, HeartbeatBuild};
+use crate::{event::BaseEvent, resp::StatusContent, Action, ImplConfig, WalleError, WalleResult};
+use crate::{Event, HeartbeatBuild, Resps};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
 use std::sync::{
@@ -16,21 +13,20 @@ use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, trace};
 
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
-pub(crate) type CustomEventListner<E> = tokio::sync::broadcast::Receiver<E>;
-pub(crate) type ArcActionHandler<A, R> =
-    Arc<dyn crate::handle::ActionHandler<A, Resp<R>> + Send + Sync>;
+pub(crate) type ArcActionHandler<A, R> = Arc<dyn crate::handle::ActionHandler<A, R> + Send + Sync>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<Event, Action, RespContent>;
+pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
 
 /// OneBot Implementation 实例
 ///
-/// E: EventContent 可以参考 crate::evnt::EventContent
+/// E: Event 可以参考 crate::evnt::Event
 /// A: Action 可以参考 crate::action::Action
-/// R: ActionRespContent 可以参考 crate::action_resp::ActionRespContent
+/// R: ActionResp 可以参考 crate::action_resp::Resps
+/// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-pub struct CustomOneBot<E, A, R> {
+pub struct CustomOneBot<E, A, R, const V: u8> {
     pub r#impl: String,
     pub platform: String,
     pub self_id: String,
@@ -46,7 +42,7 @@ pub struct CustomOneBot<E, A, R> {
     online: AtomicBool,
 }
 
-impl<E, A, R> CustomOneBot<E, A, R> {
+impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
     }
@@ -76,7 +72,7 @@ impl<E, A, R> CustomOneBot<E, A, R> {
     }
 }
 
-impl<E, A, R> CustomOneBot<E, A, R>
+impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
     E: HeartbeatBuild + Serialize + Clone + Debug + Send + 'static,
     A: DeserializeOwned + Debug + Send + 'static,
@@ -134,20 +130,14 @@ where
         }
 
         #[cfg(feature = "http")]
-        if !self.config.http_webhook.is_empty() {
-            info!(target: "Walle-core", "Strating HTTP Webhook");
-            let webhook_joins = &mut self.http_join_handles.write().await.1;
-            let clients = self.build_webhook_clients(self.action_handler.clone());
-            for client in clients {
-                webhook_joins.push(client.run());
-            }
-        }
+        self.webhook().await;
 
         #[cfg(feature = "websocket")]
         self.ws().await?;
 
         #[cfg(feature = "websocket")]
         self.wsr().await;
+
         if self.config.heartbeat.enabled {
             self.start_heartbeat();
         }
@@ -184,7 +174,7 @@ where
     }
 }
 
-impl<E, A, R> CustomOneBot<BaseEvent<E>, A, R> {
+impl<E, A, R, const V: u8> CustomOneBot<BaseEvent<E>, A, R, V> {
     pub fn new_event(&self, content: E) -> BaseEvent<E> {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
@@ -197,31 +187,31 @@ impl<E, A, R> CustomOneBot<BaseEvent<E>, A, R> {
     }
 }
 
-impl<E, A, R> CustomOneBot<E, A, R>
-where
-    E: FromStandard<Event> + Serialize + Clone + Debug + Send + 'static,
-{
-    // pub fn new_message_event(
-    //     &self,
-    //     user_id: String,
-    //     group_id: Option<String>,
-    //     message: Message,
-    // ) -> E {
-    //     let message_c = crate::event::MessageContent {
-    //         ty: if let Some(group_id) = group_id {
-    //             crate::event::MessageEventType::Group { group_id }
-    //         } else {
-    //             crate::event::MessageEventType::Private
-    //         },
-    //         message_id: crate::utils::new_uuid(),
-    //         alt_message: message.alt(),
-    //         message,
-    //         user_id,
-    //         sub_type: "".to_owned(),
-    //         extra: ExtendedMap::default(),
-    //     };
-    //     self.new_event(E::from_standard(crate::event::EventContent::Message(
-    //         message_c,
-    //     )))
-    // }
-}
+// impl<E, A, R> CustomOneBot<E, A, R>
+// where
+//     E: FromStandard<Event> + Serialize + Clone + Debug + Send + 'static,
+// {
+// pub fn new_message_event(
+//     &self,
+//     user_id: String,
+//     group_id: Option<String>,
+//     message: Message,
+// ) -> E {
+//     let message_c = crate::event::MessageContent {
+//         ty: if let Some(group_id) = group_id {
+//             crate::event::MessageEventType::Group { group_id }
+//         } else {
+//             crate::event::MessageEventType::Private
+//         },
+//         message_id: crate::utils::new_uuid(),
+//         alt_message: message.alt(),
+//         message,
+//         user_id,
+//         sub_type: "".to_owned(),
+//         extra: ExtendedMap::default(),
+//     };
+//     self.new_event(E::from_standard(crate::event::EventContent::Message(
+//         message_c,
+//     )))
+// }
+// }

@@ -18,8 +18,8 @@ impl Default for ImplConfig {
             heartbeat: Heartbeat::default(),
             http: vec![],
             http_webhook: vec![],
-            websocket: vec![WebSocketServer::default()],
-            websocket_rev: vec![],
+            websocket: vec![],
+            websocket_rev: vec![WebSocketClient::default()],
         }
     }
 }
@@ -56,8 +56,8 @@ impl Default for AppConfig {
         Self {
             http: vec![],
             http_webhook: vec![],
-            websocket: vec![WebSocketClient::default()],
-            websocket_rev: vec![],
+            websocket: vec![],
+            websocket_rev: vec![WebSocketServer::default()],
         }
     }
 }

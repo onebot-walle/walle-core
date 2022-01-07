@@ -82,8 +82,8 @@ impl UnionMode {
 
 #[derive(Clone)]
 pub enum Bot {
-    V11(v11Bot),
-    V12(v12Bot<v12Action, v12RespContent>),
+    V11(ArcBot<v11Action, v11Resp>),
+    V12(ArcBot<v12Action, v12Resp>),
 }
 
 impl Bot {

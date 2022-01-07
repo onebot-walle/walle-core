@@ -3,7 +3,7 @@ use tokio_tungstenite::{
     accept_hdr_async, client_async,
     tungstenite::{
         handshake::client::{Request, Response},
-        http::{header::USER_AGENT, Response as HttpResp, Uri},
+        http::{Response as HttpResp, Uri},
     },
     WebSocketStream,
 };
@@ -12,17 +12,11 @@ use crate::{WalleError, WalleLogExt, WalleResult};
 
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketClient,
+    req: Request,
 ) -> WalleResult<WebSocketStream<TcpStream>> {
     let uri: Uri = config.url.parse().unwrap();
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
-    let ws_url = format!("ws://{}", addr);
-    let mut req = Request::builder().uri(&ws_url);
-    if let Some(token) = &config.access_token {
-        req = req
-            .header("Authorization", format!("Bearer {}", token))
-            .header(USER_AGENT, "OneBot Walle".to_string()); // ToDo
-    }
-    let req = req.body(()).unwrap();
+
     match client_async(
         req,
         TcpStream::connect(&addr)
@@ -31,7 +25,7 @@ pub(crate) async fn try_connect(
     )
     .await
     {
-        Ok((ws_stream, _)) => Ok(ws_stream).info(format!("success connect to {}", ws_url)),
+        Ok((ws_stream, _)) => Ok(ws_stream).info(&format!("success connect to {}", config.url)),
         Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
     }
 }
@@ -62,7 +56,7 @@ pub(crate) async fn upgrade_websocket(
     };
 
     match accept_hdr_async(stream, callback).await {
-        Ok(s) => Ok(s).info(format!("new websocket connectted from {}", addr)),
+        Ok(s) => Ok(s).info(&format!("new websocket connectted from {}", addr)),
         Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
     }
 }

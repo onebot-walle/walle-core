@@ -11,6 +11,15 @@ serde_json = "*"
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.15"
 futures-util = "*"
-walle-core = { path = "../" }
+walle-core = { path = "../", features = ["full"] }
 async-trait = "*"
 thiserror = "*"
+tracing = "0.1"
+colored = "2"
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.2", features = ["env-filter", "fmt"] }
+
+[[example]]
+name = "app"
+crate-type = ["bin"]

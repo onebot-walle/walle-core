@@ -2,7 +2,7 @@
 pub(crate) mod app;
 #[cfg(feature = "impl")]
 pub(crate) mod impls;
-mod util;
+pub(crate) mod util;
 
 #[cfg(feature = "websocket")]
-pub(crate) mod ws_utils;
+pub(crate) mod ws_util;

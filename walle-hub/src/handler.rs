@@ -19,7 +19,7 @@ impl ActionHandler<v12Action, v12Resp> for Collector {
 
 #[async_trait]
 impl EventHandler<v12Event, v12Action, v12Resp> for Collector {
-    async fn handle(&self, _: v12Bot<v12Action, v12Resp>, event: v12Event) {
+    async fn handle(&self, _: ArcBot<v12Action, v12Resp>, event: v12Event) {
         self.event_tx.send(event).unwrap();
     }
 }

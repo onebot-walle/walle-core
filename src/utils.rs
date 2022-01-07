@@ -158,9 +158,18 @@ pub trait FromStandard<S> {
     fn from_standard(standard: S) -> Self;
 }
 
+#[cfg(feature = "impl")]
+#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 /// 创建心跳事件
 pub trait HeartbeatBuild: Sized {
-    fn build_heartbeat<A, R>(ob: &crate::impls::CustomOneBot<Self, A, R>, interval: u32) -> Self;
+    fn build_heartbeat<A, R, const V: u8>(
+        ob: &crate::impls::CustomOneBot<Self, A, R, V>,
+        interval: u32,
+    ) -> Self;
+}
+
+pub trait BasicEvent: Sized {
+    fn self_id(&self) -> String; 
 }
 
 /// 空结构体，用于对应 Json 中的空 Map

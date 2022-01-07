@@ -1,4 +1,6 @@
 use thiserror::Error;
+#[cfg(feature = "impl")]
+#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 use tokio_tungstenite::tungstenite::Error as WsError;
 
 pub type WalleResult<T> = std::result::Result<T, WalleError>;
@@ -13,6 +15,8 @@ pub enum WalleError {
     AuthorizationFailed,
     #[error("Tcpconnect connect to {0} failed")]
     TcpConnectFailed(std::io::Error),
+    #[cfg(feature = "impl")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
     #[error("Websocket upgrade failed: {0}")]
     WebsocketUpgradeFail(WsError),
     #[error("Websocket link has no peer address")]
@@ -34,33 +38,44 @@ pub enum WalleError {
 }
 
 pub(crate) trait WalleLogExt: Sized {
-    fn log_err(&self) {}
-    fn info(self, s: String) -> Self {
+    fn wran_err(&self);
+    fn error_err(&self);
+    fn info(self, s: &str) -> Self {
         tracing::info!(target: "Walle-core", "{}", s);
         self
     }
-    fn debug(self, s: String) -> Self {
+    fn debug(self, s: &str) -> Self {
         tracing::debug!(target: "Walle-core", "{}", s);
         self
     }
-    fn trace(self, s: String) -> Self {
+    fn trace(self, s: &str) -> Self {
         tracing::trace!(target: "Walle-core", "{}", s);
         self
     }
 }
 
 impl<T> WalleLogExt for WalleResult<T> {
-    fn log_err(&self) {
-        use tracing::warn;
+    fn wran_err(&self) {
         if let Err(e) = self {
-            warn!(target: "Walle-core","{}", e);
+            e.wran_err();
+        }
+    }
+
+    fn error_err(&self) {
+        if let Err(e) = self {
+            e.error_err();
         }
     }
 }
 
 impl WalleLogExt for WalleError {
-    fn log_err(&self) {
+    fn wran_err(&self) {
         use tracing::warn;
         warn!(target: "Walle-core","{}", self);
+    }
+
+    fn error_err(&self) {
+        use tracing::error;
+        error!(target: "Walle-core","{}", self);
     }
 }

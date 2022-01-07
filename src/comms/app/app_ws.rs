@@ -1,4 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
+use hyper::header::USER_AGENT;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 use tokio::{
@@ -12,13 +13,13 @@ use tokio_tungstenite::{
 
 use crate::{
     app::{CustomActionSender, CustomOneBot, CustomRespSender},
-    Action, Resp, BaseEvent, Echo, EchoS, FromStandard, WalleError, WalleLogExt, WalleResult,
+    BasicEvent, Echo, EchoS, WalleError, WalleLogExt, WalleResult,
 };
 
-impl<E, A, R> CustomOneBot<E, A, R>
+impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: Clone + DeserializeOwned + Send + 'static + Debug,
-    A: FromStandard<Action> + Clone + Serialize + Send + 'static + Debug,
+    E: BasicEvent + Clone + DeserializeOwned + Send + 'static + Debug,
+    A: Clone + Serialize + Send + 'static + Debug,
     R: Clone + DeserializeOwned + Send + 'static + Debug,
 {
     async fn ws_loop(
@@ -42,7 +43,7 @@ where
                     if let Some(msg) = msg {
                         match msg {
                             Ok(msg) => {
-                                self.ws_recv(msg, &mut bot_ids,&action_tx, &echo_map).await.log_err();
+                                self.ws_recv(msg, &mut bot_ids,&action_tx, &echo_map).await.wran_err();
                             }
                             Err(_) => {
                                 break;
@@ -78,13 +79,13 @@ where
         ws_msg: WsMsg,
         bot_ids: &mut Vec<String>,
         action_tx: &CustomActionSender<A, R>,
-        echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<Resp<R>>>>,
+        echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<R>>>,
     ) -> WalleResult<()> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum ReceiveItem<E, R> {
-            Event(BaseEvent<E>),
-            Resp(Echo<Resp<R>>),
+            Event(E),
+            Resp(Echo<R>),
         }
 
         if let WsMsg::Text(text) = ws_msg {
@@ -93,11 +94,12 @@ where
             match item {
                 ReceiveItem::Event(event) => {
                     let ob = self.clone();
-                    let bot = match self.get_bot(&event.self_id).await {
+                    let self_id = event.self_id();
+                    let bot = match self.get_bot(&self_id).await {
                         Some(bot) => bot,
                         None => {
-                            bot_ids.push(event.self_id.clone());
-                            ob.insert_bot(&event.self_id, action_tx).await
+                            bot_ids.push(self_id.to_string());
+                            ob.insert_bot(&self_id, action_tx).await
                         }
                     };
                     tokio::spawn(async move { ob.event_handler.handle(bot, event).await });
@@ -114,15 +116,24 @@ where
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) {
+        use crate::comms::util::AuthReqHeaderExt;
+        use tokio_tungstenite::tungstenite::http::Request;
+
         for wsc in self.config.websocket.clone().into_iter() {
             // info!(target: "Walle-core", "Running WebSocket");
             let ob = self.clone();
             tokio::spawn(async move {
                 ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
-                    match crate::comms::ws_utils::try_connect(&wsc).await {
+                    let req = Request::builder()
+                        .uri(&wsc.url)
+                        .header(USER_AGENT, format!("OneBot/{} Walle-App/0.1.0", V))
+                        .header_auth_token(&wsc.access_token)
+                        .body(())
+                        .unwrap();
+                    match crate::comms::ws_util::try_connect(&wsc, req).await {
                         Ok(ws_stream) => {
-                            ob.clone().ws_loop(ws_stream).await.log_err();
+                            ob.clone().ws_loop(ws_stream).await.wran_err();
                         }
                         Err(_) => {
                             tokio::time::sleep(std::time::Duration::from_secs(
@@ -151,7 +162,7 @@ where
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
-                            crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
+                            crate::comms::ws_util::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
                             let ob = ob.clone();

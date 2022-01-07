@@ -5,8 +5,10 @@ use serde::{de::DeserializeOwned, Serialize};
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
+use crate::impls::CustomOneBot;
 use crate::utils::Echo;
 
 fn empty_error_response(code: u16) -> Response<Body> {
@@ -16,13 +18,11 @@ fn empty_error_response(code: u16) -> Response<Body> {
         .unwrap()
 }
 
-#[cfg(feature = "impl")]
 struct OneBotService<A, R> {
     pub access_token: Option<String>,
     pub handler: crate::impls::ArcActionHandler<A, R>,
 }
 
-#[cfg(feature = "impl")]
 impl<A, R> Service<Request<Body>> for OneBotService<A, R>
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
@@ -103,7 +103,6 @@ where
     }
 }
 
-#[cfg(feature = "impl")]
 pub fn run<A, R>(
     config: &crate::config::Http,
     handler: crate::impls::ArcActionHandler<A, R>,
@@ -119,4 +118,28 @@ where
     let addr = std::net::SocketAddr::new(config.host, config.port);
     let server = Server::bind(&addr).serve(mobs);
     tokio::spawn(async { server.await.unwrap() })
+}
+
+impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
+where
+    E: Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    R: Serialize + std::fmt::Debug + Send + 'static,
+{
+    pub(crate) async fn http(self: &Arc<Self>) {
+        for http in &self.config.http {
+            let ob = self.clone();
+            let mobs = MakeOneBotService {
+                access_token: http.access_token.clone(),
+                handler: ob.action_handler.clone(),
+            };
+            let addr = std::net::SocketAddr::new(http.host, http.port);
+            tokio::spawn(async move {
+                let server = Server::bind(&addr).serve(mobs);
+                while ob.is_running() {
+                    // server.await.unwrap(); ??
+                }
+            });
+        }
+    }
 }

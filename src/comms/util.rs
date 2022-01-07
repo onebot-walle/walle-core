@@ -17,3 +17,22 @@ impl ContentTpye {
     }
 }
 
+pub(crate) trait AuthReqHeaderExt {
+    fn header_auth_token(self, token: &Option<String>) -> Self;
+}
+
+#[cfg(feature = "http")]
+use hyper::http::request::Builder;
+#[cfg(all(feature = "websocket", not(feature = "http")))]
+use tokio_tungstenite::tungstenite::http::request::Builder;
+
+
+impl AuthReqHeaderExt for Builder {
+    fn header_auth_token(self, token: &Option<String>) -> Self {
+        if let Some(token) = token {
+            self.header("Authorization", format!("Bearer {}", token))
+        } else {
+            self
+        }
+    }
+}

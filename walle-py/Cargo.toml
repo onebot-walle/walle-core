@@ -10,11 +10,12 @@ name = "walle"
 crate-type = ["cdylib"]
 
 [dependencies]
-tracing-subscriber = { version = "0.2", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 walle-core = { path = "../", features = ["full"] }
-pyo3-asyncio = { version = "0.14", features = ["tokio-runtime", "attributes"] }
+walle-v11 = { path = "../walle-v11" }
+pyo3-asyncio = { version = "0.15", features = ["tokio-runtime", "attributes"] }
 tokio = "1.4"
 
 [dependencies.pyo3]
-version = "0.14"
+version = "0.15"
 features = ["extension-module"]

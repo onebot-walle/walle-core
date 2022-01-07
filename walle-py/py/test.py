@@ -4,7 +4,7 @@ import asyncio
 
 
 async def main():
-    await walle.run_onebot_app()
+    await walle.run_onebot11_app()
     while True:
         await asyncio.sleep(1)
 

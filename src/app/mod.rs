@@ -10,30 +10,28 @@ use std::{
 use tokio::sync::RwLock;
 use tracing::info;
 
-use crate::{
-    config::AppConfig, event::BaseEvent, Action, Resp, RespContent, EventContent,
-    FromStandard, WalleError, WalleResult,
-};
+use crate::{config::AppConfig, Action, BasicEvent, Event, Resps, WalleError, WalleResult};
 
 mod bot;
 
 pub(crate) type ArcEventHandler<E, A, R> =
-    Arc<dyn crate::handle::EventHandler<BaseEvent<E>, A, R> + Send + Sync>;
-pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<Resp<R>>;
+    Arc<dyn crate::handle::EventHandler<E, A, R> + Send + Sync>;
+pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<R>;
 pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type OneBot = CustomOneBot<EventContent, Action, RespContent>;
+pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
 
 /// OneBot Application 实例
 ///
-/// E: EventContent 可以参考 crate::evnt::EventContent
+/// E: Event 可以参考 crate::evnt::Event
 /// A: Action 可以参考 crate::action::Action
 /// R: ActionResp 可以参考 crate::action_resp::ActionResps
+/// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-pub struct CustomOneBot<E, A, R> {
+pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: AppConfig,
     pub(crate) event_handler: ArcEventHandler<E, A, R>,
     pub(crate) running: AtomicBool,
@@ -51,10 +49,10 @@ pub struct Bot<A, R> {
     sender: CustomActionSender<A, R>,
 }
 
-impl<E, A, R> CustomOneBot<E, A, R>
+impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: Clone + DeserializeOwned + Send + 'static + Debug,
-    A: FromStandard<Action> + Clone + Serialize + Send + 'static + Debug,
+    E: BasicEvent + Clone + DeserializeOwned + Send + 'static + Debug,
+    A: Clone + Serialize + Send + 'static + Debug,
     R: Clone + DeserializeOwned + Send + 'static + Debug,
 {
     /// 创建新的 OneBot 实例
@@ -113,7 +111,7 @@ where
         if self.is_running() {
             return Err(WalleError::AlreadyRunning);
         }
-        info!("OneBot is starting...");
+        info!(target: "Walle-core", "OneBot is starting...");
 
         #[cfg(feature = "websocket")]
         self.ws().await;

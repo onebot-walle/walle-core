@@ -7,5 +7,3 @@ mod impls_ws;
 
 #[cfg(feature = "http")]
 pub use http::run as http_run;
-#[cfg(feature = "http")]
-pub use http_webhook::Client as WebhookClient;

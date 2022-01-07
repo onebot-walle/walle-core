@@ -272,12 +272,23 @@ pub enum ExtendedRequest<T> {
     Extended(T),
 }
 
+#[cfg(feature = "impl")]
+#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 impl crate::HeartbeatBuild for Event {
-    fn build_heartbeat<A, R>(ob: &crate::impls::CustomOneBot<Self, A, R>, interval: u32) -> Self {
+    fn build_heartbeat<A, R, const V: u8>(
+        ob: &crate::impls::CustomOneBot<Self, A, R, V>,
+        interval: u32,
+    ) -> Self {
         ob.new_event(EventContent::Meta(MetaContent::Heartbeat {
             interval,
             status: ob.get_status(),
             sub_type: "".to_string(),
         }))
+    }
+}
+
+impl<T> crate::BasicEvent for BaseEvent<T> {
+    fn self_id(&self) -> String {
+        self.self_id.clone()
     }
 }
