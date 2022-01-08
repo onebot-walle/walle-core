@@ -43,7 +43,7 @@ impl Default for Heartbeat {
 }
 
 /// OneBot 应用端设置项
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
     pub http: Vec<Http>,
     pub http_webhook: Vec<HttpWebhook>,
@@ -74,7 +74,7 @@ impl AppConfig {
 }
 
 /// OneBot Impl Http 通讯设置
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Http {
     pub host: std::net::IpAddr,
     pub port: u16,
@@ -96,7 +96,7 @@ impl Default for Http {
 }
 
 /// OneBot Impl Http Webhook 通讯设置
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HttpWebhook {
     pub url: String,
     pub access_token: Option<String>,

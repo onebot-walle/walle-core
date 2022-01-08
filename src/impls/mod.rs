@@ -8,8 +8,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-#[cfg(any(feature = "http", feature = "websocket"))]
-use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, trace};
 
 pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
@@ -31,12 +29,12 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub platform: String,
     pub self_id: String,
     pub config: ImplConfig,
-    pub(crate) action_handler: ArcActionHandler<A, R>,
     pub broadcaster: CustomEventBroadcaster<E>,
-    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
 
-    #[cfg(feature = "http")]
-    http_join_handles: RwLock<(Vec<JoinHandle<()>>, Vec<JoinHandle<()>>)>,
+    pub(crate) action_handler: ArcActionHandler<A, R>,
+    #[cfg(feature = "websocket")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
 
     running: AtomicBool,
     online: AtomicBool,
@@ -62,40 +60,44 @@ impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
         self.running.load(Ordering::SeqCst)
     }
 
-    pub(crate) fn set_running(&self) {
-        self.running.swap(true, Ordering::SeqCst);
+    pub fn set_online(&self, online: bool) {
+        self.online.store(online, Ordering::SeqCst);
     }
 
     /// 关闭实例
     pub async fn shutdown(&self) {
         self.running.swap(false, Ordering::SeqCst);
     }
+
+    pub(crate) fn set_running(&self) {
+        self.running.swap(true, Ordering::SeqCst);
+    }
 }
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
     E: HeartbeatBuild + Serialize + Clone + Debug + Send + 'static,
-    A: DeserializeOwned + Debug + Send + 'static,
-    R: Serialize + Debug + Send + 'static,
+    A: DeserializeOwned + Clone + Debug + Send + 'static,
+    R: Serialize + Clone + Debug + Send + 'static,
 {
     pub fn new(
-        r#impl: String,
-        platform: String,
-        self_id: String,
+        r#impl: &str,
+        platform: &str,
+        self_id: &str,
         config: ImplConfig,
         action_handler: ArcActionHandler<A, R>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {
-            r#impl,
-            platform,
-            self_id,
+            r#impl: r#impl.to_owned(),
+            platform: platform.to_owned(),
+            self_id: self_id.to_owned(),
             config,
             action_handler,
             broadcaster,
+            #[cfg(feature = "websocket")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
             ws_hooks: crate::hooks::empty_ws_hooks(),
-            #[cfg(feature = "http")]
-            http_join_handles: RwLock::default(),
             running: AtomicBool::default(),
             online: AtomicBool::default(),
         }
@@ -118,16 +120,7 @@ where
         info!(target: "Walle-core", "{} is booting", self.r#impl.red());
 
         #[cfg(feature = "http")]
-        if !self.config.http.is_empty() {
-            info!(target: "Walle-core", "Strating HTTP");
-            let http_joins = &mut self.http_join_handles.write().await.0;
-            for http in &self.config.http {
-                http_joins.push(crate::comms::impls::http_run(
-                    http,
-                    self.action_handler.clone(),
-                ));
-            }
-        }
+        self.http().await?;
 
         #[cfg(feature = "http")]
         self.webhook().await;
@@ -186,32 +179,3 @@ impl<E, A, R, const V: u8> CustomOneBot<BaseEvent<E>, A, R, V> {
         }
     }
 }
-
-// impl<E, A, R> CustomOneBot<E, A, R>
-// where
-//     E: FromStandard<Event> + Serialize + Clone + Debug + Send + 'static,
-// {
-// pub fn new_message_event(
-//     &self,
-//     user_id: String,
-//     group_id: Option<String>,
-//     message: Message,
-// ) -> E {
-//     let message_c = crate::event::MessageContent {
-//         ty: if let Some(group_id) = group_id {
-//             crate::event::MessageEventType::Group { group_id }
-//         } else {
-//             crate::event::MessageEventType::Private
-//         },
-//         message_id: crate::utils::new_uuid(),
-//         alt_message: message.alt(),
-//         message,
-//         user_id,
-//         sub_type: "".to_owned(),
-//         extra: ExtendedMap::default(),
-//     };
-//     self.new_event(E::from_standard(crate::event::EventContent::Message(
-//         message_c,
-//     )))
-// }
-// }

@@ -81,7 +81,7 @@ impl Cache {
         }
         if let Some(_) = matches.subcommand_matches("bots") {
             let bots = self.cli.get_bots().await;
-            for (id, bot) in bots.iter() {
+            for (id, _bot) in bots.iter() {
                 info!(target:"mira", "Bot {}", id);
             }
         }

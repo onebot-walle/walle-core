@@ -4,10 +4,7 @@ import asyncio
 
 
 async def main():
-    await walle.run_onebot11_app()
-    while True:
-        await asyncio.sleep(1)
+    await walle.run_block_onebot11_app()
 
 if __name__ == "__main__":
-    print("this is a walle-py test")
     asyncio.run(main())

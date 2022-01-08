@@ -13,3 +13,4 @@ async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 toml = "*"
 lru = "0.7"
+tracing = "0.1"

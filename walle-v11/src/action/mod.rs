@@ -24,10 +24,38 @@ pub enum Action {
         message: Message,
         auto_escape: bool,
     },
+    /// 撤回消息
+    /// 
+    /// - message_id: 消息id
+    /// 
+    /// return None
     DeleteMsg {
         message_id: i32,
     },
+    /// 获取消息
+    ///
+    /// - message_id: 消息id
+    ///
+    /// return `Resp<RespContent::MessageDetail>`
     GetMsg {
         message_id: i32,
+    },
+    /// 获取合并转发消息
+    ///
+    /// - id: 合并转发 ID
+    ///
+    /// return `Resp<RespContent::NodeMessage>`
+    GetForwardMsg {
+        id: String,
+    },
+    /// 发送好友赞
+    ///
+    /// - user_id: 对方 QQ 号
+    /// - times: 赞次数，每个好友每天最多 10 次
+    ///
+    /// return `None`
+    SendLike {
+        user_id: i64,
+        times: u8,
     },
 }

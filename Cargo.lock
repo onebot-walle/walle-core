@@ -2577,6 +2577,7 @@ dependencies = [
  "serde",
  "tokio 0.2.25",
  "toml",
+ "tracing",
  "walle-core",
  "walle-v11",
 ]

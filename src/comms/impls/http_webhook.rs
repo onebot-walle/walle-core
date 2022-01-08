@@ -29,6 +29,7 @@ where
                 }
             }
         });
+        self.set_running();
     }
 
     async fn webhook_push(self: &Arc<Self>, event: E, client: &Arc<HyperClient<HttpConnector>>) {
@@ -47,7 +48,7 @@ where
                 .header(CONTENT_TYPE, "application/json")
                 .header(
                     USER_AGENT,
-                    format!("OneBot/{} ({}) Walle/0.1.0", V, self.platform),
+                    format!("OneBot/{} ({}) Walle/{}", V, self.platform, crate::VERSION),
                 )
                 .header("X-OneBot-Version", V.to_string())
                 .header("X-Impl", &self.r#impl)

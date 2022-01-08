@@ -1,6 +1,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
+#[allow(dead_code)]
+const VERSION: &str = "0.1.1";
+
 /// Onebot Action
 pub mod action;
 #[cfg(feature = "app")]
@@ -14,6 +17,9 @@ mod error;
 /// Onebot Event
 pub mod event;
 mod handle;
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+mod hooks;
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 /// 实现端相关 api
@@ -21,7 +27,6 @@ pub mod impls;
 mod message;
 /// Onebot ActionResp
 pub mod resp;
-mod hooks;
 mod test;
 mod utils;
 
@@ -32,9 +37,11 @@ pub use event::*;
 #[cfg(feature = "app")]
 pub use handle::EventHandler;
 pub use handle::{ActionHandler, DefaultHandler};
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+pub use hooks::*;
 pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
 pub use resp::{Resp, RespContent, Resps};
-pub use hooks::*;
 pub use utils::*;
 
 pub use async_trait::async_trait;

@@ -32,6 +32,19 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
             Ok(PyOneBot(OBApp::V11(app)))
         })
     }
+    #[pyfn(m)]
+    /// just build and run a onebot11 application
+    fn run_block_onebot11_app(py: Python) -> PyResult<&PyAny> {
+        pyo3_asyncio::tokio::future_into_py(py, async {
+            let app = walle_v11::app::OneBot11::new(
+                walle_core::AppConfig::default(),
+                walle_v11::DefaultHandler::arc(),
+            )
+            .arc();
+            app.run_block().await.unwrap();
+            Ok(())
+        })
+    }
     Ok(())
 }
 

@@ -56,6 +56,12 @@ pub enum MessageSegment {
     Reply {
         id: String,
     }, // todo
+
+    Node {
+        user_id: String,
+        nickname: String,
+        content: Vec<Self>,
+    },
 }
 
 pub trait MessageTo12 {

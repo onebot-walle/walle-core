@@ -33,10 +33,14 @@ pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
 pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: AppConfig,
-    pub(crate) event_handler: ArcEventHandler<E, A, R>,
-    pub(crate) running: AtomicBool,
     pub bots: RwLock<HashMap<String, ArcBot<A, R>>>,
+
+    #[cfg(feature = "websocket")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
+    pub(crate) event_handler: ArcEventHandler<E, A, R>,
+
+    running: AtomicBool,
 }
 
 /// Arc<Bot>
@@ -62,6 +66,8 @@ where
             event_handler,
             running: AtomicBool::default(),
             bots: RwLock::default(),
+            #[cfg(feature = "websocket")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
             ws_hooks: crate::hooks::empty_ws_hooks(),
         }
     }
@@ -119,7 +125,29 @@ where
         #[cfg(feature = "websocket")]
         self.wsr().await?;
 
-        self.running.store(true, Ordering::SeqCst);
+        self.running.store(true, Ordering::Relaxed);
+        Ok(())
+    }
+
+    pub async fn run_block(self: &Arc<Self>) -> WalleResult<()> {
+        if self.is_running() {
+            return Err(WalleError::AlreadyRunning);
+        }
+        info!(target: "Walle-core", "OneBot is starting...");
+
+        #[cfg(feature = "websocket")]
+        {
+            let mut joins = self.ws().await;
+            for join in self.wsr().await? {
+                joins.push(join);
+            }
+            if !joins.is_empty() {
+                self.running.store(true, Ordering::Relaxed);
+            }
+            for join in joins {
+                let _ = join.await;
+            }
+        }
         Ok(())
     }
 

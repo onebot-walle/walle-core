@@ -1,6 +1,6 @@
 use thiserror::Error;
-#[cfg(feature = "impl")]
-#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 use tokio_tungstenite::tungstenite::Error as WsError;
 
 pub type WalleResult<T> = std::result::Result<T, WalleError>;
@@ -9,16 +9,16 @@ pub type WalleResult<T> = std::result::Result<T, WalleError>;
 pub enum WalleError {
     // serde
     #[error("Serde Json error: {0}")]
-    SerdeJsonError(serde_json::Error),
+    SerdeJsonError(#[from] serde_json::Error),
     // comms
     #[error("Authorization failed")]
     AuthorizationFailed,
     #[error("Tcpconnect connect to {0} failed")]
     TcpConnectFailed(std::io::Error),
-    #[cfg(feature = "impl")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
+    #[cfg(feature = "websocket")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     #[error("Websocket upgrade failed: {0}")]
-    WebsocketUpgradeFail(WsError),
+    WebsocketUpgradeFail(#[from] WsError),
     #[error("Websocket link has no peer address")]
     WebsocketNoAddress,
     /// action
@@ -28,10 +28,10 @@ pub enum WalleError {
     #[error("Action Response Timeout")]
     ActionResponseTimeout,
     #[error("Action Response RecvError:{0}")]
-    ActionResponseRecvError(tokio::sync::oneshot::error::RecvError),
+    ActionResponseRecvError(#[from] tokio::sync::oneshot::error::RecvError),
     /// server
     #[error("TcpServer bind address error: {0}")]
-    TcpServerBindAddressError(std::io::Error),
+    TcpServerBindAddressError(#[from] std::io::Error),
     /// Running Time Error
     #[error("OneBot is already running")]
     AlreadyRunning,

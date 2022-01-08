@@ -1,17 +1,19 @@
 use crate::prelude::*;
 use lru::LruCache;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
+use tracing::warn;
 use walle_core::WalleResult;
 
 type RwMap<K, V> = RwLock<HashMap<K, V>>;
 
+/// 将多个 Bot 组合为单一 Bot
 pub struct UnionBot {
-    self_id: String,
+    pub self_id: String,
     inner: RwLock<LruCache<String, Bot>>,
     event_tx: tokio::sync::mpsc::UnboundedSender<v12Event>,
-    event_rx: tokio::sync::mpsc::UnboundedReceiver<v12Event>,
+    event_rx: RwLock<tokio::sync::mpsc::UnboundedReceiver<v12Event>>,
     group_map: RwMap<String, Vec<String>>,
     friend_map: RwMap<String, Vec<String>>,
     config: UnionConfig,
@@ -24,18 +26,50 @@ impl UnionBot {
             self_id: config.mode.bot_id(),
             inner: RwLock::new(LruCache::unbounded()),
             event_tx,
-            event_rx,
+            event_rx: RwLock::new(event_rx),
             group_map: RwLock::default(),
             friend_map: RwLock::default(),
             config,
         }
     }
+
+    pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
+        let collector = Arc::new(crate::handler::EventCollector {
+            event_tx: self.event_tx.clone(),
+        });
+        for app in &self.config.apps {
+            match app.version {
+                11 => {
+                    let ob =
+                        walle_v11::app::OneBot11::new(app.config.clone(), collector.clone()).arc();
+                    ob.run().await?;
+                }
+                12 => {
+                    let ob =
+                        walle_core::app::OneBot::new(app.config.clone(), collector.clone()).arc();
+                    ob.run().await?;
+                }
+                x => warn!(target: "Walle-Hub", "Unkown Onebot version {}", x),
+            }
+        }
+        let mut rx = self.event_rx.write().await;
+        while let Some(event) = rx.recv().await {
+            //todo
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExtAppConfig {
+    #[serde(flatten)]
+    config: walle_core::AppConfig,
+    version: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct UnionConfig {
-    pub apps: walle_core::AppConfig,
-    pub impls: walle_core::ImplConfig,
+    pub apps: Vec<ExtAppConfig>,
     #[serde(default)]
     pub mode: UnionMode,
 }
@@ -97,14 +131,6 @@ impl Bot {
 }
 
 impl UnionBot {
-    pub(crate) async fn run(&self) {
-        match &self.config.mode {
-            UnionMode::None => self.just_redirect().await,
-            UnionMode::Union { .. } => self.union().await,
-            UnionMode::Round { .. } => self.round().await,
-            UnionMode::Main { main, .. } => self.main(main).await,
-        }
-    }
     async fn just_redirect(&self) {}
     async fn union(&self) {}
     async fn round(&self) {}

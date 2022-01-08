@@ -1,15 +1,19 @@
 use hyper::body::Buf;
+use hyper::header::{AUTHORIZATION, CONTENT_TYPE};
+use hyper::service::Service;
 use hyper::Method;
-use hyper::{service::Service, Body, Request, Response, Server};
+use hyper::{server::conn::Http, Body, Request, Response};
 use serde::{de::DeserializeOwned, Serialize};
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
+use tokio::net::TcpListener;
 
 use crate::impls::CustomOneBot;
 use crate::utils::Echo;
+use crate::{WalleResult, WalleError};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
@@ -18,6 +22,7 @@ fn empty_error_response(code: u16) -> Response<Body> {
         .unwrap()
 }
 
+#[derive(Clone)]
 struct OneBotService<A, R> {
     pub access_token: Option<String>,
     pub handler: crate::impls::ArcActionHandler<A, R>,
@@ -45,7 +50,7 @@ where
         }
         let _content_type = match &req
             .headers()
-            .get("Content-Type")
+            .get(CONTENT_TYPE)
             .and_then(|t| crate::comms::util::ContentTpye::new(t.to_str().unwrap()))
         {
             Some(t) => t,
@@ -53,7 +58,7 @@ where
         };
 
         if let (Some(token), Some(header_token)) =
-            (&self.access_token, req.headers().get("Authorization"))
+            (&self.access_token, req.headers().get(AUTHORIZATION))
         {
             let header_token = header_token.to_str().unwrap();
             if header_token != &format!("Bearer {}", token) {
@@ -74,72 +79,40 @@ where
     }
 }
 
-#[cfg(feature = "impl")]
-struct MakeOneBotService<A, R> {
-    pub access_token: Option<String>,
-    pub handler: crate::impls::ArcActionHandler<A, R>,
-}
-
-#[cfg(feature = "impl")]
-impl<T, A, R> Service<T> for MakeOneBotService<A, R>
-where
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
-{
-    type Response = OneBotService<A, R>;
-    type Error = Infallible;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
-
-    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, _: T) -> Self::Future {
-        let obs = OneBotService {
-            access_token: self.access_token.clone(),
-            handler: self.handler.clone(),
-        };
-        Box::pin(async move { Ok(obs) })
-    }
-}
-
-pub fn run<A, R>(
-    config: &crate::config::Http,
-    handler: crate::impls::ArcActionHandler<A, R>,
-) -> tokio::task::JoinHandle<()>
-where
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
-{
-    let mobs = MakeOneBotService {
-        access_token: config.access_token.clone(),
-        handler,
-    };
-    let addr = std::net::SocketAddr::new(config.host, config.port);
-    let server = Server::bind(&addr).serve(mobs);
-    tokio::spawn(async { server.await.unwrap() })
-}
-
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
     E: Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
+    A: DeserializeOwned + std::fmt::Debug + Clone + Send + 'static,
+    R: Serialize + std::fmt::Debug + Clone + Send + 'static,
 {
-    pub(crate) async fn http(self: &Arc<Self>) {
+    pub(crate) async fn http(self: &Arc<Self>) -> WalleResult<()> {
         for http in &self.config.http {
             let ob = self.clone();
-            let mobs = MakeOneBotService {
-                access_token: http.access_token.clone(),
-                handler: ob.action_handler.clone(),
-            };
             let addr = std::net::SocketAddr::new(http.host, http.port);
+            let access_token = http.access_token.clone();
+            let listener = TcpListener::bind(&addr)
+                .await
+                .map_err(|e| WalleError::from(e))?;
             tokio::spawn(async move {
-                let server = Server::bind(&addr).serve(mobs);
+                let serv = OneBotService {
+                    access_token: access_token,
+                    handler: ob.action_handler.clone(),
+                };
                 while ob.is_running() {
-                    // server.await.unwrap(); ??
+                    let (tcp_stream, _) = listener.accept().await.unwrap();
+                    let serv = serv.clone();
+                    tokio::spawn(async move {
+                        Http::new()
+                            .serve_connection(tcp_stream, serv)
+                            .await
+                            .unwrap();
+                    });
+
+                    // todo
                 }
             });
+            self.set_running();
         }
+        Ok(())
     }
 }

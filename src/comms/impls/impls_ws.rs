@@ -83,7 +83,7 @@ where
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
-                .map_err(|e| WalleError::TcpServerBindAddressError(e))?;
+                .map_err(|e| WalleError::from(e))?;
             let ob = self.clone();
             tokio::spawn(async move {
                 ob.ws_hooks.on_start(&ob).await;
@@ -120,7 +120,7 @@ where
                         .uri(&wsr.url)
                         .header(
                             USER_AGENT,
-                            format!("OneBot/{} ({}) Walle/0.1.0", V, ob.platform),
+                            format!("OneBot/{} ({}) Walle/{}", V, ob.platform, crate::VERSION),
                         )
                         .header("X-OneBot-Version", V.to_string())
                         .header("X-Platform", ob.platform.clone())

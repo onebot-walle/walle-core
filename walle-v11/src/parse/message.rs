@@ -145,6 +145,8 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
                 user_id: "".to_owned(),
                 extend: ExtendedMap::default(),
             }),
+
+            _ => todo!(),
         }
     }
 }

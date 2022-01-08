@@ -35,6 +35,9 @@ pub enum RespContent {
         sender: crate::utils::Sender,
         message: Message,
     },
+    NodeMessage {
+        message: Vec<crate::message::Message>,
+    },
 }
 
 impl RespContent {
