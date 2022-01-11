@@ -70,7 +70,10 @@ where
             let sender = resp_sender.clone();
             let ob = self.clone();
             tokio::spawn(async move {
-                let resp = ob.action_handler.handle(action).await;
+                let resp = match ob.action_handler.handle(action, &ob).await {
+                    Ok(r) => r,
+                    Err(r) => r,
+                };
                 let echo = echo_s.pack(resp);
                 sender.send(echo).unwrap();
             });

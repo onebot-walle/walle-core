@@ -38,6 +38,18 @@ pub enum RespContent {
     Empty(EmptyContent), // todo
 }
 
+macro_rules! resp_content {
+    ($t:ty, $name: tt) => {
+        impl From<$t> for RespContent {
+            fn from(t: $t) -> Self {
+                RespContent::$name(t)
+            }
+        }
+    };
+}
+
+resp_content!(SendMessageRespContent, SendMessage);
+
 /// ## 扩展动作响应
 ///
 /// 已经包含标准动作响应，传 T 为扩展动作响应
@@ -115,9 +127,9 @@ where
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from_standard(RespContent::Empty(
-            EmptyContent::default(),
-        )))
+        Self::success(T::from_standard(
+            RespContent::Empty(EmptyContent::default()),
+        ))
     }
 
     #[allow(dead_code)]
@@ -136,6 +148,8 @@ where
     empty_err_resp!(unsupported_segment, 10005, "不支持的消息段类型");
     empty_err_resp!(bad_segment_data, 10006, "无效的消息段参数");
     empty_err_resp!(unsupported_segment_data, 10007, "不支持的消息段参数");
+
+    empty_err_resp!(platform_error, 34000, "机器人平台错误");
 }
 
 // meta
@@ -176,7 +190,7 @@ pub type SendMessageResp = Resp<SendMessageRespContent>;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
     pub message_id: String,
-    pub time: i64,
+    pub time: u64,
 }
 
 // user

@@ -87,7 +87,7 @@ where
                             }
                         };
                         for a in actions {
-                            ob.action_handler.handle(a).await;
+                            let _ = ob.action_handler.handle(a, &ob).await;
                         }
                     }
                     x => tracing::info!("unhandle webhook push status: {}", x),

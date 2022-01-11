@@ -4,6 +4,7 @@ use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
+use crate::Resps;
 
 mod fnt;
 
@@ -38,12 +39,12 @@ mod fnt;
 /// }
 /// ```
 #[async_trait]
-pub trait ActionHandler<A, R>
+pub trait ActionHandler<A, R, OB>
 where
     A: DeserializeOwned + Debug + Send + 'static,
     R: Serialize + Debug + Send + 'static,
 {
-    async fn handle(&self, action: A) -> R;
+    async fn handle(&self, action: A, ob: &OB) -> Result<R, R>;
 }
 
 /// 应用端处理 Event 需要实现的 Trait
@@ -75,18 +76,28 @@ impl DefaultHandler {
 }
 
 #[async_trait]
-impl ActionHandler<crate::Action, crate::Resps> for DefaultHandler {
-    async fn handle(&self, action: crate::Action) -> crate::Resps {
+impl<E, const V: u8>
+    ActionHandler<
+        crate::Action,
+        crate::Resps,
+        crate::impls::CustomOneBot<E, crate::Action, crate::Resps, V>,
+    > for DefaultHandler
+where
+    E: Send,
+{
+    async fn handle(
+        &self,
+        action: crate::Action,
+        _ob: &crate::impls::CustomOneBot<E, crate::Action, crate::Resps, V>,
+    ) -> Result<Resps, Resps> {
         use crate::{
             resp::{Resp, RespContent},
             Action,
         };
 
         match action {
-            Action::GetVersion(_) => {
-                Resp::success(RespContent::Version(get_version().await))
-            }
-            _ => Resp::unsupported_action(),
+            Action::GetVersion(_) => Ok(Resp::success(RespContent::Version(get_version().await))),
+            _ => Err(Resp::unsupported_action()),
         }
     }
 }

@@ -10,8 +10,10 @@ use std::sync::{
 };
 use tracing::{info, trace};
 
-pub(crate) type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
-pub(crate) type ArcActionHandler<A, R> = Arc<dyn crate::handle::ActionHandler<A, R> + Send + Sync>;
+pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
+pub(crate) type ArcActionHandler<A, R, OB> =
+    Arc<dyn crate::handle::ActionHandler<A, R, OB> + Send + Sync>;
+pub type EventBroadcaster = CustomEventBroadcaster<Event>;
 
 /// OneBot v12 无扩展实现端实例
 pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
@@ -31,7 +33,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: ImplConfig,
     pub broadcaster: CustomEventBroadcaster<E>,
 
-    pub(crate) action_handler: ArcActionHandler<A, R>,
+    pub(crate) action_handler: ArcActionHandler<A, R, Self>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
@@ -85,7 +87,7 @@ where
         platform: &str,
         self_id: &str,
         config: ImplConfig,
-        action_handler: ArcActionHandler<A, R>,
+        action_handler: ArcActionHandler<A, R, Self>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         Self {

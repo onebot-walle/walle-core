@@ -6,13 +6,14 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::app::ArcBot;
 
 #[async_trait]
-impl<A, R, F> super::ActionHandler<A, R> for F
+impl<A, R, F, OB> super::ActionHandler<A, R, OB> for F
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
-    F: Fn(A) -> BoxFuture<'static, R> + Sync + Send + 'static,
+    F: Fn(A) -> BoxFuture<'static, Result<R, R>> + Sync + Send + 'static,
+    OB: Sync,
 {
-    async fn handle(&self, action: A) -> R {
+    async fn handle(&self, action: A, _ob: &OB) -> Result<R, R> {
         self(action).await
     }
 }

@@ -13,7 +13,7 @@ use tokio::net::TcpListener;
 
 use crate::impls::CustomOneBot;
 use crate::utils::Echo;
-use crate::{WalleResult, WalleError};
+use crate::{WalleError, WalleResult};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
@@ -23,13 +23,14 @@ fn empty_error_response(code: u16) -> Response<Body> {
 }
 
 #[derive(Clone)]
-struct OneBotService<A, R> {
+struct OneBotService<E, A, R, const V: u8> {
     pub access_token: Option<String>,
-    pub handler: crate::impls::ArcActionHandler<A, R>,
+    pub ob: Arc<crate::impls::CustomOneBot<E, A, R, V>>,
 }
 
-impl<A, R> Service<Request<Body>> for OneBotService<A, R>
+impl<E, A, R, const V: u8> Service<Request<Body>> for OneBotService<E, A, R, V>
 where
+    E: Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
 {
@@ -65,12 +66,12 @@ where
                 return Box::pin(async { Ok(empty_error_response(401)) });
             }
         }
-        let action_handler = self.handler.clone();
+        let ob = self.ob.clone();
         Box::pin(async move {
             let data = hyper::body::aggregate(req).await.unwrap();
             let action: Echo<A> = serde_json::from_reader(data.reader()).unwrap();
             let (action, echo) = action.unpack();
-            let action_resp = action_handler.handle(action).await;
+            let action_resp = ob.action_handler.handle(action, &ob).await;
             let action_resp = echo.pack(action_resp);
             Ok(Response::new(Body::from(
                 serde_json::to_string(&action_resp).unwrap(),
@@ -81,7 +82,7 @@ where
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: Send + 'static,
+    E: Clone + Send + 'static,
     A: DeserializeOwned + std::fmt::Debug + Clone + Send + 'static,
     R: Serialize + std::fmt::Debug + Clone + Send + 'static,
 {
@@ -95,8 +96,8 @@ where
                 .map_err(|e| WalleError::from(e))?;
             tokio::spawn(async move {
                 let serv = OneBotService {
-                    access_token: access_token,
-                    handler: ob.action_handler.clone(),
+                    access_token,
+                    ob: ob.clone(),
                 };
                 while ob.is_running() {
                     let (tcp_stream, _) = listener.accept().await.unwrap();
@@ -108,7 +109,7 @@ where
                             .unwrap();
                     });
 
-                    // todo
+                    //todo
                 }
             });
             self.set_running();

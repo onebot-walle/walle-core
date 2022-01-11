@@ -1,7 +1,7 @@
 #![doc = include_str!("README.md")]
 use serde::{Deserialize, Serialize};
 
-use crate::ExtendedMap;
+use crate::{ExtendedMap, MessageAlt};
 
 /// OneBot 12 标准事件
 pub type Event = BaseEvent<EventContent>;
@@ -39,6 +39,21 @@ pub enum EventContent {
     Notice(NoticeContent),
     Request(RequestContent),
 }
+
+macro_rules! impl_from {
+    ($from: ty, $name: tt) => {
+        impl From<$from> for EventContent {
+            fn from(from: $from) -> Self {
+                EventContent::$name(from)
+            }
+        }
+    };
+}
+
+impl_from!(MetaContent, Meta);
+impl_from!(MessageContent, Message);
+impl_from!(NoticeContent, Notice);
+impl_from!(RequestContent, Request);
 
 impl crate::utils::FromStandard<EventContent> for EventContent {
     fn from_standard(event_content: EventContent) -> Self {
@@ -151,6 +166,41 @@ pub struct MessageContent {
     pub sub_type: String,
     #[serde(flatten)]
     pub extra: ExtendedMap,
+}
+
+impl MessageContent {
+    pub fn new_group_message_content(
+        message: crate::Message,
+        user_id: String,
+        group_id: String,
+        extra: ExtendedMap,
+    ) -> Self {
+        Self {
+            ty: MessageEventType::Group { group_id },
+            message_id: crate::utils::new_uuid(),
+            alt_message: message.alt(),
+            message,
+            user_id,
+            sub_type: "".to_owned(),
+            extra,
+        }
+    }
+
+    pub fn new_private_message_content(
+        message: crate::Message,
+        user_id: String,
+        extra: ExtendedMap,
+    ) -> Self {
+        Self {
+            ty: MessageEventType::Private,
+            message_id: crate::utils::new_uuid(),
+            alt_message: message.alt(),
+            message,
+            user_id,
+            sub_type: "".to_owned(),
+            extra,
+        }
+    }
 }
 
 /// ## 扩展消息事件
