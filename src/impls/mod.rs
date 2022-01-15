@@ -90,6 +90,16 @@ where
         action_handler: ArcActionHandler<A, R, Self>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
+
+        let mut rx = broadcaster.subscribe(); // avoid no receiver error
+        tokio::spawn(async move {
+            loop {
+                if let Err(_) = rx.recv().await {
+                    break;
+                }
+            }
+        });
+
         Self {
             r#impl: r#impl.to_owned(),
             platform: platform.to_owned(),

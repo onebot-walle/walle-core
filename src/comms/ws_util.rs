@@ -1,3 +1,4 @@
+use colored::*;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
     accept_hdr_async, client_async,
@@ -7,6 +8,7 @@ use tokio_tungstenite::{
     },
     WebSocketStream,
 };
+use tracing::info;
 
 use crate::{WalleError, WalleLogExt, WalleResult};
 
@@ -37,6 +39,8 @@ pub(crate) async fn upgrade_websocket(
     let addr = stream
         .peer_addr()
         .map_err(|_| WalleError::WebsocketNoAddress)?;
+
+    info!(target: "Walle-core", "Websocket connectted with {}", addr.to_string().blue());
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         let headers = req.headers();

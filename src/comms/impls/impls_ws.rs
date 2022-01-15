@@ -1,10 +1,12 @@
 use crate::{impls::CustomOneBot, Echo, WalleError, WalleLogExt, WalleResult};
+use colored::*;
 use futures_util::{SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
+use tracing::{info, warn};
 
 type RespSender<R> = tokio::sync::mpsc::UnboundedSender<Echo<R>>;
 
@@ -82,11 +84,16 @@ where
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {
+        if !self.config.websocket.is_empty() {
+            info!(target: "Walle-core", "Starting websocket reverse server.");
+        }
+
         for wss in self.config.websocket.clone().into_iter() {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
                 .map_err(|e| WalleError::from(e))?;
+            info!(target: "Walle-core", "Websocket listening on {}", addr.to_string().red());
             let ob = self.clone();
             tokio::spawn(async move {
                 ob.ws_hooks.on_start(&ob).await;
@@ -117,6 +124,7 @@ where
         for wsr in self.config.websocket_rev.clone().into_iter() {
             let ob = self.clone();
             tokio::spawn(async move {
+                info!(target: "Walle-core", "Start try connect to {}", wsr.url.red());
                 ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
                     let req = Request::builder()
@@ -136,6 +144,8 @@ where
                     match crate::comms::ws_util::try_connect(&wsr, req).await {
                         Ok(ws_stream) => ob.ws_loop(ws_stream).await.wran_err(),
                         Err(_) => {
+                            warn!(target: "Walle-core", "Failed to connect to {}", wsr.url.red());
+                            info!(target: "Walle-core", "Retry in {} seconds", wsr.reconnect_interval);
                             tokio::time::sleep(Duration::from_secs(wsr.reconnect_interval as u64))
                                 .await;
                             ob.ws_hooks.before_reconnect(&ob).await;
