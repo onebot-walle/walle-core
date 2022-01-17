@@ -136,7 +136,7 @@ where
                         .header("X-OneBot-Version", V.to_string())
                         .header("X-Platform", ob.platform.clone())
                         .header("X-Impl", ob.r#impl.clone())
-                        .header("X-Self-ID", ob.self_id.clone())
+                        .header("X-Self-ID", ob.self_id.read().await.as_str())
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token)
                         .body(())

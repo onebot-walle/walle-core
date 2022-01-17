@@ -324,8 +324,9 @@ pub enum ExtendedRequest<T> {
 
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
+#[async_trait::async_trait]
 impl crate::HeartbeatBuild for Event {
-    fn build_heartbeat<A, R, const V: u8>(
+    async fn build_heartbeat<A, R, const V: u8>(
         ob: &crate::impls::CustomOneBot<Self, A, R, V>,
         interval: u32,
     ) -> Self {
@@ -333,7 +334,7 @@ impl crate::HeartbeatBuild for Event {
             interval,
             status: ob.get_status(),
             sub_type: "".to_string(),
-        }))
+        })).await
     }
 }
 

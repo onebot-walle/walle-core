@@ -160,9 +160,14 @@ pub trait FromStandard<S> {
 
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
+use async_trait::async_trait;
+
+#[cfg(feature = "impl")]
+#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
+#[async_trait]
 /// 创建心跳事件
 pub trait HeartbeatBuild: Sized {
-    fn build_heartbeat<A, R, const V: u8>(
+    async fn build_heartbeat<A, R, const V: u8>(
         ob: &crate::impls::CustomOneBot<Self, A, R, V>,
         interval: u32,
     ) -> Self;

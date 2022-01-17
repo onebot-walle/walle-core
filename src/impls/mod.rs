@@ -4,10 +4,9 @@ use crate::{event::BaseEvent, resp::StatusContent, Action, ImplConfig, WalleErro
 use crate::{Event, HeartbeatBuild, Resps};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing::{info, trace};
 
 pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
@@ -29,7 +28,7 @@ pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
 pub struct CustomOneBot<E, A, R, const V: u8> {
     pub r#impl: String,
     pub platform: String,
-    pub self_id: String,
+    pub self_id: RwLock<String>,
     pub config: ImplConfig,
     pub broadcaster: CustomEventBroadcaster<E>,
 
@@ -103,7 +102,7 @@ where
         Self {
             r#impl: r#impl.to_owned(),
             platform: platform.to_owned(),
-            self_id: self_id.to_owned(),
+            self_id: RwLock::new(self_id.to_owned()),
             config,
             action_handler,
             broadcaster,
@@ -170,7 +169,7 @@ where
                     break;
                 }
                 trace!(target:"Walle-core", "Heartbeating");
-                let hb = E::build_heartbeat(&ob, interval);
+                let hb = E::build_heartbeat(&ob, interval).await;
                 match ob.send_event(hb) {
                     _ => {}
                 };
@@ -180,12 +179,12 @@ where
 }
 
 impl<E, A, R, const V: u8> CustomOneBot<BaseEvent<E>, A, R, V> {
-    pub fn new_event(&self, content: E) -> BaseEvent<E> {
+    pub async fn new_event(&self, content: E) -> BaseEvent<E> {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
-            self_id: self.self_id.clone(),
+            self_id: self.self_id.read().await.clone(),
             time: crate::utils::timestamp(),
             content,
         }

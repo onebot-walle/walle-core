@@ -53,7 +53,7 @@ where
                 .header("X-OneBot-Version", V.to_string())
                 .header("X-Impl", &self.r#impl)
                 .header("X-Platform", &self.platform)
-                .header("X-Self-ID", &self.self_id)
+                .header("X-Self-ID", self.self_id.read().await.as_str())
                 .header_auth_token(&webhook.access_token)
                 .body(Body::from(data.clone()))
                 .unwrap();
