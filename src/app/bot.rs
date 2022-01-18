@@ -45,7 +45,7 @@ where
         tokio::time::timeout(Duration::from_secs(10), rx)
             .await
             .map_err(|_| WalleError::ActionResponseTimeout)?
-            .map_err(|e| WalleError::ActionResponseRecvError(e))
+            .map_err(WalleError::ActionResponseRecvError)
     }
 
     action_api!(

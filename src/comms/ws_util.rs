@@ -23,7 +23,7 @@ pub(crate) async fn try_connect(
         req,
         TcpStream::connect(&addr)
             .await
-            .map_err(|e| WalleError::TcpConnectFailed(e))?,
+            .map_err(WalleError::TcpConnectFailed)?,
     )
     .await
     {

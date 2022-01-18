@@ -27,7 +27,7 @@ where
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
     ) -> WalleResult<()> {
-        self.ws_hooks.on_connect(&self).await;
+        self.ws_hooks.on_connect(self).await;
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
         let echo_map = RwLock::default();
@@ -35,7 +35,7 @@ where
             tokio::select! {
                 action = action_rx.recv() => {
                     if let Some((action,tx)) = action {
-                        if let Err(_) = self.ws_send_action(&mut ws_stream, action, tx, &echo_map).await {
+                        if self.ws_send_action(&mut ws_stream, action, tx, &echo_map).await.is_err() {
                             break;
                         }
                     }
@@ -57,7 +57,7 @@ where
         for bot_id in bot_ids {
             self.remove_bot(&bot_id).await;
         }
-        self.ws_hooks.on_disconnect(&self).await;
+        self.ws_hooks.on_disconnect(self).await;
         Ok(())
     }
 
@@ -91,7 +91,7 @@ where
 
         if let WsMsg::Text(text) = ws_msg {
             let item: ReceiveItem<E, R> =
-                serde_json::from_str(&text).map_err(|e| WalleError::SerdeJsonError(e))?;
+                serde_json::from_str(&text).map_err(WalleError::SerdeJsonError)?;
             match item {
                 ReceiveItem::Event(event) => {
                     let ob = self.clone();
@@ -167,7 +167,7 @@ where
             info!(target: "Walle-core", "Starting Websocket server in {}", addr);
             let tcp_listener = TcpListener::bind(&addr)
                 .await
-                .map_err(|e| WalleError::TcpServerBindAddressError(e))?;
+                .map_err(WalleError::TcpServerBindAddressError)?;
             let ob = self.clone();
             joins.push(tokio::spawn(async move {
                 info!(target: "Walle-core", "Websocket server started");

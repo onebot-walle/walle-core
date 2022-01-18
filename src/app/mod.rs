@@ -79,7 +79,7 @@ where
 
     /// 根据 bot_id 获取 Bot 实例
     pub async fn get_bot(&self, bot_id: &str) -> Option<ArcBot<A, R>> {
-        self.bots.read().await.get(bot_id).map(|bot| bot.clone())
+        self.bots.read().await.get(bot_id).cloned()
     }
 
     /// 获取所有 Bot 实例

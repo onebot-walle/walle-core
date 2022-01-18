@@ -76,7 +76,7 @@ where
                         }
                     };
                 match resp.status() {
-                    StatusCode::NO_CONTENT => return,
+                    StatusCode::NO_CONTENT => (),
                     StatusCode::OK => {
                         let body = hyper::body::aggregate(resp).await.unwrap();
                         let actions: Vec<A> = match serde_json::from_reader(body.reader()) {

@@ -62,7 +62,7 @@ where
             (&self.access_token, req.headers().get(AUTHORIZATION))
         {
             let header_token = header_token.to_str().unwrap();
-            if header_token != &format!("Bearer {}", token) {
+            if header_token != format!("Bearer {}", token).as_str() {
                 return Box::pin(async { Ok(empty_error_response(401)) });
             }
         }
@@ -91,9 +91,7 @@ where
             let ob = self.clone();
             let addr = std::net::SocketAddr::new(http.host, http.port);
             let access_token = http.access_token.clone();
-            let listener = TcpListener::bind(&addr)
-                .await
-                .map_err(|e| WalleError::from(e))?;
+            let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
             tokio::spawn(async move {
                 let serv = OneBotService {
                     access_token,

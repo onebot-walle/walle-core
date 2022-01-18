@@ -37,16 +37,16 @@ pub struct EchoS(Option<String>);
 #[allow(dead_code)]
 impl<I> Echo<I> {
     pub fn unpack(self) -> (I, EchoS) {
-        return (self.inner, EchoS(self.echo));
+        (self.inner, EchoS(self.echo))
     }
 }
 #[allow(dead_code)]
 impl EchoS {
     pub fn pack<I>(&self, i: I) -> Echo<I> {
-        return Echo {
+        Echo {
             inner: i,
             echo: self.0.clone(),
-        };
+        }
     }
 
     pub fn new(tag: &str) -> Self {
@@ -111,46 +111,25 @@ impl ExtendedValue {
         }
     }
     pub fn is_str(&self) -> bool {
-        match self {
-            Self::Str(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Str(_))
     }
     pub fn is_f64(&self) -> bool {
-        match self {
-            Self::F64(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::F64(_))
     }
     pub fn is_int(&self) -> bool {
-        match self {
-            Self::Int(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Int(_))
     }
     pub fn is_bool(&self) -> bool {
-        match self {
-            Self::Bool(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Bool(_))
     }
     pub fn is_map(&self) -> bool {
-        match self {
-            Self::Map(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Map(_))
     }
     pub fn is_list(&self) -> bool {
-        match self {
-            Self::List(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::List(_))
     }
     pub fn is_empty(&self) -> bool {
-        match self {
-            Self::Empty(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Empty(_))
     }
 }
 
@@ -174,7 +153,7 @@ pub trait HeartbeatBuild: Sized {
 }
 
 pub trait BasicEvent: Sized {
-    fn self_id(&self) -> String; 
+    fn self_id(&self) -> String;
 }
 
 /// 空结构体，用于对应 Json 中的空 Map

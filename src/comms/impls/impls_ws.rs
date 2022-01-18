@@ -20,7 +20,7 @@ where
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
     ) -> WalleResult<()> {
-        self.ws_hooks.on_connect(&self).await;
+        self.ws_hooks.on_connect(self).await;
         let mut listener = self.broadcaster.subscribe();
         let (resp_tx, mut resp_rx) = tokio::sync::mpsc::unbounded_channel();
         loop {
@@ -29,7 +29,7 @@ where
                     match event {
                         Ok(event) => {
                             let event = serde_json::to_string(&event).unwrap();
-                            if let Err(_) = ws_stream.send(WsMsg::Text(event)).await {
+                            if ws_stream.send(WsMsg::Text(event)).await.is_err() {
                                 break;
                             }
                         }
@@ -49,14 +49,14 @@ where
                 resp = resp_rx.recv() => {
                     if let Some(resp) = resp {
                         let resp = serde_json::to_string(&resp).unwrap();
-                        if let Err(_) = ws_stream.send(WsMsg::Text(resp)).await {
+                        if ws_stream.send(WsMsg::Text(resp)).await.is_err() {
                             break;
                         }
                     }
                 }
             }
         }
-        self.ws_hooks.on_disconnect(&self).await;
+        self.ws_hooks.on_disconnect(self).await;
         Ok(())
     }
 
@@ -66,8 +66,7 @@ where
         resp_sender: &RespSender<R>,
     ) -> WalleResult<()> {
         if let WsMsg::Text(text) = ws_msg {
-            let msg: Echo<A> =
-                serde_json::from_str(&text).map_err(|e| WalleError::SerdeJsonError(e))?;
+            let msg: Echo<A> = serde_json::from_str(&text).map_err(WalleError::SerdeJsonError)?;
             let (action, echo_s) = msg.unpack();
             let sender = resp_sender.clone();
             let ob = self.clone();
@@ -92,7 +91,7 @@ where
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
-                .map_err(|e| WalleError::from(e))?;
+                .map_err(WalleError::from)?;
             info!(target: "Walle-core", "Websocket listening on {}", addr.to_string().red());
             let ob = self.clone();
             tokio::spawn(async move {

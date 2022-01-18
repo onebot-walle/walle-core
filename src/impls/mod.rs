@@ -93,7 +93,7 @@ where
         let mut rx = broadcaster.subscribe(); // avoid no receiver error
         tokio::spawn(async move {
             loop {
-                if let Err(_) = rx.recv().await {
+                if rx.recv().await.is_err() {
                     break;
                 }
             }
@@ -158,7 +158,7 @@ where
 
     fn start_heartbeat(self: &Arc<Self>) {
         let mut interval = self.config.heartbeat.interval;
-        if interval <= 0 {
+        if interval == 0 {
             interval = 4;
         }
         let ob = self.clone();
@@ -170,9 +170,7 @@ where
                 }
                 trace!(target:"Walle-core", "Heartbeating");
                 let hb = E::build_heartbeat(&ob, interval).await;
-                match ob.send_event(hb) {
-                    _ => {}
-                };
+                let _ = ob.send_event(hb);
             }
         });
     }
