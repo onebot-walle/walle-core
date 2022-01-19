@@ -4,6 +4,7 @@ use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
+#[cfg(feature = "impl")]
 use crate::Resps;
 
 mod fnt;
@@ -75,6 +76,7 @@ impl DefaultHandler {
     }
 }
 
+#[cfg(feature = "impl")]
 #[async_trait]
 impl<E, const V: u8>
     ActionHandler<
@@ -145,6 +147,7 @@ impl<A, R> EventHandler<crate::Event, A, R> for DefaultHandler {
     }
 }
 
+#[cfg(feature = "impl")]
 async fn get_version() -> crate::resp::VersionContent {
     crate::resp::VersionContent::default()
 }

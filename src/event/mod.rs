@@ -1,7 +1,9 @@
 #![doc = include_str!("README.md")]
 use serde::{Deserialize, Serialize};
 
-use crate::{ExtendedMap, MessageAlt};
+use crate::ExtendedMap;
+#[cfg(feature = "impl")]
+use crate::MessageAlt;
 
 /// OneBot 12 标准事件
 pub type Event = BaseEvent<EventContent>;
@@ -168,6 +170,7 @@ pub struct MessageContent {
     pub extra: ExtendedMap,
 }
 
+#[cfg(feature = "impl")]
 impl MessageContent {
     pub fn new_group_message_content(
         message: crate::Message,
@@ -334,7 +337,8 @@ impl crate::HeartbeatBuild for Event {
             interval,
             status: ob.get_status(),
             sub_type: "".to_string(),
-        })).await
+        }))
+        .await
     }
 }
 
