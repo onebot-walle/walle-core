@@ -38,10 +38,8 @@ thiserror = "*"
 
 [workspace]
 members = [
-    "recruit",
     "mira",
     "walle-py",
     "walle-v11",
-    "walle-actix",
     "walle-hub",
 ]
