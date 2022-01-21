@@ -71,7 +71,7 @@ pub enum ExtendedValue {
     List(Vec<ExtendedValue>),
     // key: {}
     Empty(crate::EmptyContent),
-    // key: null
+    // key: null, if key is null, it must be Option::None
     Null(Option<()>),
 }
 
@@ -113,9 +113,9 @@ impl ExtendedValue {
             _ => None,
         }
     }
-    pub fn as_null(self) -> Option<()> {
+    pub fn as_null(self) -> Option<Option<()>> {
         match self {
-            Self::Null(v) => v,
+            Self::Null(v) => Some(v),
             _ => None,
         }
     }
