@@ -49,6 +49,17 @@ macro_rules! resp_content {
 }
 
 resp_content!(SendMessageRespContent, SendMessage);
+resp_content!(Vec<Event>, LatestEvents);
+resp_content!(Vec<String>, SupportActions);
+resp_content!(StatusContent, Status);
+resp_content!(VersionContent, Version);
+resp_content!(UserInfoContent, UserInfo);
+resp_content!(Vec<UserInfoContent>, FriendList);
+resp_content!(GroupInfoContent, GroupInfo);
+resp_content!(Vec<GroupInfoContent>, GroupList);
+resp_content!(String, FileId);
+resp_content!(FileFragmentedHead, PrepareFileFragmented);
+resp_content!(Vec<u8>, TransferFileFragmented);
 
 /// ## 扩展动作响应
 ///

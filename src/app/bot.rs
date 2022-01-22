@@ -55,7 +55,7 @@ where
         limit: i64,
         timeout: i64
     );
-    action_api!(get_support_actions, GetSupportedActions, EmptyContent);
+    action_api!(get_supported_actions, GetSupportedActions, EmptyContent);
     action_api!(get_status, GetStatus, EmptyContent);
     action_api!(get_version, GetVersion, EmptyContent);
 

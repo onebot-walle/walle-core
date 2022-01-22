@@ -42,6 +42,14 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
 }
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
+    pub async fn self_id(&self) -> String {
+        self.self_id.read().await.clone()
+    }
+
+    pub fn onebot_version() -> u8 {
+        V
+    }
+
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
     }

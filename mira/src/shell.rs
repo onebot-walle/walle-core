@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use clap::{App, Arg, ArgMatches, Error};
-use tracing::{info, warn};
-use walle_core::{Message, MessageBuild};
+use colored::*;
+use tracing::info;
 
 pub(crate) struct Cache {
     pub(crate) clap: App<'static>,
@@ -28,35 +28,7 @@ impl Cache {
                 Err(e) => e.print().unwrap(),
             }
         } else {
-            if !self.user_id.is_empty() {
-                for (_, bot) in self.cli.get_bots().await.iter() {
-                    let resp = bot
-                        .send_message(
-                            "private".to_owned(),
-                            None,
-                            Some(self.user_id.clone()),
-                            Message::new().text(input.to_owned()),
-                        )
-                        .await
-                        .unwrap();
-                    info!("{:?}", resp);
-                }
-            } else if !self.group_id.is_empty() {
-                for (_, bot) in self.cli.get_bots().await.iter() {
-                    let resp = bot
-                        .send_message(
-                            "group".to_owned(),
-                            Some(self.group_id.clone()),
-                            None,
-                            Message::new().text(input.to_owned()),
-                        )
-                        .await
-                        .unwrap();
-                    info!("{:?}", resp);
-                }
-            } else {
-                warn!("no group or user id is setted");
-            }
+            self.send_message(input).await;
         }
     }
 
@@ -69,8 +41,7 @@ impl Cache {
             self.group_id = String::default();
             info!(target:"mira", "Set UserId {}", user_id);
             return;
-        }
-        if let Some(group_id) = matches
+        } else if let Some(group_id) = matches
             .subcommand_matches("set_group_id")
             .and_then(|a| a.value_of("group_id"))
         {
@@ -78,11 +49,26 @@ impl Cache {
             self.user_id = String::default();
             info!(target:"mira", "Set GroupId {}", group_id);
             return;
-        }
-        if let Some(_) = matches.subcommand_matches("bots") {
+        } else if let Some(_) = matches.subcommand_matches("bots") {
             let bots = self.cli.get_bots().await;
             for (id, _bot) in bots.iter() {
                 info!(target:"mira", "Bot {}", id);
+            }
+        } else if let Some(_) = matches.subcommand_matches("get_status") {
+            for (id, bot) in self.cli.get_bots().await.iter() {
+                info!(target:"mira", "[{}]{:?}", id.red(), bot.get_status().await);
+            }
+        } else if let Some(_) = matches.subcommand_matches("get_version") {
+            for (id, bot) in self.cli.get_bots().await {
+                info!(target: "mira", "[{}]{:?}", id, bot.get_version().await);
+            }
+        } else if let Some(_) = matches.subcommand_matches("get_supported_actions") {
+            for (id, bot) in self.cli.get_bots().await {
+                info!(target: "mira", "[{}]{:?}", id, bot.get_supported_actions().await);
+            }
+        } else if let Some(_) = matches.subcommand_matches("get_self_info") {
+            for (id, bot) in self.cli.get_bots().await {
+                info!(target: "mira", "[{}]{:?}", id, bot.get_self_info().await);
             }
         }
     }
@@ -101,6 +87,10 @@ fn build_app() -> App<'static> {
                 .about("set a glodal group_id ")
                 .arg(Arg::new("group_id").required(true)),
         )
+        .subcommand(App::new("get_status"))
+        .subcommand(App::new("get_version"))
+        .subcommand(App::new("get_supported_actions"))
+        .subcommand(App::new("get_self_info"))
         .subcommand(App::new("bots").about("show connectted bot"));
     app
 }

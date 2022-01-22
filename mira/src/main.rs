@@ -10,8 +10,11 @@ use walle_core::{
     DefaultHandler,
 };
 
+mod commands;
 mod root;
 mod shell;
+
+pub(crate) use shell::Cache;
 
 static CONFIG_FILE: &str = "mira.toml";
 
@@ -22,6 +25,9 @@ async fn main() {
         new_config_file();
         return;
     }
+    let timer = tracing_subscriber::fmt::time::LocalTime::new(time::macros::format_description!(
+        "[year repr:last_two]-[month]-[day] [hour]:[minute]:[second]"
+    ));
     let env = tracing_subscriber::EnvFilter::from(if root.trace {
         "trace"
     } else if root.debug {
@@ -29,7 +35,10 @@ async fn main() {
     } else {
         "info"
     });
-    tracing_subscriber::fmt().with_env_filter(env).init();
+    tracing_subscriber::fmt()
+        .with_env_filter(env)
+        .with_timer(timer)
+        .init();
     let config = if let Some(url) = root.ws {
         let mut config = AppConfig::empty();
         let ws = WebSocketClient {
@@ -63,7 +72,7 @@ async fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
         input = input.replace("\r", "");
-        input.remove(input.len() - 1);
+        input.remove(input.len() - 1); // remove "\n"
         if !input.is_empty() {
             cache.handle_input(&input).await
         }

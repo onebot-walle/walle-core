@@ -7,44 +7,28 @@ use crate::utils::{ExtendedMap, ExtendedValue};
 /// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
 
-// 消息段
-// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-// #[serde(tag = "type", content = "data")]
-// #[serde(rename_all = "snake_case")]
-// pub enum OldMessageSegment {
-//     Text {
-//         text: String,
-//     },
-//     Mention {
-//         user_id: String,
-//     },
-//     MentionAll,
-//     Image {
-//         file_id: String,
-//     },
-//     Voice {
-//         file_id: String,
-//     },
-//     Audio {
-//         file_id: String,
-//     },
-//     Video {
-//         file_id: String,
-//     },
-//     File {
-//         file_id: String,
-//     },
-//     Location {
-//         latitude: f64,
-//         longitude: f64,
-//         title: String,
-//         content: String,
-//     },
-//     Reply {
-//         message_id: String,
-//         user_id: String,
-//     },
-// }
+macro_rules! impl_self_build {
+    ($fname0: ident, $fname1: ident,$sub: tt) => {
+        fn $fname0(mut self, extend: ExtendedMap) -> Self {
+            self.push(MessageSegment::$sub { extend });
+            self
+        }
+        fn $fname1(mut self) -> Self {
+            self.push(MessageSegment::$sub { extend: ExtendedMap::new() });
+            self
+        }
+    };
+    ($fname0: ident, $fname1: ident,$sub: tt, $($key: ident: $key_ty: ty),*) => {
+        fn $fname0(mut self, $($key: $key_ty),*, extend: ExtendedMap) -> Self {
+            self.push(MessageSegment::$sub { $($key ,)* extend, });
+            self
+        }
+        fn $fname1(mut self, $($key: $key_ty),*) -> Self {
+            self.push(MessageSegment::$sub { $($key ,)* extend: ExtendedMap::new(), });
+            self
+        }
+    };
+}
 
 /// Message 构建 trait
 pub trait MessageBuild {
@@ -80,98 +64,30 @@ pub trait MessageBuild {
 }
 
 impl MessageBuild for Message {
-    fn text_with_extend(mut self, text: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Text { text, extend });
-        self
-    }
-    fn mention_with_extend(mut self, user_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Mention { user_id, extend });
-        self
-    }
-    fn mention_all_with_extend(mut self, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::MentionAll { extend });
-        self
-    }
-    fn file_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::File { file_id, extend });
-        self
-    }
-    fn image_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Image { file_id, extend });
-        self
-    }
-    fn voice_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Voice { file_id, extend });
-        self
-    }
-    fn audio_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Audio { file_id, extend });
-        self
-    }
-    fn video_with_extend(mut self, file_id: String, extend: ExtendedMap) -> Self {
-        self.push(MessageSegment::Video { file_id, extend });
-        self
-    }
-    fn location_with_extend(
-        mut self,
+    impl_self_build!(text_with_extend, text, Text, text: String);
+    impl_self_build!(mention_with_extend, mention, Mention, user_id: String);
+    impl_self_build!(mention_all_with_extend, mention_all, MentionAll);
+    impl_self_build!(image_with_extend, image, Image, file_id: String);
+    impl_self_build!(voice_with_extend, voice, Voice, file_id: String);
+    impl_self_build!(audio_with_extend, audio, Audio, file_id: String);
+    impl_self_build!(video_with_extend, video, Video, file_id: String);
+    impl_self_build!(file_with_extend, file, File, file_id: String);
+    impl_self_build!(
+        location_with_extend,
+        location,
+        Location,
         latitude: f64,
         longitude: f64,
         title: String,
-        content: String,
-        extend: ExtendedMap,
-    ) -> Self {
-        self.push(MessageSegment::Location {
-            latitude,
-            longitude,
-            title,
-            content,
-            extend,
-        });
-        self
-    }
-    fn reply_with_extend(
-        mut self,
+        content: String
+    );
+    impl_self_build!(
+        reply_with_extend,
+        reply,
+        Reply,
         message_id: String,
-        user_id: String,
-        extend: ExtendedMap,
-    ) -> Self {
-        self.push(MessageSegment::Reply {
-            message_id,
-            user_id,
-            extend,
-        });
-        self
-    }
-    fn text(self, text: String) -> Self {
-        self.text_with_extend(text, ExtendedMap::new())
-    }
-    fn mention(self, user_id: String) -> Self {
-        self.mention_with_extend(user_id, ExtendedMap::new())
-    }
-    fn mention_all(self) -> Self {
-        self.mention_all_with_extend(ExtendedMap::new())
-    }
-    fn image(self, file_id: String) -> Self {
-        self.image_with_extend(file_id, ExtendedMap::new())
-    }
-    fn voice(self, file_id: String) -> Self {
-        self.voice_with_extend(file_id, ExtendedMap::new())
-    }
-    fn audio(self, file_id: String) -> Self {
-        self.audio_with_extend(file_id, ExtendedMap::new())
-    }
-    fn video(self, file_id: String) -> Self {
-        self.video_with_extend(file_id, ExtendedMap::new())
-    }
-    fn file(self, file_id: String) -> Self {
-        self.file_with_extend(file_id, ExtendedMap::new())
-    }
-    fn location(self, latitude: f64, longitude: f64, title: String, content: String) -> Self {
-        self.location_with_extend(latitude, longitude, title, content, ExtendedMap::new())
-    }
-    fn reply(self, message_id: String, user_id: String) -> Self {
-        self.reply_with_extend(message_id, user_id, ExtendedMap::new())
-    }
+        user_id: String
+    );
     fn custom(mut self, ty: String, data: ExtendedMap) -> Self {
         self.push(MessageSegment::Custom { ty, data });
         self
@@ -189,49 +105,6 @@ impl MessageAlt for Message {
             alt.push_str(&seg.alt())
         }
         alt
-    }
-}
-
-impl MessageAlt for MessageSegment {
-    fn alt(&self) -> String {
-        match self {
-            Self::Text { text, extend: _ } => text.to_owned(),
-            Self::Mention { user_id, extend: _ } => format!("[Mention={}]", user_id),
-            Self::MentionAll { extend: _ } => "[MentionAll]".to_owned(),
-            Self::Image {
-                file_id: _,
-                extend: _,
-            } => "[Image]".to_owned(),
-            Self::Voice {
-                file_id: _,
-                extend: _,
-            } => "[Voice]".to_owned(),
-            Self::Audio {
-                file_id: _,
-                extend: _,
-            } => "[Audio]".to_owned(),
-            Self::Video {
-                file_id: _,
-                extend: _,
-            } => "[Video]".to_owned(),
-            Self::File {
-                file_id: _,
-                extend: _,
-            } => "[File]".to_owned(),
-            Self::Location {
-                latitude: _,
-                longitude: _,
-                title: _,
-                content: _,
-                extend: _,
-            } => "[Location]".to_owned(),
-            Self::Reply {
-                message_id: _,
-                user_id,
-                extend: _,
-            } => format!("[Reply={}]", user_id),
-            Self::Custom { ty, data: _ } => format!("[{}]", ty),
-        }
     }
 }
 
@@ -285,6 +158,108 @@ pub enum MessageSegment {
         ty: String,
         data: ExtendedMap,
     },
+}
+
+macro_rules! impl_build {
+    ($fname0: ident, $fname1: ident,$sub: tt) => {
+        pub fn $fname0(extend: ExtendedMap) -> Self {
+            Self::$sub {
+                extend,
+            }
+        }
+        pub fn $fname1() -> Self {
+            Self::$sub {
+                extend: ExtendedMap::new(),
+            }
+        }
+    };
+    ($fname0: ident, $fname1: ident,$sub: tt, $($key: ident: $key_ty: ty),*) => {
+        pub fn $fname0($($key: $key_ty),*, extend: ExtendedMap) -> Self {
+            Self::$sub {
+                $($key,)*
+                extend,
+            }
+        }
+        pub fn $fname1($($key: $key_ty),*) -> Self {
+            Self::$sub {
+                $($key,)*
+                extend: ExtendedMap::new(),
+            }
+        }
+    };
+}
+
+impl MessageSegment {
+    impl_build!(text_with_extend, text, Text, text: String);
+    impl_build!(mention_with_extend, mention, Mention, user_id: String);
+    impl_build!(mention_all_with_extend, mention_all, MentionAll);
+    impl_build!(image_with_extend, image, Image, file_id: String);
+    impl_build!(voice_with_extend, voice, Voice, file_id: String);
+    impl_build!(audio_with_extend, audio, Audio, file_id: String);
+    impl_build!(video_with_extend, video, Video, file_id: String);
+    impl_build!(file_with_extend, file, File, file_id: String);
+    impl_build!(
+        location_with_extend,
+        location,
+        Location,
+        latitude: f64,
+        longitude: f64,
+        title: String,
+        content: String
+    );
+    impl_build!(
+        reply_with_extend,
+        reply,
+        Reply,
+        message_id: String,
+        user_id: String
+    );
+    pub fn custom(ty: String, data: ExtendedMap) -> Self {
+        Self::Custom { ty, data }
+    }
+}
+
+impl MessageAlt for MessageSegment {
+    fn alt(&self) -> String {
+        match self {
+            Self::Text { text, extend: _ } => text.to_owned(),
+            Self::Mention { user_id, extend: _ } => format!("[Mention={}]", user_id),
+            Self::MentionAll { extend: _ } => "[MentionAll]".to_owned(),
+            Self::Image {
+                file_id: _,
+                extend: _,
+            } => "[Image]".to_owned(),
+            Self::Voice {
+                file_id: _,
+                extend: _,
+            } => "[Voice]".to_owned(),
+            Self::Audio {
+                file_id: _,
+                extend: _,
+            } => "[Audio]".to_owned(),
+            Self::Video {
+                file_id: _,
+                extend: _,
+            } => "[Video]".to_owned(),
+            Self::File {
+                file_id: _,
+                extend: _,
+            } => "[File]".to_owned(),
+            Self::Location {
+                latitude: _,
+                longitude: _,
+                title: _,
+                content: _,
+                extend: _,
+            } => "[Location]".to_owned(),
+            Self::Reply {
+                message_id: _,
+                user_id,
+                extend: _,
+            } => format!("[Reply={}]", user_id),
+            Self::Custom { ty, data: _ } => format!("[{}]", ty),
+        }
+    }
 }
 
 impl Serialize for MessageSegment {
