@@ -69,7 +69,10 @@ pub enum ExtendedValue {
     Bool(bool),
     Map(HashMap<String, ExtendedValue>),
     List(Vec<ExtendedValue>),
+    // key: {}
     Empty(crate::EmptyContent),
+    // key: null, if key is null, it must be Option::None
+    Null(Option<()>),
 }
 
 #[allow(dead_code)]
@@ -110,6 +113,12 @@ impl ExtendedValue {
             _ => None,
         }
     }
+    pub fn as_null(self) -> Option<Option<()>> {
+        match self {
+            Self::Null(v) => Some(v),
+            _ => None,
+        }
+    }
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
     }
@@ -130,6 +139,9 @@ impl ExtendedValue {
     }
     pub fn is_empty(&self) -> bool {
         matches!(self, Self::Empty(_))
+    }
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null(_))
     }
 }
 
