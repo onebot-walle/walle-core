@@ -3,15 +3,15 @@ use crate::{
         Event as v11Event, EventContent as v11Content, MessageContent as v11MsgContent, MessageSub,
         MetaContent as v11Meta,
     },
-    message::Message as v11Msg,
     utils::{GroupSender, PrivateSender},
 };
 use std::str::FromStr;
 use walle_core::{
-    Event as v12Event, EventContent as v12Content, ExtendedMap, MessageEventType, MetaContent as v12Meta,
+    Event as v12Event, EventContent as v12Content, ExtendedMap, MessageEventType,
+    MetaContent as v12Meta,
 };
 
-use super::{message::MsgParse, WalleParseError};
+use super::WalleParseError;
 
 impl TryFrom<v12Event> for v11Event {
     type Error = WalleParseError;
@@ -19,7 +19,6 @@ impl TryFrom<v12Event> for v11Event {
     fn try_from(event: v12Event) -> Result<Self, Self::Error> {
         let self_id = i64::from_str(&event.self_id).map_err(|e| WalleParseError::Id(e))?;
         match event.content {
-
             v12Content::Message(msg) => Ok(v11Event {
                 time: event.time as i64,
                 self_id,
@@ -27,7 +26,7 @@ impl TryFrom<v12Event> for v11Event {
                     message_id: i32::from_str(&msg.message_id)
                         .map_err(|e| WalleParseError::Id(e))?,
                     user_id: i64::from_str(&msg.user_id).map_err(|e| WalleParseError::Id(e))?,
-                    message: v11Msg::msg_try_from(msg.message)?,
+                    message: super::message::try_parse(msg.message)?,
                     raw_message: msg.alt_message,
                     font: 0,
                     sub: match msg.ty {

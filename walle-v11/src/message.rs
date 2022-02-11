@@ -56,31 +56,9 @@ pub enum MessageSegment {
     Reply {
         id: String,
     }, // todo
-
     Node {
         user_id: String,
         nickname: String,
         content: Vec<Self>,
     },
-}
-
-pub trait MessageTo12 {
-    fn to_12(self) -> walle_core::Message;
-}
-
-impl MessageTo12 for Message {
-    fn to_12(self) -> walle_core::Message {
-        // walle_core::Message::new()
-        todo!()
-    }
-}
-
-pub trait MessageTo11 {
-    fn to_11(self) -> Message;
-}
-
-impl MessageTo11 for walle_core::Message {
-    fn to_11(self) -> Message {
-        todo!()
-    }
 }

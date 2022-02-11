@@ -169,3 +169,18 @@ impl BasicEvent for Event {
         self.self_id.to_string()
     }
 }
+
+macro_rules! impl_from {
+    ($sub: tt, $sub_ty: ty) => {
+        impl From<$sub_ty> for EventContent {
+            fn from(sub: $sub_ty) -> Self {
+                EventContent::$sub(sub)
+            }
+        }
+    };
+}
+
+impl_from!(Message, MessageContent);
+impl_from!(Notice, NoticeContent);
+impl_from!(Request, RequestContent);
+impl_from!(MetaEvent, MetaContent);

@@ -1,30 +1,6 @@
-use crate::message::{Message as v11Msg, MessageSegment as v11MsgSeg};
-use walle_core::{ExtendedMap, ExtendedValue, Message as v12Msg, MessageSegment as v12MsgSeg};
-
-pub trait MsgParse: Sized {
-    fn msg_try_from(_: v12Msg) -> Result<Self, super::WalleParseError>;
-    fn msg_try_into(self) -> Result<v12Msg, super::WalleParseError>;
-}
-
-impl MsgParse for v11Msg {
-    fn msg_try_from(value: v12Msg) -> Result<Self, super::WalleParseError> {
-        let mut v = vec![];
-        for seg in value {
-            let seg = v11MsgSeg::try_from(seg)?;
-            v.push(seg);
-        }
-        Ok(v)
-    }
-
-    fn msg_try_into(self) -> Result<v12Msg, super::WalleParseError> {
-        let mut v = vec![];
-        for seg in self {
-            let seg = seg.try_into()?;
-            v.push(seg);
-        }
-        Ok(v)
-    }
-}
+use super::WalleParseError;
+use crate::message::MessageSegment as v11MsgSeg;
+use walle_core::{ExtendedMap, ExtendedValue, MessageSegment as v12MsgSeg};
 
 impl TryFrom<v12MsgSeg> for v11MsgSeg {
     type Error = super::WalleParseError;
@@ -39,8 +15,8 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             v12MsgSeg::Voice { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Audio { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }), //?
-            v12MsgSeg::File { .. } => Err(super::WalleParseError::MessageSegment(
-                "OneBot v11 don't support file message segment",
+            v12MsgSeg::File { .. } => Err(WalleParseError::msg_seg(
+                "OneBot v11 don't support file message segment".to_owned(),
             )),
             v12MsgSeg::Location {
                 latitude,
@@ -59,7 +35,25 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
                 },
             }),
             v12MsgSeg::Reply { message_id, .. } => Ok(v11MsgSeg::Reply { id: message_id }),
-            v12MsgSeg::Custom { .. } => todo!(),
+            v12MsgSeg::Custom { ty, mut data } => match ty.as_str() {
+                "v11.face" => {
+                    let file = try_remove_str_from_extra_map(&mut data, "file", &ty)?;
+                    Ok(v11MsgSeg::Face { file })
+                }
+                "v11.rps" => Ok(v11MsgSeg::Rps),
+                "v11.dice" => Ok(v11MsgSeg::Dice),
+                "v11.shake" => Ok(v11MsgSeg::Shake),
+                "v11.anonymous" => Ok(v11MsgSeg::Anonymous),
+                "v11.share" => {
+                    let url = try_remove_str_from_extra_map(&mut data, "url", &ty)?;
+                    let title = try_remove_str_from_extra_map(&mut data, "title", &ty)?;
+                    Ok(v11MsgSeg::Share { url, title })
+                }
+                _ => Err(WalleParseError::msg_seg(format!(
+                    "OneBot v11 don't support custom message segment type {}",
+                    ty
+                ))),
+            },
         }
     }
 }
@@ -149,4 +143,28 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
             _ => todo!(),
         }
     }
+}
+
+pub fn try_parse<A, B>(a: Vec<A>) -> Result<Vec<B>, WalleParseError>
+where
+    B: TryFrom<A, Error = WalleParseError>,
+{
+    a.into_iter().map(|x| B::try_from(x)).collect()
+}
+
+pub fn try_remove_str_from_extra_map(
+    map: &mut ExtendedMap,
+    key: &str,
+    ty: &str,
+) -> Result<String, WalleParseError> {
+    map.remove(key)
+        .ok_or(WalleParseError::msg_seg(format!(
+            "{} MessageSegment field {}",
+            ty, key
+        )))?
+        .as_str()
+        .ok_or(WalleParseError::msg_seg(format!(
+            "{} MessageSegment field {} is not string",
+            ty, key
+        )))
 }
