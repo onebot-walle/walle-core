@@ -11,10 +11,19 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             v12MsgSeg::MentionAll { .. } => Ok(v11MsgSeg::At {
                 qq: "all".to_owned(),
             }),
-            v12MsgSeg::Image { file_id, .. } => Ok(v11MsgSeg::Image { file: file_id }), //?
+            v12MsgSeg::Image {
+                file_id,
+                mut extend,
+            } => Ok(v11MsgSeg::Image {
+                file: if let Ok(url) = try_remove_from_extra_map(&mut extend, "url", "image") {
+                    url
+                } else {
+                    file_id
+                },
+            }), //?
             v12MsgSeg::Voice { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Audio { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
-            v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }), //?
+            v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }),  //?
             v12MsgSeg::File { .. } => Err(WalleParseError::Other(
                 "OneBot v11 don't support file message segment".to_owned(),
             )),
@@ -36,15 +45,22 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             }),
             v12MsgSeg::Reply { message_id, .. } => Ok(v11MsgSeg::Reply { id: message_id }),
             v12MsgSeg::Custom { ty, mut data } => match ty.as_str() {
-                "v11.face" => {
+                "face" => {
                     let file = try_remove_from_extra_map(&mut data, "file", &ty)?;
                     Ok(v11MsgSeg::Face { file })
                 }
-                "v11.rps" => Ok(v11MsgSeg::Rps),
-                "v11.dice" => Ok(v11MsgSeg::Dice),
-                "v11.shake" => Ok(v11MsgSeg::Shake),
-                "v11.anonymous" => Ok(v11MsgSeg::Anonymous),
-                "v11.share" => {
+                "rps" => Ok(v11MsgSeg::Rps {
+                    value: try_remove_from_extra_map(&mut data, "value", &ty)?,
+                }),
+                "dice" => Ok(v11MsgSeg::Dice {
+                    value: try_remove_from_extra_map(&mut data, "value", &ty)?,
+                }),
+                "json" => Ok(v11MsgSeg::Json {
+                    data: try_remove_from_extra_map(&mut data, "data", &ty)?,
+                }),
+                "shake" => Ok(v11MsgSeg::Shake),
+                "anonymous" => Ok(v11MsgSeg::Anonymous),
+                "share" => {
                     let url = try_remove_from_extra_map(&mut data, "url", &ty)?;
                     let title = try_remove_from_extra_map(&mut data, "title", &ty)?;
                     Ok(v11MsgSeg::Share { url, title })
@@ -67,12 +83,12 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
                 extend: ExtendedMap::default(),
             }),
             v11MsgSeg::Face { file } => Ok(v12MsgSeg::Custom {
-                ty: "v11.face".to_owned(),
-                data: [("file".to_owned(), ExtendedValue::Str(file))].into(),
+                ty: "face".to_owned(),
+                data: [("file".to_owned(), file.into())].into(),
             }),
             v11MsgSeg::Image { file } => Ok(v12MsgSeg::Image {
-                file_id: file,
-                extend: ExtendedMap::default(),
+                file_id: file.clone(),
+                extend: [("url".to_owned(), file.into())].into(),
             }),
             v11MsgSeg::Record { file } => Ok(v12MsgSeg::Voice {
                 file_id: file,
@@ -86,28 +102,28 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
                 user_id: qq,
                 extend: ExtendedMap::default(),
             }),
-            v11MsgSeg::Rps => Ok(v12MsgSeg::Custom {
-                ty: "v11.rps".to_owned(),
-                data: ExtendedMap::default(),
+            v11MsgSeg::Rps { value } => Ok(v12MsgSeg::Custom {
+                ty: "rps".to_owned(),
+                data: [("value".to_owned(), value.into())].into(),
             }),
-            v11MsgSeg::Dice => Ok(v12MsgSeg::Custom {
-                ty: "v11.dice".to_owned(),
-                data: ExtendedMap::default(),
+            v11MsgSeg::Dice { value } => Ok(v12MsgSeg::Custom {
+                ty: "dice".to_owned(),
+                data: [("value".to_owned(), value.into())].into(),
             }),
             v11MsgSeg::Shake => Ok(v12MsgSeg::Custom {
-                ty: "v11.shake".to_owned(),
+                ty: "shake".to_owned(),
                 data: ExtendedMap::default(),
             }),
             v11MsgSeg::Poke { ty, id } => Ok(v12MsgSeg::Custom {
-                ty: format!("v11.poke.{}", ty),
+                ty: format!("poke.{}", ty),
                 data: [("id".to_owned(), ExtendedValue::Str(id))].into(),
             }),
             v11MsgSeg::Anonymous => Ok(v12MsgSeg::Custom {
-                ty: "v11.anonymous".to_owned(),
+                ty: "anonymous".to_owned(),
                 data: ExtendedMap::default(),
             }),
             v11MsgSeg::Share { url, title } => Ok(v12MsgSeg::Custom {
-                ty: "v11.share".to_owned(),
+                ty: "share".to_owned(),
                 data: [
                     ("url".to_owned(), ExtendedValue::Str(url)),
                     ("title".to_owned(), ExtendedValue::Str(title)),
@@ -115,7 +131,7 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
                 .into(),
             }),
             v11MsgSeg::Contact { ty, id } => Ok(v12MsgSeg::Custom {
-                ty: format!("v11.contact.{}", ty),
+                ty: format!("contact.{}", ty),
                 data: [("id".to_owned(), ExtendedValue::Str(id))].into(),
             }),
             v11MsgSeg::Location {
@@ -131,13 +147,17 @@ impl TryInto<v12MsgSeg> for v11MsgSeg {
                 extend: ExtendedMap::default(),
             }),
             v11MsgSeg::Music { ty, id } => Ok(v12MsgSeg::Custom {
-                ty: format!("v11.music.{}", ty),
+                ty: format!("music.{}", ty),
                 data: [("id".to_owned(), ExtendedValue::Str(id.unwrap_or_default()))].into(),
             }),
             v11MsgSeg::Reply { id } => Ok(v12MsgSeg::Reply {
                 message_id: id,
                 user_id: "".to_owned(),
                 extend: ExtendedMap::default(),
+            }),
+            v11MsgSeg::Json { data } => Ok(v12MsgSeg::Custom {
+                ty: "json".to_owned(),
+                data: [("data".to_owned(), data.into())].into(),
             }),
 
             _ => todo!(),

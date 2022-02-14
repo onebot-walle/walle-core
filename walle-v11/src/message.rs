@@ -24,8 +24,12 @@ pub enum MessageSegment {
     At {
         qq: String,
     },
-    Rps,
-    Dice,
+    Rps {
+        value: i64,
+    },
+    Dice {
+        value: i64,
+    },
     Shake,
     Poke {
         #[serde(rename = "type")]
@@ -60,5 +64,8 @@ pub enum MessageSegment {
         user_id: String,
         nickname: String,
         content: Vec<Self>,
+    },
+    Json {
+        data: String,
     },
 }
