@@ -276,3 +276,14 @@ fn message() {
     println!("{:?}\n{:?}", text, loc);
     println!("{}", serde_json::to_string(&location).unwrap())
 }
+
+#[test]
+fn extendedmap_test() {
+    use crate::{ExtendedMap, ExtendedValue};
+    let mut map = ExtendedMap::new();
+    map.insert("key1".to_owned(), ExtendedValue::Null);
+    println!("{}", serde_json::to_string(&map).unwrap());
+    let d = r#"{"key":{}}"#;
+    let map: ExtendedMap = serde_json::from_str(d).unwrap();
+    println!("{:?}", map);
+}

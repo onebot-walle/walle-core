@@ -35,6 +35,12 @@ pub enum WalleError {
     /// Running Time Error
     #[error("OneBot is already running")]
     AlreadyRunning,
+
+    // ExtendedMap
+    #[error("ExtendedMap missed key: {0}")]
+    MapMissedKey(String),
+    #[error("ExtendedMap value type mismatch: expect {0}, got {1}")]
+    MapValueTypeMismatch(String, String),
 }
 
 pub(crate) trait WalleLogExt: Sized {

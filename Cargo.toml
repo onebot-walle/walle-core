@@ -14,13 +14,12 @@ rustdoc-args = ["--cfg", "docsrs"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-qq = []
 http = ["hyper"]
 websocket = ["tokio-tungstenite"]
 app = []
 impl = ["uuid"]
 v11 = []
-full = ["qq", "http", "websocket", "app", "impl"]
+full = ["http", "websocket", "app", "impl"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -37,9 +36,4 @@ futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "*"
 
 [workspace]
-members = [
-    "mira",
-    "walle-py",
-    "walle-v11",
-    "walle-hub",
-]
+members = ["mira", "walle-py", "walle-v11", "walle-hub"]

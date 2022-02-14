@@ -402,7 +402,7 @@ impl<'de> Visitor<'de> for MSVister {
             A: serde::de::MapAccess<'de>,
         {
             map.remove(key_word)
-                .and_then(|v| v.as_str())
+                .and_then(|v| v.downcast_str().ok())
                 .ok_or_else(|| serde::de::Error::missing_field(key_word))
         }
 
@@ -467,11 +467,11 @@ impl<'de> Visitor<'de> for MSVister {
             "location" => {
                 let latitude = data
                     .remove("latitude")
-                    .and_then(|v| v.as_f64())
+                    .and_then(|v| v.downcast_f64().ok())
                     .ok_or_else(|| serde::de::Error::missing_field("latitude"))?;
                 let longitude = data
                     .remove("longitude")
-                    .and_then(|v| v.as_f64())
+                    .and_then(|v| v.downcast_f64().ok())
                     .ok_or_else(|| serde::de::Error::missing_field("longitude"))?;
                 let title = get_data::<A>(&mut data, "title")?;
                 let content = get_data::<A>(&mut data, "content")?;

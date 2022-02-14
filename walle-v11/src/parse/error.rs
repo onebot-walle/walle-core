@@ -4,16 +4,15 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum WalleParseError {
-    #[error("Parse MessageSegment failed: {0}")]
-    MessageSegment(String),
+    #[error("MessageSegment {0} missed field {1}")]
+    MsgSegMissedField(String, String),
+    #[error("MessageSegment {0} field {1} type mismatch: expect {2}, got {3}")]
+    MsgSegFieldTypeMismatch(String, String, String, String),
+
     #[error("Parse id failed: {0}")]
     Id(ParseIntError),
-    #[error("Todo, {0} not support yet")]
+    #[error("{0} not support yet")]
     Todo(&'static str),
-}
-
-impl WalleParseError {
-    pub fn msg_seg(msg: String) -> Self {
-        Self::MessageSegment(msg)
-    }
+    #[error("{0}")]
+    Other(String),
 }

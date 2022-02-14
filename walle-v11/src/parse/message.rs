@@ -15,7 +15,7 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             v12MsgSeg::Voice { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Audio { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }), //?
-            v12MsgSeg::File { .. } => Err(WalleParseError::msg_seg(
+            v12MsgSeg::File { .. } => Err(WalleParseError::Other(
                 "OneBot v11 don't support file message segment".to_owned(),
             )),
             v12MsgSeg::Location {
@@ -37,7 +37,7 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             v12MsgSeg::Reply { message_id, .. } => Ok(v11MsgSeg::Reply { id: message_id }),
             v12MsgSeg::Custom { ty, mut data } => match ty.as_str() {
                 "v11.face" => {
-                    let file = try_remove_str_from_extra_map(&mut data, "file", &ty)?;
+                    let file = try_remove_from_extra_map(&mut data, "file", &ty)?;
                     Ok(v11MsgSeg::Face { file })
                 }
                 "v11.rps" => Ok(v11MsgSeg::Rps),
@@ -45,11 +45,11 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
                 "v11.shake" => Ok(v11MsgSeg::Shake),
                 "v11.anonymous" => Ok(v11MsgSeg::Anonymous),
                 "v11.share" => {
-                    let url = try_remove_str_from_extra_map(&mut data, "url", &ty)?;
-                    let title = try_remove_str_from_extra_map(&mut data, "title", &ty)?;
+                    let url = try_remove_from_extra_map(&mut data, "url", &ty)?;
+                    let title = try_remove_from_extra_map(&mut data, "title", &ty)?;
                     Ok(v11MsgSeg::Share { url, title })
                 }
-                _ => Err(WalleParseError::msg_seg(format!(
+                _ => Err(WalleParseError::Other(format!(
                     "OneBot v11 don't support custom message segment type {}",
                     ty
                 ))),
@@ -152,19 +152,20 @@ where
     a.into_iter().map(|x| B::try_from(x)).collect()
 }
 
-pub fn try_remove_str_from_extra_map(
+pub fn try_remove_from_extra_map<T>(
     map: &mut ExtendedMap,
     key: &str,
     ty: &str,
-) -> Result<String, WalleParseError> {
-    map.remove(key)
-        .ok_or(WalleParseError::msg_seg(format!(
-            "{} MessageSegment field {}",
-            ty, key
-        )))?
-        .as_str()
-        .ok_or(WalleParseError::msg_seg(format!(
-            "{} MessageSegment field {} is not string",
-            ty, key
-        )))
+) -> Result<T, WalleParseError>
+where
+    T: TryFrom<ExtendedValue, Error = ExtendedValue>,
+{
+    use walle_core::{ExtendedMapExt, WalleError};
+    map.try_remove(key).map_err(|e| match e {
+        WalleError::MapMissedKey(k) => WalleParseError::MsgSegMissedField(ty.to_string(), k),
+        WalleError::MapValueTypeMismatch(e, g) => {
+            WalleParseError::MsgSegFieldTypeMismatch(ty.to_owned(), key.to_owned(), e, g)
+        }
+        _ => unreachable!(),
+    })
 }
