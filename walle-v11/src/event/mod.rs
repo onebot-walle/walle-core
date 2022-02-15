@@ -3,7 +3,7 @@ use walle_core::{BasicEvent, ExtendedMap};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
-    pub time: i64,
+    pub time: u64,
     pub self_id: i64,
     #[serde(flatten)]
     pub content: EventContent,

@@ -174,13 +174,14 @@ pub struct MessageContent {
 impl MessageContent {
     pub fn new_group_message_content(
         message: crate::Message,
+        message_id: String,
         user_id: String,
         group_id: String,
         extra: ExtendedMap,
     ) -> Self {
         Self {
             ty: MessageEventType::Group { group_id },
-            message_id: crate::utils::new_uuid(),
+            message_id,
             alt_message: message.alt(),
             message,
             user_id,
@@ -191,12 +192,13 @@ impl MessageContent {
 
     pub fn new_private_message_content(
         message: crate::Message,
+        message_id: String,
         user_id: String,
         extra: ExtendedMap,
     ) -> Self {
         Self {
             ty: MessageEventType::Private,
-            message_id: crate::utils::new_uuid(),
+            message_id,
             alt_message: message.alt(),
             message,
             user_id,
@@ -333,11 +335,14 @@ impl crate::HeartbeatBuild for Event {
         ob: &crate::impls::CustomOneBot<Self, A, R, V>,
         interval: u32,
     ) -> Self {
-        ob.new_event(EventContent::Meta(MetaContent::Heartbeat {
-            interval,
-            status: ob.get_status(),
-            sub_type: "".to_string(),
-        }))
+        ob.new_event(
+            EventContent::Meta(MetaContent::Heartbeat {
+                interval,
+                status: ob.get_status(),
+                sub_type: "".to_string(),
+            }),
+            crate::utils::timestamp(),
+        )
         .await
     }
 }

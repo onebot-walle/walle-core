@@ -2,7 +2,7 @@ mod map;
 pub use map::*;
 
 #[cfg(feature = "impl")]
-pub(crate) fn timestamp() -> u64 {
+pub fn timestamp() -> u64 {
     use std::time;
 
     time::SystemTime::now()
