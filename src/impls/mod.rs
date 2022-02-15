@@ -32,7 +32,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: ImplConfig,
     pub broadcaster: CustomEventBroadcaster<E>,
 
-    pub(crate) action_handler: ArcActionHandler<A, R, Self>,
+    pub action_handler: ArcActionHandler<A, R, Self>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,

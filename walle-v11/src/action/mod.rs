@@ -1,59 +1,123 @@
 use crate::message::Message;
 use serde::{Deserialize, Serialize};
+use walle_core::ExtendedMap;
 mod resp;
 
 pub use resp::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "action", content = "params", rename_all = "snake_case")]
 pub enum Action {
-    SendPrivateMessage {
-        user_id: i32,
+    SendPrivateMsg {
+        user_id: i64,
         message: Message,
         auto_escape: bool,
     },
-    SendGroupMessage {
-        group_id: i32,
+    SendGroupMsg {
+        group_id: i64,
         message: Message,
         auto_escape: bool,
     },
-    SendMessage {
+    SendGroupForwardMsg {
+        group_id: i64,
+        message: Message,
+    },
+    SendMsg {
         message_type: String,
-        user_id: Option<i32>,
-        group_id: Option<i32>,
+        user_id: Option<i64>,
+        group_id: Option<i64>,
         message: Message,
+        #[serde(default)]
         auto_escape: bool,
     },
-    /// 撤回消息
-    /// 
-    /// - message_id: 消息id
-    /// 
-    /// return None
     DeleteMsg {
         message_id: i32,
     },
-    /// 获取消息
-    ///
-    /// - message_id: 消息id
-    ///
-    /// return `Resp<RespContent::MessageDetail>`
     GetMsg {
         message_id: i32,
     },
-    /// 获取合并转发消息
-    ///
-    /// - id: 合并转发 ID
-    ///
-    /// return `Resp<RespContent::NodeMessage>`
     GetForwardMsg {
-        id: String,
+        message_id: String,
     },
-    /// 发送好友赞
-    ///
-    /// - user_id: 对方 QQ 号
-    /// - times: 赞次数，每个好友每天最多 10 次
-    ///
-    /// return `None`
+    GetImage {
+        file: String,
+    },
+    SetGroupKick {
+        group_id: i64,
+        user_id: i64,
+        reject_add_request: bool,
+    },
+    SetGroupBan {
+        group_id: i64,
+        user_id: i64,
+        duration: i64,
+    },
+    // SetGroupAnonymousBan {
+    //     group_id: i64,
+    //     flag: bool,
+    // },
+    SetGroupWholeBan {
+        group_id: i64,
+        enable: bool,
+    },
+    SetGroupAdmin {
+        group_id: i64,
+        user_id: i64,
+        enable: bool,
+    },
+    SetGroupCard {
+        group_id: i64,
+        user_id: i64,
+        card: String,
+    },
+    SetGroupName {
+        group_id: i64,
+        name: String,
+    },
+    SetGroupLeave {
+        group_id: i64,
+        is_dismiss: bool,
+    },
+    SetGroupSpecialTitle {
+        group_id: i64,
+        user_id: i64,
+        special_title: String,
+        duration: i64,
+    },
+    SetFriendAddRequest {
+        flag: bool,
+        approve: bool,
+        remark: String,
+    },
+    SetGroupAddRequest {
+        flag: bool,
+        approve: bool,
+        sub_type: String,
+        reason: String,
+    },
+    GetLoginInfo(ExtendedMap),
+    GetStrangerInfo {
+        user_id: i64,
+        no_cache: bool,
+    },
+    GetFriendList(ExtendedMap),
+    DeleteFriend {
+        friend_id: i64,
+    },
+    GetGroupInfo {
+        group_id: i64,
+        no_cache: bool,
+    },
+    GetGroupList(ExtendedMap),
+    GetGroupMemberInfo {
+        group_id: i64,
+        user_id: i64,
+        no_cache: bool,
+    },
+    GetGroupMemberList {
+        group_id: i64,
+    },
+    GetVersionInfo(ExtendedMap),
     SendLike {
         user_id: i64,
         times: u8,

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 /// OneBot 实现端设置项
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ImplConfig {
     pub heartbeat: Heartbeat,
     pub http: Vec<Http>,
@@ -27,7 +27,7 @@ impl Default for ImplConfig {
 /// OneBot 心跳设置
 ///
 /// 间隔为 0 则默认为 4
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Heartbeat {
     pub enabled: bool,
     pub interval: u32,

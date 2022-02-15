@@ -66,7 +66,10 @@ where
         resp_sender: &RespSender<R>,
     ) -> WalleResult<()> {
         if let WsMsg::Text(text) = ws_msg {
-            let msg: Echo<A> = serde_json::from_str(&text).map_err(WalleError::SerdeJsonError)?;
+            let msg: Echo<A> = serde_json::from_str(&text).map_err(|e| {
+                tracing::warn!(target: "Walle-core","json deserialize failed: {:?}", text);
+                WalleError::from(e)
+            })?;
             let (action, echo_s) = msg.unpack();
             let sender = resp_sender.clone();
             let ob = self.clone();

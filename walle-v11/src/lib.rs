@@ -1,3 +1,5 @@
+#![feature(associated_type_defaults)]
+
 mod action;
 pub mod app;
 mod event;

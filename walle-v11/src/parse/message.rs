@@ -189,3 +189,14 @@ where
         _ => unreachable!(),
     })
 }
+
+pub trait MessageParseExt<T> {
+    type Error = WalleParseError;
+    fn try_parse(self) -> Result<T, Self::Error>;
+}
+
+impl MessageParseExt<walle_core::Message> for crate::Message {
+    fn try_parse(self) -> Result<walle_core::Message, WalleParseError> {
+        self.into_iter().map(|s| s.try_into()).collect()
+    }
+}

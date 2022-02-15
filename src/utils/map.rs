@@ -114,6 +114,10 @@ impl<'de> Visitor<'de> for ValueVisitor {
         Ok(ExtendedValue::Int(v))
     }
 
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+        Ok(ExtendedValue::Int(v as i64))
+    }
+
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E> {
         Ok(ExtendedValue::F64(v))
     }
@@ -145,13 +149,6 @@ impl<'de> Visitor<'de> for ValueVisitor {
             map.insert(key, value);
         }
         Ok(ExtendedValue::Map(map))
-    }
-
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Deserialize::deserialize(deserializer)
     }
 
     fn visit_none<E>(self) -> Result<Self::Value, E>

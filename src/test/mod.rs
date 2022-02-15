@@ -283,7 +283,7 @@ fn extendedmap_test() {
     let mut map = ExtendedMap::new();
     map.insert("key1".to_owned(), ExtendedValue::Null);
     println!("{}", serde_json::to_string(&map).unwrap());
-    let d = r#"{"key":{}}"#;
+    let d = r#"{"key":3}"#;
     let map: ExtendedMap = serde_json::from_str(d).unwrap();
     println!("{:?}", map);
 }

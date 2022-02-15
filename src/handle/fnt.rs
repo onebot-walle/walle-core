@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde::{de::DeserializeOwned, Serialize};
@@ -6,11 +8,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::app::ArcBot;
 
 #[async_trait]
-impl<A, R, F, OB> super::ActionHandler<A, R, OB> for F
+impl<A, R, F, OB> super::ActionHandler<A, R, OB> for Arc<F>
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
-    F: Fn(A) -> BoxFuture<'static, Result<R, R>> + Sync + Send + 'static,
+    F: Fn(A) -> BoxFuture<'static, Result<R, R>> + Send + Sync + 'static,
     OB: Sync,
 {
     async fn handle(&self, action: A, _ob: &OB) -> Result<R, R> {
