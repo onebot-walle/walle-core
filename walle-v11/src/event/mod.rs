@@ -192,7 +192,10 @@ impl HeartbeatBuild for Event {
         interval: u32,
     ) -> Self {
         Event {
-            time: walle_core::timestamp(),
+            time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
             self_id: ob.self_id().await.parse().unwrap(),
             content: EventContent::MetaEvent(MetaContent::Heartbeat {
                 status: ob.get_status(),

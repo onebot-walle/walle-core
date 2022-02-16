@@ -15,14 +15,14 @@ pub type Event = BaseEvent<EventContent>;
 /// **事件**是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
 ///
 /// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BaseEvent<T> {
     pub id: String,
     #[serde(rename = "impl")]
     pub r#impl: String,
     pub platform: String,
     pub self_id: String,
-    pub time: u64,
+    pub time: f64,
     #[serde(flatten)]
     pub content: T,
 }
@@ -341,7 +341,7 @@ impl crate::HeartbeatBuild for Event {
                 status: ob.get_status(),
                 sub_type: "".to_string(),
             }),
-            crate::utils::timestamp(),
+            crate::utils::timestamp_nano_f64(),
         )
         .await
     }

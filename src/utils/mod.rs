@@ -1,23 +1,17 @@
 mod map;
 pub use map::*;
 
-#[cfg(feature = "impl")]
-pub fn timestamp() -> u64 {
-    use std::time;
-
-    time::SystemTime::now()
-        .duration_since(time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-}
-
-fn timestamp_nano() -> u128 {
+pub fn timestamp_nano() -> u128 {
     use std::time;
 
     time::SystemTime::now()
         .duration_since(time::UNIX_EPOCH)
         .unwrap()
         .as_nanos()
+}
+
+pub fn timestamp_nano_f64() -> f64 {
+    timestamp_nano() as f64 / 1_000_000_000.0
 }
 
 #[cfg(feature = "impl")]

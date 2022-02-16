@@ -20,7 +20,7 @@ impl TryFrom<v12Event> for v11Event {
         let self_id = i64::from_str(&event.self_id).map_err(|e| WalleParseError::Id(e))?;
         match event.content {
             v12Content::Message(msg) => Ok(v11Event {
-                time: event.time,
+                time: event.time as u64,
                 self_id,
                 content: v11Content::Message(v11MsgContent {
                     message_id: i32::from_str(&msg.message_id)
@@ -55,7 +55,7 @@ impl TryFrom<v12Event> for v11Event {
             }),
 
             v12Content::Meta(meta) => Ok(v11Event {
-                time: event.time,
+                time: event.time as u64,
                 self_id,
                 content: v11Content::MetaEvent(match meta {
                     v12Meta::Heartbeat {

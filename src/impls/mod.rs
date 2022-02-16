@@ -185,7 +185,7 @@ where
 }
 
 impl<E, A, R, const V: u8> CustomOneBot<BaseEvent<E>, A, R, V> {
-    pub async fn new_event(&self, content: E, time: u64) -> BaseEvent<E> {
+    pub async fn new_event(&self, content: E, time: f64) -> BaseEvent<E> {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
