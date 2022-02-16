@@ -29,11 +29,22 @@ macro_rules! impl_from {
             }
         }
     };
+    ($inty: tt, $ty: ty, $ty0:ty) => {
+        impl From<$ty> for ExtendedValue {
+            fn from(v: $ty) -> Self {
+                ExtendedValue::$inty(v as $ty0)
+            }
+        }
+    };
 }
 
 impl_from!(Str, String);
 impl_from!(Int, i64);
+impl_from!(Int, i8, i64);
+impl_from!(Int, i16, i64);
+impl_from!(Int, i32, i64);
 impl_from!(F64, f64);
+impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
 
 impl From<&str> for ExtendedValue {

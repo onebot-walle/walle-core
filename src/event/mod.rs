@@ -42,20 +42,49 @@ pub enum EventContent {
     Request(RequestContent),
 }
 
-macro_rules! impl_from {
+macro_rules! impl_From {
     ($from: ty, $name: tt) => {
         impl From<$from> for EventContent {
             fn from(from: $from) -> Self {
                 EventContent::$name(from)
             }
         }
+
+        impl TryFrom<EventContent> for $from {
+            type Error = EventContent;
+
+            fn try_from(content: EventContent) -> Result<Self, Self::Error> {
+                match content {
+                    EventContent::$name(from) => Ok(from),
+                    _ => Err(content),
+                }
+            }
+        }
+
+        impl TryFrom<Event> for BaseEvent<$from> {
+            type Error = Event;
+
+            fn try_from(event: Event) -> Result<Self, Self::Error> {
+                match event.content {
+                    EventContent::$name(from) => Ok(BaseEvent {
+                        id: event.id,
+                        r#impl: event.r#impl,
+                        platform: event.platform,
+                        self_id: event.self_id,
+                        time: event.time,
+                        content: from,
+                    }),
+                    _ => Err(event),
+                }
+            }
+        }
     };
 }
 
-impl_from!(MetaContent, Meta);
-impl_from!(MessageContent, Message);
-impl_from!(NoticeContent, Notice);
-impl_from!(RequestContent, Request);
+impl_From!(MetaContent, Meta);
+impl_From!(MessageContent, Message);
+impl_From!(NoticeContent, Notice);
+impl_From!(RequestContent, Request);
 
 impl crate::utils::FromStandard<EventContent> for EventContent {
     fn from_standard(event_content: EventContent) -> Self {
