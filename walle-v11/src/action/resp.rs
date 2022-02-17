@@ -6,7 +6,7 @@ use crate::message::Message;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Resp {
     pub status: String,
-    pub retcode: u16,
+    pub retcode: i64,
     pub data: RespContent,
 }
 

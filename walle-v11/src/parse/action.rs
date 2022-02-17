@@ -1,8 +1,8 @@
 use super::message::MessageParseExt;
-use crate::action::{Action as V11Action, Resp as V11Resp};
+use crate::action::{Action as V11Action, Resp as V11Resp, RespContent as V11RespContent};
 use walle_core::{
     action::{GroupIdContent, IdsContent, SendMessageContent, UserIdContent},
-    Action as V12Action, EmptyContent, Resps as V12Resps,
+    Action as V12Action, EmptyContent, RespContent as V12RespContent, Resps as V12Resps,
 };
 
 impl TryFrom<V12Action> for V11Action {
@@ -72,18 +72,23 @@ impl TryInto<V12Action> for V11Action {
     }
 }
 
-impl TryFrom<V12Resps> for V11Resp {
-    type Error = super::WalleParseError;
-    fn try_from(value: V12Resps) -> Result<Self, Self::Error> {
-        match value {
-            _ => todo!(),
+impl From<V12Resps> for V11Resp {
+    fn from(value: V12Resps) -> Self {
+        Self {
+            status: value.status,
+            retcode: value.retcode,
+            data: match value.data {
+                V12RespContent::SendMessage(c) => V11RespContent::Message {
+                    message_id: c.message_id.parse().unwrap(),
+                },
+                _ => todo!(),
+            },
         }
     }
 }
 
-impl TryInto<V12Resps> for V11Resp {
-    type Error = super::WalleParseError;
-    fn try_into(self) -> Result<V12Resps, Self::Error> {
+impl Into<V12Resps> for V11Resp {
+    fn into(self) -> V12Resps {
         todo!();
     }
 }

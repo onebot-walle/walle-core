@@ -208,7 +208,7 @@ impl ExtendedValue {
     downcast_fn!(downcast_f64, f64);
     downcast_fn!(downcast_bool, bool);
     downcast_fn!(downcast_map, ExtendedMap);
-    downcast_fn!(downcast_vec, Vec<ExtendedValue>);
+    downcast_fn!(downcast_list, Vec<ExtendedValue>);
 
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
