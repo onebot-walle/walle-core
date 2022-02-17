@@ -12,10 +12,10 @@ impl<A, R, F, OB> super::ActionHandler<A, R, OB> for Arc<F>
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
-    F: Fn(A) -> BoxFuture<'static, Result<R, R>> + Send + Sync + 'static,
+    F: Fn(A) -> BoxFuture<'static, R> + Send + Sync + 'static,
     OB: Sync,
 {
-    async fn handle(&self, action: A, _ob: &OB) -> Result<R, R> {
+    async fn handle(&self, action: A, _ob: &OB) -> R {
         self(action).await
     }
 }

@@ -45,7 +45,7 @@ where
     A: DeserializeOwned + Debug + Send + 'static,
     R: Serialize + Debug + Send + 'static,
 {
-    async fn handle(&self, action: A, ob: &OB) -> Result<R, R>;
+    async fn handle(&self, action: A, ob: &OB) -> R;
 }
 
 /// 应用端处理 Event 需要实现的 Trait
@@ -91,15 +91,15 @@ where
         &self,
         action: crate::Action,
         _ob: &crate::impls::CustomOneBot<E, crate::Action, crate::Resps, V>,
-    ) -> Result<Resps, Resps> {
+    ) -> Resps {
         use crate::{
             resp::{Resp, RespContent},
             Action,
         };
 
         match action {
-            Action::GetVersion(_) => Ok(Resp::success(RespContent::Version(get_version().await))),
-            _ => Err(Resp::unsupported_action()),
+            Action::GetVersion(_) => Resp::success(RespContent::Version(get_version().await)),
+            _ => Resp::unsupported_action(),
         }
     }
 }
