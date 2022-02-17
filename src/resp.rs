@@ -201,7 +201,7 @@ pub type SendMessageResp = Resp<SendMessageRespContent>;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
     pub message_id: String,
-    pub time: u64,
+    pub time: f64,
 }
 
 // user

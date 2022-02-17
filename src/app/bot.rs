@@ -1,5 +1,5 @@
 use crate::utils::FromStandard;
-use crate::{action::*, EmptyContent, WalleError, WalleResult};
+use crate::{action::*, EmptyContent, ExtendedMap, WalleError, WalleResult};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
@@ -91,7 +91,8 @@ where
         GetGroupMemberInfo,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
     action_api!(
         get_group_member_list,
@@ -112,35 +113,40 @@ where
         KickGroupMember,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
     action_api!(
         ban_group_member,
         BanGroupMember,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
     action_api!(
         unban_group_member,
         UnbanGroupMember,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
     action_api!(
         set_grop_admin,
         SetGroupAdmin,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
     action_api!(
         unset_grop_admin,
         UnsetGroupAdmin,
         IdsContent,
         group_id: String,
-        user_id: String
+        user_id: String,
+        extended: ExtendedMap
     );
 
     action_api!(

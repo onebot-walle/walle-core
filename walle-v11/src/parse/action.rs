@@ -65,6 +65,7 @@ impl TryInto<V12Action> for V11Action {
             } => Ok(V12Action::GetGroupMemberInfo(IdsContent {
                 group_id: group_id.to_string(),
                 user_id: user_id.to_string(),
+                extended: [].into(),
             })),
             _ => todo!(),
         }

@@ -1,4 +1,4 @@
-use crate::EmptyContent;
+use crate::{EmptyContent, ExtendedMap};
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 12 标准动作
@@ -101,10 +101,12 @@ pub struct GroupIdContent {
 }
 
 /// Action content for Ids
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct IdsContent {
     pub group_id: String,
     pub user_id: String,
+    #[serde(flatten)]
+    pub extended: ExtendedMap,
 }
 
 /// Action content for SetGroupName
