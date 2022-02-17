@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{EmptyContent, Event};
+use crate::{Event, ExtendedMap};
 
 /// ## OneBot 12 标准动作响应
 pub type Resps = Resp<RespContent>;
@@ -35,7 +35,7 @@ pub enum RespContent {
     FileId(String),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
-    Empty(EmptyContent), // todo
+    Extended(ExtendedMap),
 }
 
 macro_rules! resp_content {
@@ -86,7 +86,7 @@ impl<T> FromStandard for ExtendedActionRespContent<T> {
 
 impl RespContent {
     pub fn empty() -> Self {
-        Self::Empty(EmptyContent::default())
+        Self::Extended(ExtendedMap::default())
     }
 }
 
@@ -138,15 +138,15 @@ where
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from_standard(
-            RespContent::Empty(EmptyContent::default()),
-        ))
+        Self::success(T::from_standard(RespContent::Extended(
+            ExtendedMap::default(),
+        )))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
         Self::fail(
-            T::from_standard(RespContent::Empty(EmptyContent::default())),
+            T::from_standard(RespContent::Extended(ExtendedMap::default())),
             retcode,
             message,
         )

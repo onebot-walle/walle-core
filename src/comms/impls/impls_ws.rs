@@ -1,14 +1,14 @@
+use crate::ExtendedMap;
 use crate::{impls::CustomOneBot, Echo, WalleError, WalleLogExt, WalleResult};
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
+use serde::Deserialize;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 use tracing::{info, warn};
-
-type RespSender<R> = tokio::sync::mpsc::UnboundedSender<Echo<R>>;
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
@@ -48,8 +48,7 @@ where
                 },
                 resp = resp_rx.recv() => {
                     if let Some(resp) = resp {
-                        let resp = serde_json::to_string(&resp).unwrap();
-                        if ws_stream.send(WsMsg::Text(resp)).await.is_err() {
+                        if ws_stream.send(resp).await.is_err() {
                             break;
                         }
                     }
@@ -60,9 +59,20 @@ where
         Ok(())
     }
 
-    pub(crate) async fn ws_recv(self: &Arc<Self>, ws_msg: WsMsg, resp_sender: &RespSender<R>) {
-        if let WsMsg::Text(text) = ws_msg {
-            match serde_json::from_str::<Echo<A>>(&text) {
+    pub(crate) async fn ws_recv(
+        self: &Arc<Self>,
+        ws_msg: WsMsg,
+        resp_sender: &tokio::sync::mpsc::UnboundedSender<WsMsg>,
+    ) {
+        #[derive(Deserialize)]
+        struct UnknownAction {
+            action: String,
+            #[allow(dead_code)]
+            patams: ExtendedMap,
+        }
+
+        match ws_msg {
+            WsMsg::Text(text) => match serde_json::from_str::<Echo<A>>(&text) {
                 Ok(msg) => {
                     let (action, echo_s) = msg.unpack();
                     let sender = resp_sender.clone();
@@ -70,13 +80,33 @@ where
                     tokio::spawn(async move {
                         let r = ob.action_handler.handle(action, &ob).await;
                         let echo = echo_s.pack(r);
-                        sender.send(echo).unwrap();
+                        let resp = serde_json::to_string(&echo).unwrap();
+                        sender.send(WsMsg::Text(resp)).unwrap();
                     });
                 }
-                Err(_) => {
-                    tracing::warn!(target: "Walle-core","json deserialize failed: {:?}", text);
-                }
+                Err(_) => match serde_json::from_str::<Echo<UnknownAction>>(&text) {
+                    Ok(a) => {
+                        let (action, echo_s) = a.unpack();
+                        tracing::warn!(target: "Walle-core", "unsupported action: {}", action.action);
+                        let resp = echo_s.pack(crate::Resps::unsupported_action());
+                        let resp = serde_json::to_string(&resp).unwrap();
+                        resp_sender.send(WsMsg::Text(resp)).unwrap();
+                    }
+                    Err(_) => {
+                        tracing::warn!(target: "Walle-core","json deserialize failed: {:?}", text)
+                    }
+                },
+            },
+            WsMsg::Binary(_) => {
+                todo!()
             }
+            WsMsg::Ping(b) => {
+                resp_sender.send(WsMsg::Pong(b)).unwrap();
+            }
+            WsMsg::Close(_) => {
+                todo!()
+            }
+            _ => {}
         }
     }
 

@@ -228,7 +228,7 @@ fn action_resp() {
             "message": ""
         }"#,
         Resp::success(EmptyContent::default()),
-        Resp::success(RespContent::Empty(EmptyContent::default())),
+        Resp::success(RespContent::Extended(EmptyContent::default())),
     );
 
     assert_eq!(
