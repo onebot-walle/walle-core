@@ -41,7 +41,7 @@ where
                 ws_msg = ws_stream.next() => {
                     if let Some(ws_msg) = ws_msg {
                         match ws_msg {
-                            Ok(ws_msg) => self.ws_recv(ws_msg, &resp_tx).await?,
+                            Ok(ws_msg) => self.ws_recv(ws_msg, &resp_tx).await,
                             Err(_) => break,
                         }
                     }
@@ -60,29 +60,27 @@ where
         Ok(())
     }
 
-    pub(crate) async fn ws_recv(
-        self: &Arc<Self>,
-        ws_msg: WsMsg,
-        resp_sender: &RespSender<R>,
-    ) -> WalleResult<()> {
+    pub(crate) async fn ws_recv(self: &Arc<Self>, ws_msg: WsMsg, resp_sender: &RespSender<R>) {
         if let WsMsg::Text(text) = ws_msg {
-            let msg: Echo<A> = serde_json::from_str(&text).map_err(|e| {
-                tracing::warn!(target: "Walle-core","json deserialize failed: {:?}", text);
-                WalleError::from(e)
-            })?;
-            let (action, echo_s) = msg.unpack();
-            let sender = resp_sender.clone();
-            let ob = self.clone();
-            tokio::spawn(async move {
-                let resp = match ob.action_handler.handle(action, &ob).await {
-                    Ok(r) => r,
-                    Err(r) => r,
-                };
-                let echo = echo_s.pack(resp);
-                sender.send(echo).unwrap();
-            });
+            match serde_json::from_str::<Echo<A>>(&text) {
+                Ok(msg) => {
+                    let (action, echo_s) = msg.unpack();
+                    let sender = resp_sender.clone();
+                    let ob = self.clone();
+                    tokio::spawn(async move {
+                        let resp = match ob.action_handler.handle(action, &ob).await {
+                            Ok(r) => r,
+                            Err(r) => r,
+                        };
+                        let echo = echo_s.pack(resp);
+                        sender.send(echo).unwrap();
+                    });
+                }
+                Err(_) => {
+                    tracing::warn!(target: "Walle-core","json deserialize failed: {:?}", text);
+                }
+            }
         }
-        Ok(())
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {
