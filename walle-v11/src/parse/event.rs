@@ -78,10 +78,10 @@ impl TryFrom<v12Event> for v11Event {
     }
 }
 
-impl TryInto<v12Event> for v11Event {
+impl TryFrom<v11Event> for v12Event {
     type Error = WalleParseError;
 
-    fn try_into(self) -> Result<v12Event, Self::Error> {
+    fn try_from(_event: v11Event) -> Result<Self, Self::Error> {
         Err(WalleParseError::Todo(
             "Parse v11Event to v12Event is not implemented yet",
         ))

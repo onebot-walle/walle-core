@@ -229,7 +229,7 @@ fn action_resp() {
             "message": ""
         }"#,
         Resp::success(EmptyContent::default()),
-        Resp::success(RespContent::Extended(HashMap::default())),
+        Resp::success(RespContent::Other(HashMap::default())),
     );
 
     assert_eq!(

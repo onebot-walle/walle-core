@@ -1,4 +1,4 @@
-use crate::{message::MSVister, EmptyContent, ExtendedMap};
+use crate::{message::MSVister, ExtendedMap};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 /// ## OneBot 12 标准动作
@@ -9,22 +9,22 @@ use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 pub enum Action {
     // meta action
     GetLatestEvents(GetLatestEventsContent),
-    GetSupportedActions(EmptyContent),
-    GetStatus(EmptyContent),
-    GetVersion(EmptyContent),
+    GetSupportedActions(ExtendedMap),
+    GetStatus(ExtendedMap),
+    GetVersion(ExtendedMap),
 
     // message action
     SendMessage(SendMessageContent),
     DeleteMessage(DeleteMessageContent),
 
     // user action
-    GetSelfInfo(EmptyContent),
+    GetSelfInfo(ExtendedMap),
     GetUserInfo(UserIdContent),
-    GetFriendList(EmptyContent),
+    GetFriendList(ExtendedMap),
 
     // group action
     GetGroupInfo(GroupIdContent),
-    GetGroupList(EmptyContent),
+    GetGroupList(ExtendedMap),
     GetGroupMemberInfo(IdsContent),
     GetGroupMemberList(GroupIdContent),
     SetGroupName(SetGroupNameContent),
@@ -149,7 +149,7 @@ pub struct IdsContent {
     pub group_id: String,
     pub user_id: String,
     #[serde(flatten)]
-    pub extended: ExtendedMap,
+    pub extra: ExtendedMap,
 }
 
 /// Action content for SetGroupName

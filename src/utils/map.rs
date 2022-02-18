@@ -196,6 +196,10 @@ macro_rules! downcast_fn {
 
 #[allow(dead_code)]
 impl ExtendedValue {
+    pub fn empty() -> Self {
+        Self::Map(ExtendedMap::default())
+    }
+
     pub fn downcast<T>(self) -> Result<T, Self>
     where
         T: TryFrom<ExtendedValue, Error = Self>,

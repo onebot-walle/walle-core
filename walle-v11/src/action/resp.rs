@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use walle_core::EmptyContent;
+use walle_core::ExtendedValue;
 
 use crate::message::Message;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Resp {
     pub status: String,
     pub retcode: i64,
@@ -20,13 +20,19 @@ impl Resp {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum RespContent {
     Message {
         message_id: i32,
     },
-    None(EmptyContent),
+    Other(ExtendedValue),
+    UserInfo {
+        user_id: i64,
+        nickname: String,
+        sex: String,
+        age: i32,
+    },
     MessageDetail {
         time: i32,
         message_type: String,
@@ -42,6 +48,6 @@ pub enum RespContent {
 
 impl RespContent {
     pub fn empty() -> Self {
-        Self::None(EmptyContent {})
+        Self::Other(ExtendedValue::empty())
     }
 }

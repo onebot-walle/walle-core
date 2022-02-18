@@ -74,10 +74,10 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
     }
 }
 
-impl TryInto<v12MsgSeg> for v11MsgSeg {
+impl TryFrom<v11MsgSeg> for v12MsgSeg {
     type Error = super::WalleParseError;
-    fn try_into(self) -> Result<v12MsgSeg, Self::Error> {
-        match self {
+    fn try_from(seg: v11MsgSeg) -> Result<Self, Self::Error> {
+        match seg {
             v11MsgSeg::Text { text } => Ok(v12MsgSeg::Text {
                 text,
                 extend: ExtendedMap::default(),

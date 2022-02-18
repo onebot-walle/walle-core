@@ -28,7 +28,7 @@ pub struct Echo<I> {
     pub echo: Option<EchoInner>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EchoS(Option<EchoInner>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

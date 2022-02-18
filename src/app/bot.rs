@@ -1,5 +1,5 @@
 use crate::utils::FromStandard;
-use crate::{action::*, EmptyContent, ExtendedMap, WalleError, WalleResult};
+use crate::{action::*, ExtendedMap, WalleError, WalleResult};
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
@@ -55,9 +55,9 @@ where
         limit: i64,
         timeout: i64
     );
-    action_api!(get_supported_actions, GetSupportedActions, EmptyContent);
-    action_api!(get_status, GetStatus, EmptyContent);
-    action_api!(get_version, GetVersion, EmptyContent);
+    action_api!(get_supported_actions, GetSupportedActions, ExtendedMap);
+    action_api!(get_status, GetStatus, ExtendedMap);
+    action_api!(get_version, GetVersion, ExtendedMap);
 
     action_api!(
         send_message,
@@ -75,9 +75,9 @@ where
         message_id: String
     );
 
-    action_api!(get_self_info, GetSelfInfo, EmptyContent);
+    action_api!(get_self_info, GetSelfInfo, ExtendedMap);
     action_api!(get_user_info, GetUserInfo, UserIdContent, user_id: String);
-    action_api!(get_friend_list, GetFriendList, EmptyContent);
+    action_api!(get_friend_list, GetFriendList, ExtendedMap);
 
     action_api!(
         get_group_info,
@@ -85,14 +85,14 @@ where
         GroupIdContent,
         group_id: String
     );
-    action_api!(get_group_list, GetGroupList, EmptyContent);
+    action_api!(get_group_list, GetGroupList, ExtendedMap);
     action_api!(
         get_group_member_info,
         GetGroupMemberInfo,
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
     action_api!(
         get_group_member_list,
@@ -114,7 +114,7 @@ where
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
     action_api!(
         ban_group_member,
@@ -122,7 +122,7 @@ where
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
     action_api!(
         unban_group_member,
@@ -130,7 +130,7 @@ where
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
     action_api!(
         set_grop_admin,
@@ -138,7 +138,7 @@ where
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
     action_api!(
         unset_grop_admin,
@@ -146,7 +146,7 @@ where
         IdsContent,
         group_id: String,
         user_id: String,
-        extended: ExtendedMap
+        extra: ExtendedMap
     );
 
     action_api!(

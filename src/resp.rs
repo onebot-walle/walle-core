@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Event, ExtendedMap};
+use crate::{Event, ExtendedValue};
 
 /// ## OneBot 12 标准动作响应
 pub type Resps = Resp<RespContent>;
@@ -35,7 +35,7 @@ pub enum RespContent {
     FileId(String),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
-    Extended(ExtendedMap),
+    Other(ExtendedValue),
 }
 
 macro_rules! resp_content {
@@ -68,7 +68,7 @@ resp_content!(Vec<u8>, TransferFileFragmented);
 /// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
-pub enum ExtendedActionRespContent<T> {
+pub enum ExtendedRespContent<T> {
     Standard(RespContent),
     Extended(T),
 }
@@ -78,15 +78,15 @@ pub trait FromStandard {
     fn from_standard(standard: RespContent) -> Self;
 }
 
-impl<T> FromStandard for ExtendedActionRespContent<T> {
+impl<T> FromStandard for ExtendedRespContent<T> {
     fn from_standard(standard: RespContent) -> Self {
-        ExtendedActionRespContent::Standard(standard)
+        ExtendedRespContent::Standard(standard)
     }
 }
 
 impl RespContent {
     pub fn empty() -> Self {
-        Self::Extended(ExtendedMap::default())
+        Self::Other(ExtendedValue::empty())
     }
 }
 
@@ -138,18 +138,12 @@ where
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from_standard(RespContent::Extended(
-            ExtendedMap::default(),
-        )))
+        Self::success(T::from_standard(RespContent::empty()))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
-        Self::fail(
-            T::from_standard(RespContent::Extended(ExtendedMap::default())),
-            retcode,
-            message,
-        )
+        Self::fail(T::from_standard(RespContent::empty()), retcode, message)
     }
 
     empty_err_resp!(bad_request, 10001, "无效的动作请求");
