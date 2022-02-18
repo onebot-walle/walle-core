@@ -1,5 +1,5 @@
-use crate::{EmptyContent, ExtendedMap};
-use serde::{Deserialize, Serialize};
+use crate::{message::MSVister, EmptyContent, ExtendedMap};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 /// ## OneBot 12 标准动作
 ///
@@ -79,7 +79,50 @@ pub struct SendMessageContent {
     pub detail_type: String,
     pub group_id: Option<String>,
     pub user_id: Option<String>,
+    #[serde(deserialize_with = "deserialize_message")]
     pub message: crate::Message,
+}
+
+struct MessageVisitor;
+
+impl<'de> Visitor<'de> for MessageVisitor {
+    type Value = crate::Message;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a message")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut message = Vec::new();
+        while let Some(segment) = seq.next_element()? {
+            message.push(segment);
+        }
+        Ok(message)
+    }
+
+    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        MSVister::_visit_map(map).map(|s| vec![s])
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(vec![crate::MessageSegment::text(s.to_owned())])
+    }
+}
+
+fn deserialize_message<'de, D>(deserializer: D) -> Result<crate::Message, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_any(MessageVisitor)
 }
 
 /// Action content for DeleteMessage

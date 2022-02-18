@@ -374,23 +374,10 @@ impl Serialize for MessageSegment {
     }
 }
 
-struct MSVister;
+pub struct MSVister;
 
-#[derive(Deserialize)]
-#[serde(field_identifier, rename_all = "lowercase")]
-enum Field {
-    Type,
-    Data,
-}
-
-impl<'de> Visitor<'de> for MSVister {
-    type Value = MessageSegment;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("should be a message")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+impl MSVister {
+    pub fn _visit_map<'de, A>(mut map: A) -> Result<MessageSegment, A::Error>
     where
         A: serde::de::MapAccess<'de>,
     {
@@ -423,43 +410,43 @@ impl<'de> Visitor<'de> for MSVister {
             }
             "mention" => {
                 let user_id = get_data::<A>(&mut data, "user_id")?;
-                Ok(Self::Value::Mention {
+                Ok(MessageSegment::Mention {
                     user_id,
                     extend: data,
                 })
             }
-            "mention_all" => Ok(Self::Value::MentionAll { extend: data }),
+            "mention_all" => Ok(MessageSegment::MentionAll { extend: data }),
             "image" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
-                Ok(Self::Value::Image {
+                Ok(MessageSegment::Image {
                     file_id,
                     extend: data,
                 })
             }
             "voice" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
-                Ok(Self::Value::Voice {
+                Ok(MessageSegment::Voice {
                     file_id,
                     extend: data,
                 })
             }
             "audio" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
-                Ok(Self::Value::Audio {
+                Ok(MessageSegment::Audio {
                     file_id,
                     extend: data,
                 })
             }
             "video" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
-                Ok(Self::Value::Video {
+                Ok(MessageSegment::Video {
                     file_id,
                     extend: data,
                 })
             }
             "file" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
-                Ok(Self::Value::File {
+                Ok(MessageSegment::File {
                     file_id,
                     extend: data,
                 })
@@ -475,7 +462,7 @@ impl<'de> Visitor<'de> for MSVister {
                     .ok_or_else(|| serde::de::Error::missing_field("longitude"))?;
                 let title = get_data::<A>(&mut data, "title")?;
                 let content = get_data::<A>(&mut data, "content")?;
-                Ok(Self::Value::Location {
+                Ok(MessageSegment::Location {
                     latitude,
                     longitude,
                     title,
@@ -486,17 +473,39 @@ impl<'de> Visitor<'de> for MSVister {
             "reply" => {
                 let message_id = get_data::<A>(&mut data, "message_id")?;
                 let user_id = get_data::<A>(&mut data, "user_id")?;
-                Ok(Self::Value::Reply {
+                Ok(MessageSegment::Reply {
                     message_id,
                     user_id,
                     extend: data,
                 })
             }
-            _ => Ok(Self::Value::Custom {
+            _ => Ok(MessageSegment::Custom {
                 ty: ty.to_owned(),
                 data,
             }),
         }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(field_identifier, rename_all = "lowercase")]
+enum Field {
+    Type,
+    Data,
+}
+
+impl<'de> Visitor<'de> for MSVister {
+    type Value = MessageSegment;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("should be a message")
+    }
+
+    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        Self::_visit_map(map)
     }
 }
 

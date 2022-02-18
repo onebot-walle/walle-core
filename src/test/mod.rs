@@ -31,7 +31,7 @@ fn event() {
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
-                time: 1632847927,
+                time: 1632847927.0,
                 content: EventContent::Meta(MetaContent::Heartbeat {
                     interval: 5000,
                     status: StatusContent {
@@ -75,7 +75,7 @@ fn event() {
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
-                time: 1632847927,
+                time: 1632847927.0,
                 content: EventContent::Message(MsgContent {
                     sub_type: String::default(),
                     ty: MessageEventType::Private,
@@ -115,7 +115,7 @@ fn event() {
                 r#impl: "go_onebot_qq".to_owned(),
                 platform: "qq".to_owned(),
                 self_id: "123234".to_owned(),
-                time: 1632847927,
+                time: 1632847927.0,
                 content: EventContent::Notice(NoticeContent::GroupMemberIncrease {
                     sub_type: "join".to_owned(),
                     group_id: "87654321".to_owned(),
@@ -137,6 +137,7 @@ fn event() {
 fn action() {
     use crate::action::GetLatestEventsContent;
     use crate::action::*;
+    use crate::Echo;
     use crate::{Action, EmptyContent, MessageSegment};
     use std::collections::HashMap;
 
@@ -160,14 +161,7 @@ fn action() {
                 "params": {
                     "detail_type": "group",
                     "group_id": "12467",
-                    "message": [
-                        {
-                            "type": "text",
-                            "data": {
-                                "text": "我是文字巴拉巴拉巴拉"
-                            }
-                        }
-                    ]
+                    "message": "我是文字巴拉巴拉巴拉"
                 }
             }"#,
             Action::SendMessage(SendMessageContent {
@@ -190,7 +184,13 @@ fn action() {
     ];
 
     for (json, action) in data {
-        assert_eq!(serde_json::from_str::<Action>(json).unwrap(), action);
+        assert_eq!(
+            serde_json::from_str::<Echo<Action>>(json)
+                .unwrap()
+                .unpack()
+                .0,
+            action
+        );
         let json_str = serde_json::to_string(&action).unwrap();
         assert_eq!(serde_json::from_str::<Action>(&json_str).unwrap(), action);
     }
@@ -200,6 +200,7 @@ fn action() {
 fn action_resp() {
     use crate::resp::*;
     use crate::EmptyContent;
+    use std::collections::HashMap;
 
     let status_data = (
         r#"{   
@@ -228,7 +229,7 @@ fn action_resp() {
             "message": ""
         }"#,
         Resp::success(EmptyContent::default()),
-        Resp::success(RespContent::Extended(EmptyContent::default())),
+        Resp::success(RespContent::Extended(HashMap::default())),
     );
 
     assert_eq!(
