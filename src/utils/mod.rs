@@ -15,7 +15,7 @@ pub fn timestamp_nano_f64() -> f64 {
 }
 
 #[cfg(feature = "impl")]
-pub(crate) fn new_uuid() -> String {
+pub fn new_uuid() -> String {
     uuid::Uuid::from_u128(timestamp_nano()).to_string()
 }
 

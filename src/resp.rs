@@ -32,7 +32,7 @@ pub enum RespContent {
     FriendList(Vec<UserInfoContent>),
     GroupInfo(GroupInfoContent),
     GroupList(Vec<GroupInfoContent>),
-    FileId(String),
+    FileId(FileIdContent),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
     Other(ExtendedValue),
@@ -57,7 +57,7 @@ resp_content!(UserInfoContent, UserInfo);
 resp_content!(Vec<UserInfoContent>, FriendList);
 resp_content!(GroupInfoContent, GroupInfo);
 resp_content!(Vec<GroupInfoContent>, GroupList);
-resp_content!(String, FileId);
+resp_content!(FileIdContent, FileId);
 resp_content!(FileFragmentedHead, PrepareFileFragmented);
 resp_content!(Vec<u8>, TransferFileFragmented);
 
@@ -157,12 +157,6 @@ where
     empty_err_resp!(platform_error, 34000, "机器人平台错误");
 }
 
-// meta
-pub type LatestEvents = Resp<Vec<Event>>;
-pub type SupportActions = Resp<Vec<String>>;
-pub type Status = Resp<StatusContent>;
-pub type Version = Resp<VersionContent>;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StatusContent {
     pub good: bool,
@@ -188,21 +182,11 @@ impl Default for VersionContent {
     }
 }
 
-// message
-/// Resp for send_message
-pub type SendMessageResp = Resp<SendMessageRespContent>;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SendMessageRespContent {
     pub message_id: String,
     pub time: f64,
 }
-
-// user
-/// Resp for get_self_info && get_user_info
-pub type UserInfo = Resp<UserInfoContent>;
-/// Resp for get_friend_list
-pub type FriendList = Resp<Vec<UserInfoContent>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfoContent {
@@ -210,25 +194,16 @@ pub struct UserInfoContent {
     pub nickname: String,
 }
 
-// group
-/// Resp for get_group_info
-pub type GroupInfo = Resp<GroupInfoContent>;
-/// Resp for get_group_list
-pub type GroupList = Resp<Vec<GroupInfoContent>>;
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupInfoContent {
     pub group_id: String,
     pub group_name: String,
 }
 
-// file
-/// Resp for upload_file
-pub type FileId = Resp<String>;
-/// Resp for upload_file_fragmented
-pub type PrepareFileFragmented = Resp<FileFragmentedHead>;
-/// Resp for upload_file_fragmented
-pub type TransferFileFragmented = Resp<Vec<u8>>;
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FileIdContent {
+    pub file_id: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileContent {
