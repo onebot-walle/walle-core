@@ -159,7 +159,8 @@ where
         headers: Option<std::collections::HashMap<String, String>>,
         path: Option<String>,
         data: Option<Vec<u8>>,
-        sha256: Option<String>
+        sha256: Option<String>,
+        extra: ExtendedMap
     );
     action_api!(
         get_file,

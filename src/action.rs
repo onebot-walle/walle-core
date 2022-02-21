@@ -160,7 +160,7 @@ pub struct SetGroupNameContent {
 }
 
 /// Action content for UploadFile
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UploadFileContent {
     pub r#type: String,
     pub name: String,
@@ -169,6 +169,8 @@ pub struct UploadFileContent {
     pub path: Option<String>,
     pub data: Option<Vec<u8>>,
     pub sha256: Option<String>,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 /// Action content for GetFile
