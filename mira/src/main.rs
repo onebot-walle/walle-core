@@ -25,9 +25,10 @@ async fn main() {
         new_config_file();
         return;
     }
-    let timer = tracing_subscriber::fmt::time::LocalTime::new(time::macros::format_description!(
-        "[year repr:last_two]-[month]-[day] [hour]:[minute]:[second]"
-    ));
+    let timer = tracing_subscriber::fmt::time::OffsetTime::new(
+        time::UtcOffset::from_hms(8, 0, 0).unwrap(),
+        time::format_description::parse("[year repr:last_two]-[month]-[day] [hour]:[minute]:[second]").unwrap(),
+    );
     let env = tracing_subscriber::EnvFilter::from(if root.trace {
         "trace"
     } else if root.debug {
