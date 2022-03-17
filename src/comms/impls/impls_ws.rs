@@ -8,7 +8,7 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
@@ -29,6 +29,7 @@ where
                     match event {
                         Ok(event) => {
                             let event = serde_json::to_string(&event).unwrap();
+                            debug!(target: "Walle-core", "ws send: {}", event);
                             if ws_stream.send(WsMsg::Text(event)).await.is_err() {
                                 break;
                             }
@@ -40,6 +41,7 @@ where
                 },
                 ws_msg = ws_stream.next() => {
                     if let Some(ws_msg) = ws_msg {
+                        debug!(target: "Walle-core", "ws recv: {:?}", ws_msg);
                         match ws_msg {
                             Ok(ws_msg) => self.ws_recv(ws_msg, &resp_tx).await,
                             Err(_) => break,
@@ -48,6 +50,7 @@ where
                 },
                 resp = resp_rx.recv() => {
                     if let Some(resp) = resp {
+                        debug!(target: "Walle-core", "ws send: {:?}", resp);
                         if ws_stream.send(resp).await.is_err() {
                             break;
                         }

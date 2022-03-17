@@ -26,6 +26,7 @@ pub struct MessageContent {
     pub message: crate::message::Message,
     pub raw_message: String,
     pub font: i32,
+    pub sub_type: String,
     #[serde(flatten)]
     pub sub: MessageSub,
     #[serde(flatten)]
@@ -37,7 +38,6 @@ pub struct MessageContent {
 #[serde(rename_all = "snake_case")]
 pub enum MessageSub {
     Private {
-        sub_type: String,
         sender: crate::utils::PrivateSender,
     },
     Group {

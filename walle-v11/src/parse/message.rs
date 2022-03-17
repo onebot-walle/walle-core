@@ -11,19 +11,10 @@ impl TryFrom<v12MsgSeg> for v11MsgSeg {
             v12MsgSeg::MentionAll { .. } => Ok(v11MsgSeg::At {
                 qq: "all".to_owned(),
             }),
-            v12MsgSeg::Image {
-                file_id,
-                mut extend,
-            } => Ok(v11MsgSeg::Image {
-                file: if let Ok(url) = try_remove_from_extra_map(&mut extend, "url", "image") {
-                    url
-                } else {
-                    file_id
-                },
-            }), //?
+            v12MsgSeg::Image { file_id, .. } => Ok(v11MsgSeg::Image { file: file_id }), //?
             v12MsgSeg::Voice { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
             v12MsgSeg::Audio { file_id, .. } => Ok(v11MsgSeg::Record { file: file_id }), //?
-            v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }),  //?
+            v12MsgSeg::Video { file_id, .. } => Ok(v11MsgSeg::Video { file: file_id }), //?
             v12MsgSeg::File { .. } => Err(WalleParseError::Other(
                 "OneBot v11 don't support file message segment".to_owned(),
             )),
