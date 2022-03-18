@@ -77,10 +77,7 @@ impl TryFrom<v11MsgSeg> for v12MsgSeg {
                 ty: "face".to_owned(),
                 data: [("file".to_owned(), file.into())].into(),
             }),
-            v11MsgSeg::Image { file } => Ok(v12MsgSeg::Image {
-                file_id: file.clone(),
-                extend: [("url".to_owned(), file.into())].into(),
-            }),
+            v11MsgSeg::Image { file } => Ok(image_11_to_12(file)),
             v11MsgSeg::Record { file } => Ok(v12MsgSeg::Voice {
                 file_id: file,
                 extend: ExtendedMap::default(),
@@ -189,5 +186,29 @@ pub trait MessageParseExt<T> {
 impl MessageParseExt<walle_core::Message> for crate::Message {
     fn try_parse(self) -> Result<walle_core::Message, WalleParseError> {
         self.into_iter().map(|s| s.try_into()).collect()
+    }
+}
+
+fn image_11_to_12(file_id: String) -> v12MsgSeg {
+    if let Some(b64) = file_id.strip_prefix("base64://") {
+        v12MsgSeg::Image {
+            file_id: "".to_string(),
+            extend: [("base64".to_string(), b64.into())].into(),
+        }
+    } else if let Some(url) = file_id.strip_prefix("file:///") {
+        v12MsgSeg::Image {
+            file_id: "".to_string(),
+            extend: [("path".to_string(), url.into())].into(),
+        }
+    } else if file_id.starts_with("http://") || file_id.starts_with("https://") {
+        v12MsgSeg::Image {
+            file_id: "".to_string(),
+            extend: [("url".to_string(), file_id.into())].into(),
+        }
+    } else {
+        v12MsgSeg::Image {
+            file_id,
+            extend: ExtendedMap::default(),
+        }
     }
 }
