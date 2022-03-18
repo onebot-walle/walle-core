@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use walle_core::{BasicEvent, ExtendedMap, HeartbeatBuild};
 
+mod alt;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub time: u64,

@@ -30,6 +30,8 @@ pub mod resp;
 mod test;
 mod utils;
 
+pub use utils::ColoredAlt;
+
 pub use action::Action;
 pub use config::*;
 pub use error::*;

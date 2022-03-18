@@ -222,13 +222,10 @@ impl MessageSegment {
 impl MessageAlt for MessageSegment {
     fn alt(&self) -> String {
         match self {
-            Self::Text { text, extend: _ } => text.to_owned(),
-            Self::Mention { user_id, extend: _ } => format!("[Mention={}]", user_id),
-            Self::MentionAll { extend: _ } => "[MentionAll]".to_owned(),
-            Self::Image {
-                file_id: _,
-                extend: _,
-            } => "[Image]".to_owned(),
+            Self::Text { text, .. } => text.to_owned(),
+            Self::Mention { user_id, .. } => format!("[Mention={user_id}]"),
+            Self::MentionAll { .. } => "[MentionAll]".to_owned(),
+            Self::Image { file_id, .. } => format!("[Image,file_id={file_id}]"),
             Self::Voice {
                 file_id: _,
                 extend: _,
