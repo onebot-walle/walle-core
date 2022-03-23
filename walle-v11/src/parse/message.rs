@@ -192,13 +192,21 @@ impl MessageParseExt<walle_core::Message> for crate::Message {
 fn image_11_to_12(file_id: String) -> v12MsgSeg {
     if let Some(b64) = file_id.strip_prefix("base64://") {
         v12MsgSeg::Image {
-            file_id: "".to_string(),
-            extend: [("base64".to_string(), b64.into())].into(),
+            file_id: [
+                if b64.chars().count() > 10 {
+                    &b64.split_at(10).0
+                } else {
+                    ""
+                },
+                "...",
+            ]
+            .concat(),
+            extend: [("url".to_string(), file_id.into())].into(),
         }
-    } else if let Some(url) = file_id.strip_prefix("file:///") {
+    } else if let Some(path) = file_id.strip_prefix("file:///") {
         v12MsgSeg::Image {
-            file_id: "".to_string(),
-            extend: [("path".to_string(), url.into())].into(),
+            file_id: path.to_string(),
+            extend: [("url".to_string(), file_id.into())].into(),
         }
     } else if file_id.starts_with("http://") || file_id.starts_with("https://") {
         v12MsgSeg::Image {
