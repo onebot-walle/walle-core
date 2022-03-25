@@ -210,7 +210,7 @@ fn image_11_to_12(file_id: String) -> v12MsgSeg {
         }
     } else if file_id.starts_with("http://") || file_id.starts_with("https://") {
         v12MsgSeg::Image {
-            file_id: "".to_string(),
+            file_id: file_id.to_string(),
             extend: [("url".to_string(), file_id.into())].into(),
         }
     } else {
