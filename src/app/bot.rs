@@ -167,7 +167,8 @@ where
         GetFile,
         GetFileContent,
         file_id: String,
-        r#type: String
+        r#type: String,
+        extra: ExtendedMap
     );
     // todo fragmented file
 }

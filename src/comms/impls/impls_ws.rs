@@ -74,15 +74,20 @@ where
             patams: ExtendedMap,
         }
 
-        let ok_handle = |echo_action: Echo<A>| {
+        let ok_handle = |echo_action: Echo<A>, binary: bool| {
             let (action, echo_s) = echo_action.unpack();
             let sender = resp_sender.clone();
             let ob = self.clone();
             tokio::spawn(async move {
                 let r = ob.action_handler.handle(action, &ob).await;
                 let echo = echo_s.pack(r);
-                let resp = serde_json::to_string(&echo).unwrap();
-                sender.send(WsMsg::Text(resp)).unwrap();
+                if binary {
+                    let resp = rmp_serde::to_vec(&echo).unwrap();
+                    sender.send(WsMsg::Binary(resp)).unwrap();
+                } else {
+                    let resp = serde_json::to_string(&echo).unwrap();
+                    sender.send(WsMsg::Text(resp)).unwrap();
+                }
             });
         };
         let err_handle = |a: Echo<UnknownAction>| -> Echo<crate::Resps> {
@@ -94,7 +99,7 @@ where
         match ws_msg {
             WsMsg::Text(text) => match serde_json::from_str(&text) {
                 Ok(echo_action) => {
-                    ok_handle(echo_action);
+                    ok_handle(echo_action, false);
                 }
                 Err(_) => match serde_json::from_str(&text) {
                     Ok(a) => {
@@ -108,7 +113,7 @@ where
             },
             WsMsg::Binary(v) => match rmp_serde::from_read(v.as_slice()) {
                 Ok(echo_action) => {
-                    ok_handle(echo_action);
+                    ok_handle(echo_action, true);
                 }
                 Err(_) => match rmp_serde::from_read(v.as_slice()) {
                     Ok(a) => {
