@@ -111,10 +111,6 @@ impl EchoS {
     }
 }
 
-pub trait FromStandard<S> {
-    fn from_standard(standard: S) -> Self;
-}
-
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 use async_trait::async_trait;
@@ -130,10 +126,6 @@ pub trait HeartbeatBuild: Sized {
     ) -> Self;
 }
 
-pub trait BasicEvent: Sized {
+pub trait SelfId: Sized {
     fn self_id(&self) -> String;
 }
-
-/// 空结构体，用于对应 Json 中的空 Map
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct EmptyContent {}

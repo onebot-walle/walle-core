@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::Deserialize;
 use std::{collections::HashMap, fmt::Debug, sync::Arc, vec};
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -14,14 +14,14 @@ use tracing::{info, warn};
 
 use crate::{
     app::{CustomActionSender, CustomOneBot, CustomRespSender},
-    BasicEvent, Echo, EchoS, WalleError, WalleLogExt, WalleResult,
+    Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleLogExt, WalleResult,
 };
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: BasicEvent + Clone + DeserializeOwned + Send + 'static + Debug,
-    A: Clone + Serialize + Send + 'static + Debug,
-    R: Clone + DeserializeOwned + Send + 'static + Debug,
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
+    A: ProtocolItem + Clone + Send + 'static + Debug,
+    R: ProtocolItem + Clone + Send + 'static + Debug,
 {
     async fn ws_loop(
         self: &Arc<Self>,

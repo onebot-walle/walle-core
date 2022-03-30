@@ -1,4 +1,3 @@
-use serde::{de::DeserializeOwned, Serialize};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -10,7 +9,9 @@ use std::{
 use tokio::sync::RwLock;
 use tracing::info;
 
-use crate::{config::AppConfig, Action, BasicEvent, Event, Resps, WalleError, WalleResult};
+use crate::{
+    config::AppConfig, StandardAction, Event, ProtocolItem, Resps, SelfId, WalleError, WalleResult,
+};
 
 mod bot;
 
@@ -21,7 +22,7 @@ pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
+pub type OneBot = CustomOneBot<Event, StandardAction, Resps, 12>;
 
 /// OneBot Application 实例
 ///
@@ -55,9 +56,9 @@ pub struct Bot<A, R> {
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: BasicEvent + Clone + DeserializeOwned + Send + 'static + Debug,
-    A: Clone + Serialize + Send + 'static + Debug,
-    R: Clone + DeserializeOwned + Send + 'static + Debug,
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
+    A: ProtocolItem + Clone + Send + 'static + Debug,
+    R: ProtocolItem + Clone + Send + 'static + Debug,
 {
     /// 创建新的 OneBot 实例
     pub fn new(config: AppConfig, event_handler: ArcEventHandler<E, A, R>) -> Self {

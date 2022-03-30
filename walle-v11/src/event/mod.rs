@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use walle_core::{BasicEvent, ExtendedMap, HeartbeatBuild};
+use walle_core::{SelfId, ExtendedMap, HeartbeatBuild};
 
 mod alt;
 
@@ -166,7 +166,7 @@ impl MetaContent {
     }
 }
 
-impl BasicEvent for Event {
+impl SelfId for Event {
     fn self_id(&self) -> String {
         self.self_id.to_string()
     }

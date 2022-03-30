@@ -80,25 +80,25 @@ impl DefaultHandler {
 #[async_trait]
 impl<E, const V: u8>
     ActionHandler<
-        crate::Action,
+        crate::StandardAction,
         crate::Resps,
-        crate::impls::CustomOneBot<E, crate::Action, crate::Resps, V>,
+        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, V>,
     > for DefaultHandler
 where
     E: Send,
 {
     async fn handle(
         &self,
-        action: crate::Action,
-        _ob: &crate::impls::CustomOneBot<E, crate::Action, crate::Resps, V>,
+        action: crate::StandardAction,
+        _ob: &crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, V>,
     ) -> Resps {
         use crate::{
             resp::{Resp, RespContent},
-            Action,
+            StandardAction,
         };
 
         match action {
-            Action::GetVersion(_) => Resp::success(RespContent::Version(get_version().await)),
+            StandardAction::GetVersion(_) => Resp::success(RespContent::Version(get_version().await)),
             _ => Resp::unsupported_action(),
         }
     }

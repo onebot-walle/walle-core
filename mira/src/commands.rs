@@ -11,6 +11,7 @@ impl crate::Cache {
                         None,
                         Some(self.user_id.clone()),
                         Message::new().text(msg.to_owned()),
+                        [].into(),
                     )
                     .await
                     .unwrap();
@@ -24,6 +25,7 @@ impl crate::Cache {
                         Some(self.group_id.clone()),
                         None,
                         Message::new().text(msg.to_owned()),
+                        [].into(),
                     )
                     .await
                     .unwrap();

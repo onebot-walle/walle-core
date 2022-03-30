@@ -3,7 +3,7 @@ use hyper::header::{AUTHORIZATION, CONTENT_TYPE};
 use hyper::service::Service;
 use hyper::Method;
 use hyper::{server::conn::Http, Body, Request, Response};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use std::convert::Infallible;
 use std::future::Future;
 use std::pin::Pin;
@@ -13,7 +13,7 @@ use tokio::net::TcpListener;
 
 use crate::impls::CustomOneBot;
 use crate::utils::Echo;
-use crate::{WalleError, WalleResult};
+use crate::{ProtocolItem, WalleError, WalleResult};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
@@ -31,7 +31,7 @@ struct OneBotService<E, A, R, const V: u8> {
 impl<E, A, R, const V: u8> Service<Request<Body>> for OneBotService<E, A, R, V>
 where
     E: Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
+    A: ProtocolItem + std::fmt::Debug + Send + 'static,
     R: Serialize + std::fmt::Debug + Send + 'static,
 {
     type Response = Response<Body>;
@@ -69,7 +69,7 @@ where
         let ob = self.ob.clone();
         Box::pin(async move {
             let data = hyper::body::aggregate(req).await.unwrap();
-            let action: Echo<A> = serde_json::from_reader(data.reader()).unwrap();
+            let action: Echo<A> = ProtocolItem::json_fron_reader(data.reader()).unwrap();
             let (action, echo) = action.unpack();
             let action_resp = ob.action_handler.handle(action, &ob).await;
             let action_resp = echo.pack(action_resp);
@@ -83,7 +83,7 @@ where
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
     E: Clone + Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Clone + Send + 'static,
+    A: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
     R: Serialize + std::fmt::Debug + Clone + Send + 'static,
 {
     pub(crate) async fn http(self: &Arc<Self>) -> WalleResult<()> {

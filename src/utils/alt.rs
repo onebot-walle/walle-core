@@ -1,6 +1,6 @@
 use colored::*;
 
-use crate::{Action, BaseEvent, EventContent, MessageAlt, MessageContent};
+use crate::{StandardAction, BaseEvent, EventContent, MessageAlt, MessageContent};
 
 impl<T: ColoredAlt> ColoredAlt for BaseEvent<T> {
     fn alt(&self) -> Option<String> {
@@ -39,10 +39,10 @@ impl ColoredAlt for MessageContent {
     }
 }
 
-impl ColoredAlt for Action {
+impl ColoredAlt for StandardAction {
     fn alt(&self) -> Option<String> {
         match self {
-            Action::SendMessage(c) => {
+            StandardAction::SendMessage(c) => {
                 if let Some(group_id) = &c.group_id {
                     Some(format!(
                         "[{}] {} to {}",

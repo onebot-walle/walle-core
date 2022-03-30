@@ -43,7 +43,7 @@ where
                     if let Some(ws_msg) = ws_msg {
                         debug!(target: "Walle-core", "ws recv: {:?}", ws_msg);
                         match ws_msg {
-                            Ok(ws_msg) => self.ws_recv(ws_msg, &resp_tx).await,
+                            Ok(ws_msg) => if self.ws_recv(ws_msg, &resp_tx).await { break },
                             Err(_) => break,
                         }
                     }
@@ -66,7 +66,7 @@ where
         self: &Arc<Self>,
         ws_msg: WsMsg,
         resp_sender: &tokio::sync::mpsc::UnboundedSender<WsMsg>,
-    ) {
+    ) -> bool {
         #[derive(Deserialize)]
         struct UnknownAction {
             action: String,
@@ -129,10 +129,11 @@ where
                 resp_sender.send(WsMsg::Pong(b)).unwrap();
             }
             WsMsg::Close(_) => {
-                todo!()
+                return true;
             }
             _ => {}
         }
+        false
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {

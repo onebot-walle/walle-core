@@ -135,10 +135,10 @@ fn event() {
 
 #[test]
 fn action() {
-    use crate::action::GetLatestEventsContent;
+    use crate::action::GetLatestEvents;
     use crate::action::*;
     use crate::Echo;
-    use crate::{Action, EmptyContent, MessageSegment};
+    use crate::{StandardAction, MessageSegment};
     use std::collections::HashMap;
 
     let data = vec![
@@ -150,9 +150,10 @@ fn action() {
                 "timeout": 0
             }
         }"#,
-            Action::GetLatestEvents(GetLatestEventsContent {
+            StandardAction::GetLatestEvents(GetLatestEvents {
                 limit: 100,
                 timeout: 0,
+                extra: [].into(),
             }),
         ),
         (
@@ -164,7 +165,7 @@ fn action() {
                     "message": "我是文字巴拉巴拉巴拉"
                 }
             }"#,
-            Action::SendMessage(SendMessageContent {
+            StandardAction::SendMessage(SendMessage {
                 detail_type: "group".to_owned(),
                 group_id: Some("12467".to_owned()),
                 user_id: None,
@@ -172,6 +173,7 @@ fn action() {
                     text: "我是文字巴拉巴拉巴拉".to_owned(),
                     extend: HashMap::new(),
                 }],
+                extra: [].into(),
             }),
         ),
         (
@@ -179,27 +181,27 @@ fn action() {
                 "action": "get_self_info",
                 "params": {}
             }"#,
-            Action::GetSelfInfo(EmptyContent::default()),
+            StandardAction::GetSelfInfo([].into()),
         ),
     ];
 
     for (json, action) in data {
         assert_eq!(
-            serde_json::from_str::<Echo<Action>>(json)
+            serde_json::from_str::<Echo<StandardAction>>(json)
                 .unwrap()
                 .unpack()
                 .0,
             action
         );
         let json_str = serde_json::to_string(&action).unwrap();
-        assert_eq!(serde_json::from_str::<Action>(&json_str).unwrap(), action);
+        assert_eq!(serde_json::from_str::<StandardAction>(&json_str).unwrap(), action);
     }
 }
 
 #[test]
 fn action_resp() {
     use crate::resp::*;
-    use crate::EmptyContent;
+    use crate::ExtendedValue;
     use std::collections::HashMap;
 
     let status_data = (
@@ -228,8 +230,10 @@ fn action_resp() {
             "data": {},
             "message": ""
         }"#,
-        Resp::success(EmptyContent::default()),
-        Resp::success(RespContent::Other(HashMap::default())),
+        Resp::success(HashMap::default()),
+        Resp::success(RespContent::Other(
+            HashMap::<_, ExtendedValue>::default().into(),
+        )),
     );
 
     assert_eq!(
@@ -243,7 +247,7 @@ fn action_resp() {
     );
 
     assert_eq!(
-        serde_json::from_str::<Resp<EmptyContent>>(empty_data.0).unwrap(),
+        serde_json::from_str::<Resp<HashMap<String, ExtendedValue>>>(empty_data.0).unwrap(),
         empty_data.1
     );
     let json_str = serde_json::to_string(&empty_data.1).unwrap();

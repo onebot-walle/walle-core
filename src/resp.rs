@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{action::UploadFileContent, Event, ExtendedValue};
+use crate::{action::UploadFile, Event, ExtendedValue};
 
 /// ## OneBot 12 标准动作响应
 pub type Resps = Resp<RespContent>;
@@ -35,7 +35,7 @@ pub enum RespContent {
     FileId(FileIdContent),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
-    GetFile(UploadFileContent),
+    GetFile(UploadFile),
     Other(ExtendedValue),
 }
 
@@ -61,7 +61,7 @@ resp_content!(Vec<GroupInfoContent>, GroupList);
 resp_content!(FileIdContent, FileId);
 resp_content!(FileFragmentedHead, PrepareFileFragmented);
 resp_content!(Vec<u8>, TransferFileFragmented);
-resp_content!(UploadFileContent, GetFile);
+resp_content!(UploadFile, GetFile);
 
 /// ## 扩展动作响应
 ///

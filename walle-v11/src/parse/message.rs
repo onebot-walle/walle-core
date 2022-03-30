@@ -179,11 +179,12 @@ where
 }
 
 pub trait MessageParseExt<T> {
-    type Error = WalleParseError;
+    type Error;
     fn try_parse(self) -> Result<T, Self::Error>;
 }
 
 impl MessageParseExt<walle_core::Message> for crate::Message {
+    type Error = WalleParseError;
     fn try_parse(self) -> Result<walle_core::Message, WalleParseError> {
         self.into_iter().map(|s| s.try_into()).collect()
     }
@@ -194,7 +195,7 @@ fn image_11_to_12(file_id: String) -> v12MsgSeg {
         v12MsgSeg::Image {
             file_id: [
                 if b64.chars().count() > 10 {
-                    &b64.split_at(10).0
+                    b64.split_at(10).0
                 } else {
                     ""
                 },

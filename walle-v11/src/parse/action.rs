@@ -1,8 +1,11 @@
 use super::message::MessageParseExt;
 use crate::action::{Action as V11Action, Resp as V11Resp, RespContent as V11RespContent};
 use walle_core::{
-    action::{DeleteMessageContent, GroupIdContent, IdsContent, SendMessageContent, UserIdContent},
-    Action as V12Action, ExtendedMap, RespContent as V12RespContent, Resps as V12Resps,
+    action::{
+        DeleteMessage, GetGroupInfo, GetGroupMemberInfo, GetGroupMemberList, GetUserInfo,
+        SendMessage,
+    },
+    ExtendedMap, RespContent as V12RespContent, Resps as V12Resps, StandardAction as V12Action,
 };
 
 impl TryFrom<V12Action> for V11Action {
@@ -24,58 +27,65 @@ impl TryFrom<V11Action> for V12Action {
                 group_id,
                 message,
                 ..
-            } => Ok(V12Action::SendMessage(SendMessageContent {
+            } => Ok(SendMessage {
                 detail_type: message_type,
                 user_id: user_id.map(|id| id.to_string()),
                 group_id: group_id.map(|id| id.to_string()),
                 message: message.try_parse()?,
-            })),
+                extra: [].into(),
+            }
+            .into()),
             V11Action::SendPrivateMsg {
                 user_id, message, ..
-            } => Ok(V12Action::SendMessage(SendMessageContent {
+            } => Ok(SendMessage {
                 detail_type: "private".to_string(),
                 user_id: Some(user_id.to_string()),
                 group_id: None,
                 message: message.try_parse()?,
-            })),
+                extra: [].into(),
+            }
+            .into()),
             V11Action::SendGroupMsg {
                 group_id, message, ..
-            } => Ok(V12Action::SendMessage(SendMessageContent {
+            } => Ok(SendMessage {
                 detail_type: "group".to_string(),
                 user_id: None,
                 group_id: Some(group_id.to_string()),
                 message: message.try_parse()?,
-            })),
-            V11Action::DeleteMsg { message_id, .. } => {
-                Ok(V12Action::DeleteMessage(DeleteMessageContent {
-                    message_id: message_id.to_string(),
-                }))
+                extra: [].into(),
             }
+            .into()),
+            V11Action::DeleteMsg { message_id, .. } => Ok(DeleteMessage {
+                message_id: message_id.to_string(),
+                extra: [].into(),
+            }
+            .into()),
             V11Action::GetLoginInfo(_) => Ok(V12Action::GetSelfInfo(ExtendedMap::default())),
-            V11Action::GetStrangerInfo { user_id, .. } => {
-                Ok(V12Action::GetUserInfo(UserIdContent {
-                    user_id: user_id.to_string(),
-                }))
+            V11Action::GetStrangerInfo { user_id, .. } => Ok(GetUserInfo {
+                user_id: user_id.to_string(),
+                extra: [].into(),
             }
-            V11Action::GetGroupInfo { group_id, .. } => {
-                Ok(V12Action::GetGroupInfo(GroupIdContent {
-                    group_id: group_id.to_string(),
-                }))
+            .into()),
+            V11Action::GetGroupInfo { group_id, .. } => Ok(GetGroupInfo {
+                group_id: group_id.to_string(),
+                extra: [].into(),
             }
+            .into()),
             V11Action::GetFriendList(_) => Ok(V12Action::GetFriendList(ExtendedMap::default())),
             V11Action::GetGroupList(_) => Ok(V12Action::GetGroupList(ExtendedMap::default())),
-            V11Action::GetGroupMemberList { group_id, .. } => {
-                Ok(V12Action::GetGroupMemberList(GroupIdContent {
-                    group_id: group_id.to_string(),
-                }))
+            V11Action::GetGroupMemberList { group_id, .. } => Ok(GetGroupMemberList {
+                group_id: group_id.to_string(),
+                extra: [].into(),
             }
+            .into()),
             V11Action::GetGroupMemberInfo {
                 group_id, user_id, ..
-            } => Ok(V12Action::GetGroupMemberInfo(IdsContent {
+            } => Ok(GetGroupMemberInfo {
                 group_id: group_id.to_string(),
                 user_id: user_id.to_string(),
                 extra: [].into(),
-            })),
+            }
+            .into()),
             _ => todo!(),
         }
     }

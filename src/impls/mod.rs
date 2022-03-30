@@ -1,8 +1,7 @@
 #![doc = include_str!("README.md")]
 
-use crate::{event::BaseEvent, resp::StatusContent, Action, ImplConfig, WalleError, WalleResult};
-use crate::{Event, HeartbeatBuild, Resps};
-use serde::{de::DeserializeOwned, Serialize};
+use crate::{event::BaseEvent, resp::StatusContent, StandardAction, ImplConfig, WalleError, WalleResult};
+use crate::{Event, HeartbeatBuild, ProtocolItem, Resps};
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -15,7 +14,7 @@ pub(crate) type ArcActionHandler<A, R, OB> =
 pub type EventBroadcaster = CustomEventBroadcaster<Event>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<Event, Action, Resps, 12>;
+pub type OneBot = CustomOneBot<Event, StandardAction, Resps, 12>;
 
 /// OneBot Implementation 实例
 ///
@@ -85,9 +84,9 @@ impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: HeartbeatBuild + Serialize + Clone + Debug + Send + 'static,
-    A: DeserializeOwned + Clone + Debug + Send + 'static,
-    R: Serialize + Clone + Debug + Send + 'static,
+    E: ProtocolItem + HeartbeatBuild + Clone + Debug + Send + 'static,
+    A: ProtocolItem + Clone + Debug + Send + 'static,
+    R: ProtocolItem + Clone + Debug + Send + 'static,
 {
     pub fn new(
         r#impl: &str,

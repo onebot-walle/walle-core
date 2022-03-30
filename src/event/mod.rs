@@ -86,12 +86,6 @@ impl_From!(MessageContent, Message);
 impl_From!(NoticeContent, Notice);
 impl_From!(RequestContent, Request);
 
-impl crate::utils::FromStandard<EventContent> for EventContent {
-    fn from_standard(event_content: EventContent) -> Self {
-        event_content
-    }
-}
-
 impl EventContent {
     /// build a new MessageContent
     pub fn new_message_content(
@@ -376,7 +370,7 @@ impl crate::HeartbeatBuild for Event {
     }
 }
 
-impl<T> crate::BasicEvent for BaseEvent<T> {
+impl<T> crate::SelfId for BaseEvent<T> {
     fn self_id(&self) -> String {
         self.self_id.clone()
     }
