@@ -10,19 +10,20 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::{
-    config::AppConfig, StandardAction, Event, ProtocolItem, Resps, SelfId, WalleError, WalleResult,
+    config::AppConfig, ProtocolItem, Resps, SelfId, StandardAction, StandardEvent, WalleError,
+    WalleResult,
 };
 
 mod bot;
 
-pub(crate) type ArcEventHandler<E, A, R> =
-    Arc<dyn crate::handle::EventHandler<E, A, R> + Send + Sync>;
+pub(crate) type BoxEventHandler<E, A, R> =
+    Box<dyn crate::handle::EventHandler<E, A, R> + Send + Sync>;
 pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<R>;
 pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type OneBot = CustomOneBot<Event, StandardAction, Resps, 12>;
+pub type StandardOneBot = OneBot<StandardEvent, StandardAction, Resps, 12>;
 
 /// OneBot Application 实例
 ///
@@ -32,20 +33,21 @@ pub type OneBot = CustomOneBot<Event, StandardAction, Resps, 12>;
 /// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-pub struct CustomOneBot<E, A, R, const V: u8> {
+pub struct OneBot<E, A, R, const V: u8> {
     pub config: AppConfig,
     pub bots: RwLock<HashMap<String, ArcBot<A, R>>>,
 
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
-    pub(crate) event_handler: ArcEventHandler<E, A, R>,
+    pub(crate) event_handler: BoxEventHandler<E, A, R>,
 
     running: AtomicBool,
 }
 
 /// Arc<Bot>
 pub type ArcBot<A, R> = Arc<Bot<A, R>>;
+pub type StandardArcBot = ArcBot<StandardAction, Resps>;
 
 /// Bot 实例
 pub struct Bot<A, R> {
@@ -54,14 +56,14 @@ pub struct Bot<A, R> {
     sender: CustomActionSender<A, R>,
 }
 
-impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
+impl<E, A, R, const V: u8> OneBot<E, A, R, V>
 where
     E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
     A: ProtocolItem + Clone + Send + 'static + Debug,
     R: ProtocolItem + Clone + Send + 'static + Debug,
 {
     /// 创建新的 OneBot 实例
-    pub fn new(config: AppConfig, event_handler: ArcEventHandler<E, A, R>) -> Self {
+    pub fn new(config: AppConfig, event_handler: BoxEventHandler<E, A, R>) -> Self {
         Self {
             config,
             event_handler,

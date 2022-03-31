@@ -106,8 +106,8 @@ where
 
 #[cfg(feature = "app")]
 #[async_trait]
-impl<A, R> EventHandler<crate::Event, A, R> for DefaultHandler {
-    async fn handle(&self, _: ArcBot<A, R>, event: crate::Event) {
+impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
+    async fn handle(&self, _: ArcBot<A, R>, event: crate::StandardEvent) {
         use crate::EventContent;
         use colored::*;
         use tracing::{debug, info, trace};

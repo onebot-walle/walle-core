@@ -6,7 +6,7 @@ use crate::ExtendedMap;
 use crate::MessageAlt;
 
 /// OneBot 12 标准事件
-pub type Event = BaseEvent<EventContent>;
+pub type StandardEvent = BaseEvent<EventContent>;
 
 /// ## OneBot Event 基类
 ///
@@ -61,10 +61,10 @@ macro_rules! impl_From {
             }
         }
 
-        impl TryFrom<Event> for BaseEvent<$from> {
-            type Error = Event;
+        impl TryFrom<StandardEvent> for BaseEvent<$from> {
+            type Error = StandardEvent;
 
-            fn try_from(event: Event) -> Result<Self, Self::Error> {
+            fn try_from(event: StandardEvent) -> Result<Self, Self::Error> {
                 match event.content {
                     EventContent::$name(from) => Ok(BaseEvent {
                         id: event.id,
@@ -353,7 +353,7 @@ pub enum ExtendedRequest<T> {
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 #[async_trait::async_trait]
-impl crate::HeartbeatBuild for Event {
+impl crate::HeartbeatBuild for StandardEvent {
     async fn build_heartbeat<A, R, const V: u8>(
         ob: &crate::impls::CustomOneBot<Self, A, R, V>,
         interval: u32,

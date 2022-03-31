@@ -8,11 +8,11 @@ pub(crate) struct Cache {
     pub(crate) clap: App<'static>,
     pub(crate) user_id: String,
     pub(crate) group_id: String,
-    pub(crate) cli: Arc<walle_core::app::OneBot>,
+    pub(crate) cli: Arc<walle_core::app::StandardOneBot>,
 }
 
 impl Cache {
-    pub(crate) fn new(cli: Arc<walle_core::app::OneBot>) -> Self {
+    pub(crate) fn new(cli: Arc<walle_core::app::StandardOneBot>) -> Self {
         Self {
             clap: build_app(),
             user_id: String::default(),

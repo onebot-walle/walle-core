@@ -13,11 +13,11 @@ use tokio_tungstenite::{
 use tracing::{info, warn};
 
 use crate::{
-    app::{CustomActionSender, CustomOneBot, CustomRespSender},
+    app::{CustomActionSender, OneBot, CustomRespSender},
     Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleLogExt, WalleResult,
 };
 
-impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
+impl<E, A, R, const V: u8> OneBot<E, A, R, V>
 where
     E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
     A: ProtocolItem + Clone + Send + 'static + Debug,

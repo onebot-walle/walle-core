@@ -1,7 +1,7 @@
 #![doc = include_str!("README.md")]
 
 use crate::{event::BaseEvent, resp::StatusContent, StandardAction, ImplConfig, WalleError, WalleResult};
-use crate::{Event, HeartbeatBuild, ProtocolItem, Resps};
+use crate::{StandardEvent, HeartbeatBuild, ProtocolItem, Resps};
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -11,10 +11,10 @@ use tracing::{info, trace};
 pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
 pub(crate) type ArcActionHandler<A, R, OB> =
     Arc<dyn crate::handle::ActionHandler<A, R, OB> + Send + Sync>;
-pub type EventBroadcaster = CustomEventBroadcaster<Event>;
+pub type EventBroadcaster = CustomEventBroadcaster<StandardEvent>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<Event, StandardAction, Resps, 12>;
+pub type OneBot = CustomOneBot<StandardEvent, StandardAction, Resps, 12>;
 
 /// OneBot Implementation 实例
 ///

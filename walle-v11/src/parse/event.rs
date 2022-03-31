@@ -8,8 +8,8 @@ use crate::{
 };
 use std::str::FromStr;
 use walle_core::{
-    Event as v12Event, EventContent as v12Content, ExtendedMap, MessageAlt, MessageEventType,
-    MetaContent as v12Meta,
+    EventContent as v12Content, ExtendedMap, MessageAlt, MessageEventType, MetaContent as v12Meta,
+    StandardEvent as v12Event,
 };
 
 use super::WalleParseError;

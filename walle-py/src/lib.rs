@@ -10,9 +10,9 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
     /// just build and run a onebot application
     fn run_onebot_app(py: Python) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
-            let app = walle_core::app::OneBot::new(
+            let app = walle_core::app::StandardOneBot::new(
                 walle_core::AppConfig::default(),
-                walle_core::DefaultHandler::arc(),
+                Box::new(walle_core::DefaultHandler),
             )
             .arc();
             app.run().await.unwrap();
@@ -25,7 +25,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             let app = walle_v11::app::OneBot11::new(
                 walle_core::AppConfig::default(),
-                walle_v11::DefaultHandler::arc(),
+                Box::new(walle_v11::DefaultHandler),
             )
             .arc();
             app.run().await.unwrap();
@@ -38,7 +38,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             let app = walle_v11::app::OneBot11::new(
                 walle_core::AppConfig::default(),
-                walle_v11::DefaultHandler::arc(),
+                Box::new(walle_v11::DefaultHandler),
             )
             .arc();
             app.run_block().await.unwrap();
@@ -50,7 +50,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
 
 enum OBApp {
     V11(Arc<walle_v11::app::OneBot11>),
-    V12(Arc<walle_core::app::OneBot>),
+    V12(Arc<walle_core::app::StandardOneBot>),
 }
 
 #[pyclass(name = "OneBot")]

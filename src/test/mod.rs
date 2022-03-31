@@ -1,6 +1,6 @@
 #[test]
 fn event() {
-    use crate::event::Event;
+    use crate::event::StandardEvent;
     use crate::event::{
         BaseEvent, EventContent, MessageContent as MsgContent, MessageEventType, MetaContent,
         NoticeContent,
@@ -127,9 +127,9 @@ fn event() {
     ];
 
     for (json, event) in data {
-        assert_eq!(serde_json::from_str::<Event>(json).unwrap(), event);
+        assert_eq!(serde_json::from_str::<StandardEvent>(json).unwrap(), event);
         let json_str = serde_json::to_string(&event).unwrap();
-        assert_eq!(serde_json::from_str::<Event>(&json_str).unwrap(), event);
+        assert_eq!(serde_json::from_str::<StandardEvent>(&json_str).unwrap(), event);
     }
 }
 

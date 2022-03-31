@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use tracing::{info, warn};
 use walle_core::{
-    app::OneBot,
+    app::StandardOneBot,
     config::{AppConfig, WebSocketClient, WebSocketServer},
     DefaultHandler,
 };
@@ -65,7 +65,7 @@ async fn main() {
     } else {
         load_config(root.config)
     };
-    let cli = OneBot::new(config, DefaultHandler::arc()).arc();
+    let cli = StandardOneBot::new(config, DefaultHandler::arc()).arc();
     let mut cache = shell::Cache::new(cli.clone());
     cli.run().await.unwrap();
     loop {

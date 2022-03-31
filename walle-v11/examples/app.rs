@@ -11,7 +11,7 @@ async fn main() {
             websocket_rev: vec![],
             ..Default::default()
         },
-        DefaultHandler::arc(),
+        Box::new(DefaultHandler),
     )
     .arc();
     ob.run_block().await.unwrap();

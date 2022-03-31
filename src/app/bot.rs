@@ -1,4 +1,5 @@
 use crate::{action::*, ExtendedMap, ProtocolItem, WalleError, WalleResult};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::time::Duration;
 
@@ -150,4 +151,34 @@ where
     );
     action_api!(get_file, GetFile, GetFile, file_id: String, r#type: String);
     // todo fragmented file
+
+    pub async fn send_group_message(
+        &self,
+        group_id: String,
+        message: crate::Message,
+    ) -> WalleResult<R> {
+        self.send_message(
+            "group".to_string(),
+            Some(group_id),
+            None,
+            message,
+            HashMap::default(),
+        )
+        .await
+    }
+
+    pub async fn send_private_message(
+        &self,
+        user_id: String,
+        message: crate::Message,
+    ) -> WalleResult<R> {
+        self.send_message(
+            "private".to_string(),
+            None,
+            Some(user_id),
+            message,
+            HashMap::default(),
+        )
+        .await
+    }
 }
