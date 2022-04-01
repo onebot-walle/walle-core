@@ -140,6 +140,15 @@ impl EventContent {
     }
 }
 
+impl BaseEvent<MessageContent> {
+    pub fn group_id(&self) -> Option<&str> {
+        self.content.ty.group_id()
+    }
+    pub fn user_id(&self) -> &str {
+        &self.content.user_id
+    }
+}
+
 /// ## OneBot 元事件 Content
 ///
 /// 元事件是 OneBot 实现内部自发产生的一类事件，例如心跳等，
@@ -250,6 +259,15 @@ pub enum ExtendedMessage<T> {
 pub enum MessageEventType {
     Private,
     Group { group_id: String },
+}
+
+impl MessageEventType {
+    pub fn group_id(&self) -> Option<&str> {
+        match self {
+            MessageEventType::Group { group_id } => Some(group_id),
+            _ => None,
+        }
+    }
 }
 
 /// ## OneBot 通知事件 Content

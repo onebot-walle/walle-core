@@ -7,7 +7,7 @@ pub struct Echo;
 
 #[async_trait]
 impl Matcher for Echo {
-    async fn handle(&self, session: Session) {
+    async fn handle(&self, session: Session<EventContent>) {
         if let EventContent::Message(c) = session.event.content {
             match c.ty {
                 MessageEventType::Group { group_id } => {
@@ -39,7 +39,7 @@ pub struct Echo2;
 
 #[async_trait]
 impl Matcher for Echo2 {
-    async fn handle(&self, _session: Session) {}
+    async fn handle(&self, _session: Session<EventContent>) {}
 }
 
 impl Echo2 {
