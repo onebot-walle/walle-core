@@ -27,7 +27,10 @@ async fn main() {
     }
     let timer = tracing_subscriber::fmt::time::OffsetTime::new(
         time::UtcOffset::from_hms(8, 0, 0).unwrap(),
-        time::format_description::parse("[year repr:last_two]-[month]-[day] [hour]:[minute]:[second]").unwrap(),
+        time::format_description::parse(
+            "[year repr:last_two]-[month]-[day] [hour]:[minute]:[second]",
+        )
+        .unwrap(),
     );
     let env = tracing_subscriber::EnvFilter::from(if root.trace {
         "trace"
@@ -65,7 +68,7 @@ async fn main() {
     } else {
         load_config(root.config)
     };
-    let cli = StandardOneBot::new(config, DefaultHandler::arc()).arc();
+    let cli = StandardOneBot::new(config, Box::new(DefaultHandler)).arc();
     let mut cache = shell::Cache::new(cli.clone());
     cli.run().await.unwrap();
     loop {
