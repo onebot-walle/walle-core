@@ -9,7 +9,6 @@ use walle_core::{
 #[async_trait]
 pub trait Matcher: Sync {
     fn _match(&self, _event: &StandardEvent) -> bool {
-        println!("default! {:?}", _event);
         true
     }
     async fn handle(&self, session: Session<EventContent>);
@@ -109,11 +108,11 @@ pub struct TempMathcer {
 #[async_trait]
 impl Matcher for TempMathcer {
     fn _match(&self, event: &StandardEvent) -> bool {
-        check_user_id(&event, &self.user_id)
+        check_user_id(&self.user_id)(&event)
             && self
                 .group_id
                 .as_ref()
-                .map_or(true, |i| check_user_id(&event, &i))
+                .map_or(true, |i| check_user_id(&i)(&event))
     }
     async fn handle(&self, session: Session<EventContent>) {
         let event = session.event;
