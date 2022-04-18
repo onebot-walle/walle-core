@@ -1,28 +1,25 @@
-use crate::{Matcher, Plugin, Session};
+use crate::{Handler, Plugin, Session};
 
 use async_trait::async_trait;
-use walle_core::{EventContent, MessageBuild, StandardEvent};
+use walle_core::{app::StandardArcBot, MessageBuild, MessageContent, MessageEvent};
 
 pub struct Echo;
 
 #[async_trait]
-impl Matcher for Echo {
-    fn _match(&self, event: &StandardEvent) -> bool {
-        if let EventContent::Message(ref c) = event.content {
-            if c.alt_message.starts_with("echo") {
-                return true;
-            }
+impl Handler<MessageContent> for Echo {
+    fn _match(&self, _bot: &StandardArcBot, event: &MessageEvent) -> bool {
+        if event.content.alt_message.starts_with("echo") {
+            return true;
         }
         false
     }
-    async fn handle(&self, session: Session<EventContent>) {
-        let session = session.as_message_session().unwrap();
+    async fn handle(&self, session: Session<MessageContent>) {
         let _ = session.send(session.event.message().clone()).await;
     }
 }
 
 impl Echo {
-    pub fn new() -> Plugin {
+    pub fn new() -> Plugin<MessageContent> {
         Plugin::new("echo", "echo,", Echo)
     }
 }
@@ -30,17 +27,14 @@ impl Echo {
 pub struct Echo2;
 
 #[async_trait]
-impl Matcher for Echo2 {
-    fn _match(&self, event: &StandardEvent) -> bool {
-        if let EventContent::Message(ref c) = event.content {
-            if c.alt_message.starts_with("echo2") {
-                return true;
-            }
+impl Handler<MessageContent> for Echo2 {
+    fn _match(&self, _bot: &StandardArcBot, event: &MessageEvent) -> bool {
+        if event.content.alt_message.starts_with("echo2") {
+            return true;
         }
         false
     }
-    async fn handle(&self, session: Session<EventContent>) {
-        let mut session = session.as_message_session().unwrap();
+    async fn handle(&self, mut session: Session<MessageContent>) {
         let _ = session
             .get(
                 vec![].text("input message".to_string()),
@@ -52,7 +46,7 @@ impl Matcher for Echo2 {
 }
 
 impl Echo2 {
-    pub fn new() -> Plugin {
+    pub fn new() -> Plugin<MessageContent> {
         Plugin::new("echo2", "echo2,", Echo2)
     }
 }

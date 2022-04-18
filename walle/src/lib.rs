@@ -5,7 +5,6 @@ use walle_core::{AppConfig, WalleResult};
 pub mod builtin;
 mod matcher;
 mod plugin;
-pub mod rules;
 pub use matcher::*;
 pub use plugin::*;
 

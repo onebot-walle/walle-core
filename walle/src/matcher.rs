@@ -1,25 +1,38 @@
-use crate::rules::*;
 use crate::{Plugin, TempPlugins};
 use async_trait::async_trait;
+use std::future::Future;
+use std::pin::Pin;
 use walle_core::app::StandardArcBot;
-use walle_core::{
-    BaseEvent, EventContent, Message, MessageContent, Resps, StandardEvent, WalleResult,
-};
+use walle_core::{BaseEvent, EventContent, Message, MessageContent, Resps, WalleResult};
 
 #[async_trait]
-pub trait Matcher: Sync {
-    fn _match(&self, _event: &StandardEvent) -> bool {
+pub trait Handler<C>: Sync {
+    fn _match(&self, _bot: &StandardArcBot, _event: &BaseEvent<C>) -> bool {
         true
     }
-    async fn handle(&self, session: Session<EventContent>);
-    async fn on_startup(&self) {}
-    async fn on_shutdown(&self) {}
+    async fn handle(&self, session: Session<C>);
+    // async fn on_startup(&self) {}
+    // async fn on_shutdown(&self) {}
 }
 
-trait SubContent {
-    fn pre_parse(session: Session<EventContent>) -> Option<Session<Self>>
+impl<C, T, Fut> Handler<C> for T
+where
+    C: Sync + Send + 'static,
+    T: Fn(Session<C>) -> Fut + Send + Sync,
+    Fut: Future<Output = ()> + Send,
+{
+    fn handle<'a, 'async_trait>(
+        &'a self,
+        session: Session<C>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
     where
-        Self: Sized;
+        'a: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move {
+            self(session).await;
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -58,22 +71,14 @@ impl Session<EventContent> {
 }
 
 impl Session<MessageContent> {
-    pub fn group_id(&self) -> Option<&str> {
-        self.event.group_id()
-    }
-
-    pub fn user_id(&self) -> &str {
-        self.event.user_id()
-    }
-
     pub async fn send(&self, message: Message) -> WalleResult<Resps> {
-        if let Some(group_id) = self.group_id() {
+        if let Some(group_id) = self.event.group_id() {
             self.bot
                 .send_group_message(group_id.to_string(), message)
                 .await
         } else {
             self.bot
-                .send_private_message(self.user_id().to_string(), message)
+                .send_private_message(self.event.user_id().to_string(), message)
                 .await
         }
     }
@@ -81,8 +86,8 @@ impl Session<MessageContent> {
     pub async fn get(&mut self, message: Message, timeout: std::time::Duration) -> WalleResult<()> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
         let (name, temp) = TempMathcer::new(
-            self.user_id().to_string(),
-            self.group_id().map(ToString::to_string),
+            self.event.user_id().to_string(),
+            self.event.group_id().map(ToString::to_string),
             tx,
         );
         self.temp_plugins.lock().await.insert(name.clone(), temp);
@@ -100,20 +105,11 @@ impl Session<MessageContent> {
 }
 
 pub struct TempMathcer {
-    pub user_id: String,
-    pub group_id: Option<String>,
     pub tx: tokio::sync::mpsc::Sender<BaseEvent<MessageContent>>,
 }
 
 #[async_trait]
-impl Matcher for TempMathcer {
-    fn _match(&self, event: &StandardEvent) -> bool {
-        check_user_id(&self.user_id)(&event)
-            && self
-                .group_id
-                .as_ref()
-                .map_or(true, |i| check_user_id(&i)(&event))
-    }
+impl Handler<EventContent> for TempMathcer {
     async fn handle(&self, session: Session<EventContent>) {
         let event = session.event;
         self.tx.send(event.try_into().unwrap()).await.unwrap();
@@ -125,19 +121,17 @@ impl TempMathcer {
         user_id: String,
         group_id: Option<String>,
         tx: tokio::sync::mpsc::Sender<BaseEvent<MessageContent>>,
-    ) -> (String, Plugin) {
+    ) -> (String, Plugin<EventContent>) {
+        use crate::builtin::{group_id_layer, user_id_layer};
         let name = format!("{}-{:?}", user_id, group_id);
+        let matcher = user_id_layer(user_id, Self { tx });
         (
             name.clone(),
-            Plugin::new(
-                name,
-                "".to_string(),
-                Self {
-                    user_id,
-                    group_id,
-                    tx,
-                },
-            ),
+            if let Some(group_id) = group_id {
+                Plugin::new(name, "".to_string(), group_id_layer(group_id, matcher))
+            } else {
+                Plugin::new(name, "".to_string(), matcher)
+            },
         )
     }
 }
