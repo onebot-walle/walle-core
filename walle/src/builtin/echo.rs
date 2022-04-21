@@ -1,14 +1,14 @@
 use crate::{Handler, Plugin, Session};
 
 use async_trait::async_trait;
-use walle_core::{app::StandardArcBot, MessageBuild, MessageContent, MessageEvent};
+use walle_core::MessageContent;
 
 pub struct Echo;
 
 #[async_trait]
 impl Handler<MessageContent> for Echo {
-    fn _match(&self, _bot: &StandardArcBot, event: &MessageEvent) -> bool {
-        if event.content.alt_message.starts_with("echo") {
+    fn _match(&self, session: &Session<MessageContent>) -> bool {
+        if session.event.content.alt_message.starts_with("echo") {
             return true;
         }
         false
@@ -28,18 +28,15 @@ pub struct Echo2;
 
 #[async_trait]
 impl Handler<MessageContent> for Echo2 {
-    fn _match(&self, _bot: &StandardArcBot, event: &MessageEvent) -> bool {
-        if event.content.alt_message.starts_with("echo2") {
+    fn _match(&self, session: &Session<MessageContent>) -> bool {
+        if session.event.content.alt_message.starts_with("echo2") {
             return true;
         }
         false
     }
     async fn handle(&self, mut session: Session<MessageContent>) {
         let _ = session
-            .get(
-                vec![].text("input message".to_string()),
-                std::time::Duration::from_secs(10),
-            )
+            .get("input message", std::time::Duration::from_secs(10))
             .await;
         let _ = session.send(session.event.message().clone()).await;
     }

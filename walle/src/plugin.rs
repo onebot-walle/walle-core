@@ -45,21 +45,22 @@ impl Plugins {
 #[async_trait]
 impl EventHandler<StandardEvent, StandardAction, Resps> for Plugins {
     async fn handle(&self, bot: StandardArcBot, event: StandardEvent) {
+        let session = Session::new(bot, event, self.temp.clone());
         if let Some(p) = {
             let mut temp_plugins = self.temp.lock().await;
             let mut found: Option<String> = None;
             for (k, plugin) in temp_plugins.iter() {
-                if plugin.matcher._match(&bot, &event) {
+                if plugin.matcher._match(&session) {
                     found = Some(k.clone());
                     break;
                 }
             }
             found.and_then(|i| temp_plugins.remove(&i))
         } {
-            let session = Session::new(bot, event, self.temp.clone());
             p.matcher.handle(session).await;
             return;
         }
+        let (bot, event) = (session.bot, session.event);
         if let Ok(event) = event.try_into() {
             let session = Session::new(bot, event, self.temp.clone());
             for plugin in &self.message {
@@ -94,7 +95,7 @@ where
 
     #[async_recursion::async_recursion]
     pub async fn handle(&self, session: &Session<C>) {
-        if self.matcher._match(&session.bot, &session.event) {
+        if self.matcher._match(&session) {
             let matcher = self.matcher.clone();
             let session = session.clone();
             tokio::spawn(async move { matcher.handle(session).await });

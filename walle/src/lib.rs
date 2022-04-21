@@ -3,10 +3,12 @@ use std::sync::Arc;
 use walle_core::{AppConfig, WalleResult};
 
 pub mod builtin;
-mod matcher;
+mod handler;
 mod plugin;
-pub use matcher::*;
+mod rule;
+pub use handler::*;
 pub use plugin::*;
+pub use rule::*;
 
 pub struct Walle {
     pub ob: Arc<walle_core::app::StandardOneBot>,

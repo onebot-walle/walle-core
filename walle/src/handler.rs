@@ -3,11 +3,11 @@ use async_trait::async_trait;
 use std::future::Future;
 use std::pin::Pin;
 use walle_core::app::StandardArcBot;
-use walle_core::{BaseEvent, EventContent, Message, MessageContent, Resps, WalleResult};
+use walle_core::{BaseEvent, EventContent, IntoMessage, MessageContent, Resps, WalleResult};
 
 #[async_trait]
 pub trait Handler<C>: Sync {
-    fn _match(&self, _bot: &StandardArcBot, _event: &BaseEvent<C>) -> bool {
+    fn _match(&self, _session: &Session<C>) -> bool {
         true
     }
     async fn handle(&self, session: Session<C>);
@@ -15,23 +15,32 @@ pub trait Handler<C>: Sync {
     // async fn on_shutdown(&self) {}
 }
 
-impl<C, T, Fut> Handler<C> for T
+pub struct HandlerFn<I>(I);
+
+pub fn handler_fn<I, C, Fut>(inner: I) -> HandlerFn<I>
+where
+    I: Fn(Session<C>) -> Fut + Send + Sync,
+    Fut: Future<Output = ()> + Send,
+    C: Sync + Send + 'static,
+{
+    HandlerFn(inner)
+}
+
+impl<C, I, Fut> Handler<C> for HandlerFn<I>
 where
     C: Sync + Send + 'static,
-    T: Fn(Session<C>) -> Fut + Send + Sync,
+    I: Fn(Session<C>) -> Fut + Send + Sync,
     Fut: Future<Output = ()> + Send,
 {
-    fn handle<'a, 'async_trait>(
+    fn handle<'a, 'b>(
         &'a self,
         session: Session<C>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'async_trait>>
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'b>>
     where
-        'a: 'async_trait,
-        Self: 'async_trait,
+        'a: 'b,
+        Self: 'b,
     {
-        Box::pin(async move {
-            self(session).await;
-        })
+        Box::pin(async move { self.0(session).await })
     }
 }
 
@@ -71,19 +80,23 @@ impl Session<EventContent> {
 }
 
 impl Session<MessageContent> {
-    pub async fn send(&self, message: Message) -> WalleResult<Resps> {
+    pub async fn send<T: IntoMessage>(&self, message: T) -> WalleResult<Resps> {
         if let Some(group_id) = self.event.group_id() {
             self.bot
-                .send_group_message(group_id.to_string(), message)
+                .send_group_message(group_id.to_string(), message.into_message())
                 .await
         } else {
             self.bot
-                .send_private_message(self.event.user_id().to_string(), message)
+                .send_private_message(self.event.user_id().to_string(), message.into_message())
                 .await
         }
     }
 
-    pub async fn get(&mut self, message: Message, timeout: std::time::Duration) -> WalleResult<()> {
+    pub async fn get<T: IntoMessage>(
+        &mut self,
+        message: T,
+        timeout: std::time::Duration,
+    ) -> WalleResult<()> {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
         let (name, temp) = TempMathcer::new(
             self.event.user_id().to_string(),

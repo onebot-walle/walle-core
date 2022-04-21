@@ -4,6 +4,9 @@ use serde::{de::Visitor, ser::SerializeMap, Deserialize, Serialize};
 
 use crate::utils::{ExtendedMap, ExtendedValue};
 
+pub mod builder;
+pub use builder::*;
+
 /// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
 

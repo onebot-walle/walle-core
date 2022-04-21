@@ -43,7 +43,7 @@ pub use handle::{ActionHandler, DefaultHandler};
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub use hooks::*;
-pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
+pub use message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
 pub use resp::{Resp, RespContent, Resps};
 pub use utils::*;
 
