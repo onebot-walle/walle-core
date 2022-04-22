@@ -97,8 +97,11 @@ where
     pub async fn handle(&self, session: &Session<C>) {
         if self.matcher._match(&session) {
             let matcher = self.matcher.clone();
-            let session = session.clone();
-            tokio::spawn(async move { matcher.handle(session).await });
+            let mut session = session.clone();
+            tokio::spawn(async move {
+                matcher._pre_handle(&mut session);
+                matcher.handle(session).await
+            });
         }
     }
 }

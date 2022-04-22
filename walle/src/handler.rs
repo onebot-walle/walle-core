@@ -1,4 +1,4 @@
-use crate::{Plugin, TempPlugins};
+use crate::{LayeredPreHandler, LayeredRule, Plugin, PreHandler, Rule, TempPlugins};
 use async_trait::async_trait;
 use std::future::Future;
 use std::pin::Pin;
@@ -10,10 +10,31 @@ pub trait Handler<C>: Sync {
     fn _match(&self, _session: &Session<C>) -> bool {
         true
     }
+    /// if matched will be called before handle, should never fail
+    fn _pre_handle(&self, _session: &mut Session<C>) {}
     async fn handle(&self, session: Session<C>);
     // async fn on_startup(&self) {}
     // async fn on_shutdown(&self) {}
 }
+
+pub trait HandlerExt<C>: Handler<C> {
+    fn rule<R>(self, rule: R) -> LayeredRule<R, Self>
+    where
+        Self: Sized,
+        R: Rule<C>,
+    {
+        rule.layer(self)
+    }
+    fn pre_handle<P>(self, pre: P) -> LayeredPreHandler<P, Self>
+    where
+        Self: Sized,
+        P: PreHandler<C>,
+    {
+        pre.layer(self)
+    }
+}
+
+impl<C, H: Handler<C>> HandlerExt<C> for H {}
 
 pub struct HandlerFn<I>(I);
 
@@ -135,13 +156,17 @@ impl TempMathcer {
         group_id: Option<String>,
         tx: tokio::sync::mpsc::Sender<BaseEvent<MessageContent>>,
     ) -> (String, Plugin<EventContent>) {
-        use crate::builtin::{group_id_layer, user_id_layer};
+        use crate::builtin::{group_id_check, user_id_check};
         let name = format!("{}-{:?}", user_id, group_id);
-        let matcher = user_id_layer(user_id, Self { tx });
+        let matcher = user_id_check(user_id).layer(Self { tx });
         (
             name.clone(),
             if let Some(group_id) = group_id {
-                Plugin::new(name, "".to_string(), group_id_layer(group_id, matcher))
+                Plugin::new(
+                    name,
+                    "".to_string(),
+                    group_id_check(group_id).layer(matcher),
+                )
             } else {
                 Plugin::new(name, "".to_string(), matcher)
             },

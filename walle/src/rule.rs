@@ -4,18 +4,24 @@ use std::pin::Pin;
 
 pub trait Rule<C> {
     fn rule(&self, session: &Session<C>) -> bool;
+    fn layer<H>(self, handler: H) -> LayeredRule<Self, H>
+    where
+        Self: Sized,
+        H: Handler<C>,
+    {
+        LayeredRule {
+            rule: self,
+            handler,
+        }
+    }
 }
 
-pub struct BoxedRule<R, H> {
+pub struct LayeredRule<R, H> {
     pub rule: R,
     pub handler: H,
 }
 
-pub fn box_rule<R, H>(rule: R, handler: H) -> BoxedRule<R, H> {
-    BoxedRule { rule, handler }
-}
-
-impl<R, H, C> Handler<C> for BoxedRule<R, H>
+impl<R, H, C> Handler<C> for LayeredRule<R, H>
 where
     R: Rule<C> + Sync,
     H: Handler<C> + Sync,

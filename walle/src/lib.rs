@@ -5,9 +5,11 @@ use walle_core::{AppConfig, WalleResult};
 pub mod builtin;
 mod handler;
 mod plugin;
+mod pre_handle;
 mod rule;
 pub use handler::*;
 pub use plugin::*;
+pub use pre_handle::*;
 pub use rule::*;
 
 pub struct Walle {
@@ -37,6 +39,6 @@ impl Walle {
     }
 
     pub async fn start(self) -> WalleResult<()> {
-        self.ob.run().await
+        self.ob.run_block().await
     }
 }

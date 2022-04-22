@@ -1,4 +1,4 @@
-use crate::{box_rule, BoxedRule, Rule, Session};
+use crate::{Rule, Session};
 use walle_core::{EventContent, MessageContent};
 
 pub struct UserIdChecker {
@@ -21,16 +21,13 @@ impl Rule<EventContent> for UserIdChecker {
     }
 }
 
-pub fn user_id_layer<S, I>(user_id: S, inner: I) -> BoxedRule<UserIdChecker, I>
+pub fn user_id_check<S>(user_id: S) -> UserIdChecker
 where
     S: ToString,
 {
-    box_rule(
-        UserIdChecker {
-            user_id: user_id.to_string(),
-        },
-        inner,
-    )
+    UserIdChecker {
+        user_id: user_id.to_string(),
+    }
 }
 
 pub struct GroupIdChecker {
@@ -54,14 +51,19 @@ impl Rule<EventContent> for GroupIdChecker {
     }
 }
 
-pub fn group_id_layer<S, I>(group_id: S, inner: I) -> BoxedRule<GroupIdChecker, I>
+pub fn group_id_check<S>(group_id: S) -> GroupIdChecker
 where
     S: ToString,
 {
-    box_rule(
-        GroupIdChecker {
-            group_id: group_id.to_string(),
-        },
-        inner,
-    )
+    GroupIdChecker {
+        group_id: group_id.to_string(),
+    }
+}
+
+pub fn start_with(word: &str) -> impl Rule<MessageContent> {
+    use crate::rule_fn;
+    let word = word.to_string();
+    rule_fn(move |session: &Session<MessageContent>| {
+        session.event.content.alt_message.starts_with(&word)
+    })
 }
