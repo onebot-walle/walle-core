@@ -1,5 +1,5 @@
 <div align=center>
-  <img src="https://github.com/abrahum/Walle-core/blob/master/logo.png">
+  <img src="https://github.com/abrahum/Walle-core/blob/master/logo.png" height="300" width="300">
 </div>
 
 # Walle-core
