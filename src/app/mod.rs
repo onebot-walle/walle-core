@@ -52,7 +52,7 @@ pub type StandardArcBot = ArcBot<StandardAction, Resps>;
 /// Bot 实例
 pub struct Bot<A, R> {
     #[allow(dead_code)]
-    self_id: String,
+    pub self_id: String,
     sender: CustomActionSender<A, R>,
 }
 
