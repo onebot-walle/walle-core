@@ -64,3 +64,20 @@ pub enum NoticeContent {
         user_id: String,
     },
 }
+
+impl NoticeContent {
+    pub fn detail_type(&self) -> &'static str {
+        match self {
+            Self::GroupMemberIncrease { .. } => "group_member_increase",
+            Self::GroupMemberDecrease { .. } => "group_member_decrease",
+            Self::GroupMemberBan { .. } => "group_member_ban",
+            Self::GroupMemberUnban { .. } => "group_member_unban",
+            Self::GroupAdminSet { .. } => "group_admin_set",
+            Self::GroupAdminUnset { .. } => "group_admin_unset",
+            Self::GroupMessageDelete { .. } => "group_message_delete",
+            Self::FriendIncrease { .. } => "friend_increase",
+            Self::FriendDecrease { .. } => "friend_decrease",
+            Self::PrivateMessageDelete { .. } => "private_message_delete",
+        }
+    }
+}

@@ -19,7 +19,7 @@ pub enum MetaContent {
 impl MetaContent {
     pub fn detail_type(&self) -> &str {
         match self {
-            MetaContent::Heartbeat { .. } => "Heartbeat",
+            MetaContent::Heartbeat { .. } => "heartbeat",
         }
     }
 }

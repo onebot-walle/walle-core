@@ -8,7 +8,7 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, trace, warn};
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
@@ -29,7 +29,7 @@ where
                     match event {
                         Ok(event) => {
                             let event = serde_json::to_string(&event).unwrap();
-                            debug!(target: "Walle-core", "ws send: {}", event);
+                            trace!(target: "Walle-core", "ws send: {}", event);
                             if ws_stream.send(WsMsg::Text(event)).await.is_err() {
                                 break;
                             }
@@ -41,7 +41,7 @@ where
                 },
                 ws_msg = ws_stream.next() => {
                     if let Some(ws_msg) = ws_msg {
-                        debug!(target: "Walle-core", "ws recv: {:?}", ws_msg);
+                        trace!(target: "Walle-core", "ws recv: {:?}", ws_msg);
                         match ws_msg {
                             Ok(ws_msg) => if self.ws_recv(ws_msg, &resp_tx).await { break },
                             Err(_) => break,
@@ -50,7 +50,7 @@ where
                 },
                 resp = resp_rx.recv() => {
                     if let Some(resp) = resp {
-                        debug!(target: "Walle-core", "ws send: {:?}", resp);
+                        trace!(target: "Walle-core", "ws send: {:?}", resp);
                         if ws_stream.send(resp).await.is_err() {
                             break;
                         }
@@ -78,6 +78,7 @@ where
             let (action, echo_s) = echo_action.unpack();
             let sender = resp_sender.clone();
             let ob = self.clone();
+            debug!(target: "Walle-core", "Handling action: {:?}", action);
             tokio::spawn(async move {
                 let r = ob.action_handler.handle(action, &ob).await;
                 let echo = echo_s.pack(r);
@@ -92,7 +93,7 @@ where
         };
         let err_handle = |a: Echo<UnknownAction>| -> Echo<crate::Resps> {
             let (action, echo_s) = a.unpack();
-            tracing::warn!(target: "Walle-core", "unsupported action: {}", action.action);
+            warn!(target: "Walle-core", "unsupported action: {}", action.action);
             echo_s.pack(crate::Resps::unsupported_action())
         };
 

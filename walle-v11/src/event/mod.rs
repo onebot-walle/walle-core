@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use walle_core::{SelfId, ExtendedMap, HeartbeatBuild};
-
-mod alt;
+use walle_core::{ExtendedMap, HeartbeatBuild, SelfId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
