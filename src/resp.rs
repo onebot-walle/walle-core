@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{action::UploadFile, StandardEvent, ExtendedValue};
+use crate::{action::UploadFile, ExtendedValue, StandardEvent};
 
 /// ## OneBot 12 标准动作响应
 pub type Resps = Resp<RespContent>;
@@ -28,6 +28,7 @@ pub enum RespContent {
     SupportActions(Vec<String>),
     Status(StatusContent),
     Version(VersionContent),
+    MessageEvent(StandardEvent),
     UserInfo(UserInfoContent),
     FriendList(Vec<UserInfoContent>),
     GroupInfo(GroupInfoContent),
@@ -54,6 +55,7 @@ resp_content!(Vec<StandardEvent>, LatestEvents);
 resp_content!(Vec<String>, SupportActions);
 resp_content!(StatusContent, Status);
 resp_content!(VersionContent, Version);
+resp_content!(StandardEvent, MessageEvent);
 resp_content!(UserInfoContent, UserInfo);
 resp_content!(Vec<UserInfoContent>, FriendList);
 resp_content!(GroupInfoContent, GroupInfo);

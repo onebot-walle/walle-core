@@ -16,6 +16,7 @@ pub enum StandardAction {
     // message action
     SendMessage(SendMessage),
     DeleteMessage(DeleteMessage),
+    GetMessage(GetMessage),
 
     // user action
     GetSelfInfo(ExtendedMap),
@@ -129,6 +130,7 @@ pub struct GetLatestEvents {
 }
 // onebot_action!(GetLatestEvents, limit: i64, timeout: i64);
 onebot_action!(DeleteMessage, message_id: String);
+onebot_action!(GetMessage, message_id: String);
 onebot_action!(GetUserInfo, user_id: String);
 onebot_action!(GetGroupInfo, group_id: String);
 onebot_action!(GetGroupMemberList, group_id: String);
