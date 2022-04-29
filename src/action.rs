@@ -118,12 +118,16 @@ macro_rules! onebot_action {
     };
 }
 
-// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-// pub struct GetLatestEvents {
-//     pub limit: i64,
-//     pub timeout: i64,
-// }
-onebot_action!(GetLatestEvents, limit: i64, timeout: i64);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GetLatestEvents {
+    #[serde(default)]
+    pub limit: i64,
+    #[serde(default)]
+    pub timeout: i64,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
+}
+// onebot_action!(GetLatestEvents, limit: i64, timeout: i64);
 onebot_action!(DeleteMessage, message_id: String);
 onebot_action!(GetUserInfo, user_id: String);
 onebot_action!(GetGroupInfo, group_id: String);
