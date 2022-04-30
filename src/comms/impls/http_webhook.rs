@@ -8,7 +8,6 @@ use hyper::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-#[cfg(feature = "impl")]
 impl<E, A, R, const V: u8> crate::impls::CustomOneBot<E, A, R, V>
 where
     E: Clone + Serialize + Send + 'static,
@@ -33,7 +32,7 @@ where
     }
 
     async fn webhook_push(self: &Arc<Self>, event: E, client: &Arc<HyperClient<HttpConnector>>) {
-        use crate::comms::util::AuthReqHeaderExt;
+        use crate::comms::utils::AuthReqHeaderExt;
         let data = match serde_json::to_string(&event) {
             Ok(s) => s,
             Err(e) => {

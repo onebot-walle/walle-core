@@ -4,7 +4,7 @@ use tokio_tungstenite::{
     accept_hdr_async, client_async,
     tungstenite::{
         handshake::client::{Request, Response},
-        http::{Response as HttpResp, Uri},
+        http::{response::Builder as HttpRespBuilder, Response as HttpResp, Uri},
     },
     WebSocketStream,
 };
@@ -40,23 +40,28 @@ pub(crate) async fn upgrade_websocket(
         .peer_addr()
         .map_err(|_| WalleError::WebsocketNoAddress)?;
 
-    info!(target: "Walle-core", "Websocket connectted with {}", addr.to_string().blue());
-
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         let headers = req.headers();
-        match access_token {
-            Some(token) => match headers.get("Authorization").and_then(|a| {
-                if a == token {
-                    Some(())
-                } else {
-                    None
+        if let Some(token) = access_token {
+            match headers.get("Authorization").and_then(|a| a.to_str().ok()) {
+                Some(auth) => {
+                    if auth.strip_prefix("Bearer ") != Some(token) {
+                        return Err(HttpRespBuilder::new()
+                            .status(403)
+                            .body(Some("Authorization Header is invalid".to_string()))
+                            .unwrap());
+                    }
                 }
-            }) {
-                Some(_) => Ok(resp),
-                None => Err(HttpResp::new(None)),
-            },
-            None => Ok(resp),
+                None => {
+                    return Err(HttpRespBuilder::new()
+                        .status(403)
+                        .body(Some("Missing Authorization Header".to_string()))
+                        .unwrap())
+                }
+            }
         }
+        info!(target: "Walle-core", "Websocket connectted with {}", addr.to_string().blue());
+        Ok(resp)
     };
 
     match accept_hdr_async(stream, callback).await {

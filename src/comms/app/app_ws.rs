@@ -117,7 +117,7 @@ where
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) -> Vec<JoinHandle<()>> {
-        use crate::comms::util::AuthReqHeaderExt;
+        use crate::comms::utils::AuthReqHeaderExt;
         use tokio_tungstenite::tungstenite::http::Request;
 
         let mut joins = vec![];
@@ -136,7 +136,7 @@ where
                         .header_auth_token(&wsc.access_token)
                         .body(())
                         .unwrap();
-                    match crate::comms::ws_util::try_connect(&wsc, req).await {
+                    match crate::comms::ws_utils::try_connect(&wsc, req).await {
                         Ok(ws_stream) => {
                             info!(target: "Walle-core", "Successfully connected to {}", wsc.url);
                             ob.clone().ws_loop(ws_stream).await.wran_err();
@@ -175,7 +175,7 @@ where
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
-                            crate::comms::ws_util::upgrade_websocket(&wss.access_token, stream)
+                            crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
                             let ob = ob.clone();

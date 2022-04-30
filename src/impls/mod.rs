@@ -1,7 +1,9 @@
 #![doc = include_str!("README.md")]
 
-use crate::{event::BaseEvent, resp::StatusContent, StandardAction, ImplConfig, WalleError, WalleResult};
-use crate::{StandardEvent, HeartbeatBuild, ProtocolItem, Resps};
+use crate::{
+    event::BaseEvent, resp::StatusContent, ImplConfig, StandardAction, WalleError, WalleResult,
+};
+use crate::{HeartbeatBuild, ProtocolItem, Resps, StandardEvent};
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -29,6 +31,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub platform: String,
     pub self_id: RwLock<String>,
     pub config: ImplConfig,
+    /// broadcast events
     pub broadcaster: CustomEventBroadcaster<E>,
 
     pub action_handler: ArcActionHandler<A, R, Self>,

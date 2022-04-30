@@ -129,3 +129,38 @@ pub trait HeartbeatBuild: Sized {
 pub trait SelfId: Sized {
     fn self_id(&self) -> String;
 }
+
+pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
+    fn json_encode(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+    fn json_decode(s: &str) -> Result<Self, String>
+    where
+        Self: Sized,
+    {
+        serde_json::from_str(s).map_err(|e| e.to_string())
+    }
+    fn json_from_reader<R: std::io::Read>(r: R) -> Result<Self, String>
+    where
+        Self: Sized,
+    {
+        serde_json::from_reader(r).map_err(|e| e.to_string())
+    }
+    fn rmp_encode(&self) -> Vec<u8> {
+        rmp_serde::to_vec(self).unwrap()
+    }
+    fn rmp_decode(v: &[u8]) -> Result<Self, String>
+    where
+        Self: Sized,
+    {
+        rmp_serde::from_slice(v).map_err(|e| e.to_string())
+    }
+    fn rmp_from_reader<R: std::io::Read>(r: R) -> Result<Self, String>
+    where
+        Self: Sized,
+    {
+        rmp_serde::from_read(r).map_err(|e| e.to_string())
+    }
+}
+
+impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}

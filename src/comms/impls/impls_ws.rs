@@ -1,9 +1,7 @@
-use crate::ExtendedMap;
 use crate::{impls::CustomOneBot, Echo, WalleError, WalleLogExt, WalleResult};
+use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
-use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
@@ -12,29 +10,34 @@ use tracing::{debug, info, trace, warn};
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: Clone + Serialize + Send + 'static + Debug,
-    A: DeserializeOwned + Send + 'static + Debug,
-    R: Serialize + Send + 'static + Debug,
+    E: ProtocolItem + Clone + Send + 'static + Debug,
+    A: ProtocolItem + Send + 'static + Debug,
+    R: ProtocolItem + Send + 'static + Debug,
 {
     pub(crate) async fn ws_loop(
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
     ) -> WalleResult<()> {
         self.ws_hooks.on_connect(self).await;
+        // listen events
         let mut listener = self.broadcaster.subscribe();
+        // action response channel
         let (resp_tx, mut resp_rx) = tokio::sync::mpsc::unbounded_channel();
         loop {
             tokio::select! {
                 event = listener.recv() => {
                     match event {
                         Ok(event) => {
+                            // event will always send as json
                             let event = serde_json::to_string(&event).unwrap();
                             trace!(target: "Walle-core", "ws send: {}", event);
                             if ws_stream.send(WsMsg::Text(event)).await.is_err() {
+                                // send failed, break loop and close connection
                                 break;
                             }
                         }
                         Err(_) => {
+                            // channel all sender are dropped or channel is fulled will break loop and close connection
                             break;
                         }
                     }
@@ -43,6 +46,7 @@ where
                     if let Some(ws_msg) = ws_msg {
                         trace!(target: "Walle-core", "ws recv: {:?}", ws_msg);
                         match ws_msg {
+                            // handle action request
                             Ok(ws_msg) => if self.ws_recv(ws_msg, &resp_tx).await { break },
                             Err(_) => break,
                         }
@@ -51,6 +55,7 @@ where
                 resp = resp_rx.recv() => {
                     if let Some(resp) = resp {
                         trace!(target: "Walle-core", "ws send: {:?}", resp);
+                        // send action response
                         if ws_stream.send(resp).await.is_err() {
                             break;
                         }
@@ -67,13 +72,6 @@ where
         ws_msg: WsMsg,
         resp_sender: &tokio::sync::mpsc::UnboundedSender<WsMsg>,
     ) -> bool {
-        #[derive(Deserialize)]
-        struct UnknownAction {
-            action: String,
-            #[allow(dead_code)]
-            patams: ExtendedMap,
-        }
-
         let ok_handle = |echo_action: Echo<A>, binary: bool| {
             let (action, echo_s) = echo_action.unpack();
             let sender = resp_sender.clone();
@@ -91,10 +89,14 @@ where
                 }
             });
         };
-        let err_handle = |a: Echo<UnknownAction>| -> Echo<crate::Resps> {
-            let (action, echo_s) = a.unpack();
-            warn!(target: "Walle-core", "unsupported action: {}", action.action);
-            echo_s.pack(crate::Resps::unsupported_action())
+        let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<crate::Resps> {
+            let (_, echo_s) = a.unpack();
+            warn!(target: "Walle-core", "action warn: {}", msg);
+            if msg.starts_with("missing field") {
+                echo_s.pack(crate::Resps::empty_fail(10006, msg))
+            } else {
+                echo_s.pack(crate::Resps::unsupported_action())
+            }
         };
 
         match ws_msg {
@@ -102,9 +104,9 @@ where
                 Ok(echo_action) => {
                     ok_handle(echo_action, false);
                 }
-                Err(_) => match serde_json::from_str(&text) {
+                Err(msg) => match serde_json::from_str(&text) {
                     Ok(a) => {
-                        let resp = serde_json::to_string(&err_handle(a)).unwrap();
+                        let resp = serde_json::to_string(&err_handle(a, msg.to_string())).unwrap();
                         resp_sender.send(WsMsg::Text(resp)).unwrap();
                     }
                     Err(_) => {
@@ -116,9 +118,9 @@ where
                 Ok(echo_action) => {
                     ok_handle(echo_action, true);
                 }
-                Err(_) => match rmp_serde::from_read(v.as_slice()) {
+                Err(msg) => match rmp_serde::from_read(v.as_slice()) {
                     Ok(a) => {
-                        let resp = rmp_serde::to_vec(&err_handle(a)).unwrap();
+                        let resp = rmp_serde::to_vec(&err_handle(a, msg.to_string())).unwrap();
                         resp_sender.send(WsMsg::Binary(resp)).unwrap();
                     }
                     Err(_) => {
@@ -154,7 +156,7 @@ where
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
-                            crate::comms::ws_util::upgrade_websocket(&wss.access_token, stream)
+                            crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
                             let ob = ob.clone();
@@ -173,7 +175,7 @@ where
     }
 
     pub(crate) async fn wsr(self: &Arc<Self>) {
-        use crate::comms::util::AuthReqHeaderExt;
+        use crate::comms::utils::AuthReqHeaderExt;
 
         for wsr in self.config.websocket_rev.clone().into_iter() {
             let ob = self.clone();
@@ -195,10 +197,10 @@ where
                         .header_auth_token(&wsr.access_token)
                         .body(())
                         .unwrap();
-                    match crate::comms::ws_util::try_connect(&wsr, req).await {
+                    match crate::comms::ws_utils::try_connect(&wsr, req).await {
                         Ok(ws_stream) => ob.ws_loop(ws_stream).await.wran_err(),
-                        Err(_) => {
-                            warn!(target: "Walle-core", "Failed to connect to {}", wsr.url.red());
+                        Err(e) => {
+                            warn!(target: "Walle-core", "Failed to connect to {}, error:{}", wsr.url.red(),e);
                             info!(target: "Walle-core", "Retry in {} seconds", wsr.reconnect_interval);
                             tokio::time::sleep(Duration::from_secs(wsr.reconnect_interval as u64))
                                 .await;

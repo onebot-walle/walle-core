@@ -2,7 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 #[allow(dead_code)]
-const VERSION: &str = "0.1.1";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Onebot Action
 pub mod action;
@@ -30,8 +30,7 @@ pub mod resp;
 mod test;
 mod utils;
 
-use serde::{Deserialize, Serialize};
-pub use utils::ColoredAlt;
+use std::env;
 
 pub use action::StandardAction;
 pub use config::*;
@@ -48,32 +47,3 @@ pub use resp::{Resp, RespContent, Resps};
 pub use utils::*;
 
 pub use async_trait::async_trait;
-
-pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
-    fn json_encode(&self) -> String {
-        serde_json::to_string(self).unwrap()
-    }
-    fn json_decode(s: &str) -> Result<Self, serde_json::Error>
-    where
-        Self: Sized,
-    {
-        serde_json::from_str(s)
-    }
-    fn json_fron_reader<R: std::io::Read>(rdr: R) -> Result<Self, serde_json::Error>
-    where
-        Self: Sized,
-    {
-        serde_json::from_reader(rdr)
-    }
-    fn rmp_encode(&self) -> Vec<u8> {
-        rmp_serde::to_vec(self).unwrap()
-    }
-    fn rmp_decode(v: &[u8]) -> Result<Self, rmp_serde::decode::Error>
-    where
-        Self: Sized,
-    {
-        rmp_serde::from_slice(v)
-    }
-}
-
-impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}

@@ -129,7 +129,10 @@ fn event() {
     for (json, event) in data {
         assert_eq!(serde_json::from_str::<StandardEvent>(json).unwrap(), event);
         let json_str = serde_json::to_string(&event).unwrap();
-        assert_eq!(serde_json::from_str::<StandardEvent>(&json_str).unwrap(), event);
+        assert_eq!(
+            serde_json::from_str::<StandardEvent>(&json_str).unwrap(),
+            event
+        );
     }
 }
 
@@ -138,7 +141,7 @@ fn action() {
     use crate::action::GetLatestEvents;
     use crate::action::*;
     use crate::Echo;
-    use crate::{StandardAction, MessageSegment};
+    use crate::{MessageSegment, StandardAction};
     use std::collections::HashMap;
 
     let data = vec![
@@ -194,7 +197,10 @@ fn action() {
             action
         );
         let json_str = serde_json::to_string(&action).unwrap();
-        assert_eq!(serde_json::from_str::<StandardAction>(&json_str).unwrap(), action);
+        assert_eq!(
+            serde_json::from_str::<StandardAction>(&json_str).unwrap(),
+            action
+        );
     }
 }
 

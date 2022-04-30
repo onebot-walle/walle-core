@@ -1,12 +1,12 @@
 #[cfg(any(feature = "http", feature = "websocket"))]
 #[allow(dead_code)]
-pub enum ContentTpye {
+pub enum ContentType {
     Json,
     MsgPack,
 }
 
 #[cfg(any(feature = "http", feature = "websocket"))]
-impl ContentTpye {
+impl ContentType {
     #[allow(dead_code)]
     pub fn new(s: &str) -> Option<Self> {
         match s {
