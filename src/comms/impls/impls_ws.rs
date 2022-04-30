@@ -1,4 +1,4 @@
-use crate::{impls::CustomOneBot, Echo, WalleError, WalleLogExt, WalleResult};
+use crate::{impls::CustomOneBot, Echo, WalleError, WalleResult};
 use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
@@ -14,22 +14,20 @@ where
     A: ProtocolItem + Send + 'static + Debug,
     R: ProtocolItem + Send + 'static + Debug,
 {
-    pub(crate) async fn ws_loop(
-        self: &Arc<Self>,
-        mut ws_stream: WebSocketStream<TcpStream>,
-    ) -> WalleResult<()> {
+    pub(crate) async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         self.ws_hooks.on_connect(self).await;
         // listen events
         let mut listener = self.broadcaster.subscribe();
+        let mut hb_rx = self.heartbeat_tx.subscribe();
         // action response channel
         let (resp_tx, mut resp_rx) = tokio::sync::mpsc::unbounded_channel();
-        loop {
+        while self.is_running() {
             tokio::select! {
                 event = listener.recv() => {
                     match event {
                         Ok(event) => {
                             // event will always send as json
-                            let event = serde_json::to_string(&event).unwrap();
+                            let event = event.json_encode();
                             trace!(target: "Walle-core", "ws send: {}", event);
                             if ws_stream.send(WsMsg::Text(event)).await.is_err() {
                                 // send failed, break loop and close connection
@@ -42,6 +40,20 @@ where
                         }
                     }
                 },
+                hb = hb_rx.recv() => {
+                    match hb {
+                        Ok(hb) => {
+                            let hb = hb.json_encode();
+                            trace!(target: "Walle-core", "ws send: {}", hb);
+                            if ws_stream.send(WsMsg::Text(hb)).await.is_err() {
+                                break;
+                            }
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                }
                 ws_msg = ws_stream.next() => {
                     if let Some(ws_msg) = ws_msg {
                         trace!(target: "Walle-core", "ws recv: {:?}", ws_msg);
@@ -64,7 +76,6 @@ where
             }
         }
         self.ws_hooks.on_disconnect(self).await;
-        Ok(())
     }
 
     pub(crate) async fn ws_recv(
@@ -81,11 +92,9 @@ where
                 let r = ob.action_handler.handle(action, &ob).await;
                 let echo = echo_s.pack(r);
                 if binary {
-                    let resp = rmp_serde::to_vec(&echo).unwrap();
-                    sender.send(WsMsg::Binary(resp)).unwrap();
+                    sender.send(WsMsg::Binary(echo.rmp_encode())).unwrap();
                 } else {
-                    let resp = serde_json::to_string(&echo).unwrap();
-                    sender.send(WsMsg::Text(resp)).unwrap();
+                    sender.send(WsMsg::Text(echo.json_encode())).unwrap();
                 }
             });
         };
@@ -154,16 +163,19 @@ where
             tokio::spawn(async move {
                 ob.ws_hooks.on_start(&ob).await;
                 while ob.is_running() {
-                    if let Ok((stream, _)) = tcp_listener.accept().await {
+                    if let Ok((stream, addr)) = tcp_listener.accept().await {
                         if let Ok(ws_stream) =
                             crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
-                            let ob = ob.clone();
+                            let obc = ob.clone();
+                            let addrc = addr.clone();
                             tokio::spawn(async move {
                                 // spawn to handle connect
-                                ob.ws_loop(ws_stream).await.unwrap();
+                                obc.ws_loop(ws_stream).await;
+                                obc.ws_connects.lock().await.remove(&addrc.to_string());
                             });
+                            ob.ws_connects.lock().await.insert(addr.to_string());
                         }
                     }
                 }
@@ -198,7 +210,11 @@ where
                         .body(())
                         .unwrap();
                     match crate::comms::ws_utils::try_connect(&wsr, req).await {
-                        Ok(ws_stream) => ob.ws_loop(ws_stream).await.wran_err(),
+                        Ok(ws_stream) => {
+                            ob.ws_connects.lock().await.insert(wsr.url.clone());
+                            ob.ws_loop(ws_stream).await;
+                            ob.ws_connects.lock().await.remove(&wsr.url);
+                        }
                         Err(e) => {
                             warn!(target: "Walle-core", "Failed to connect to {}, error:{}", wsr.url.red(),e);
                             info!(target: "Walle-core", "Retry in {} seconds", wsr.reconnect_interval);

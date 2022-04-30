@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use walle_core::{ExtendedMap, HeartbeatBuild, SelfId};
+use walle_core::{ExtendedMap, SelfId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
@@ -184,23 +184,3 @@ impl_from!(Message, MessageContent);
 impl_from!(Notice, NoticeContent);
 impl_from!(Request, RequestContent);
 impl_from!(MetaEvent, MetaContent);
-
-#[async_trait::async_trait]
-impl HeartbeatBuild for Event {
-    async fn build_heartbeat<A, R, const V: u8>(
-        ob: &walle_core::impls::CustomOneBot<Event, A, R, V>,
-        interval: u32,
-    ) -> Self {
-        Event {
-            time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            self_id: ob.self_id().await.parse().unwrap(),
-            content: EventContent::MetaEvent(MetaContent::Heartbeat {
-                status: ob.get_status(),
-                interval: interval as i64,
-            }),
-        }
-    }
-}

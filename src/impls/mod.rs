@@ -3,11 +3,12 @@
 use crate::{
     event::BaseEvent, resp::StatusContent, ImplConfig, StandardAction, WalleError, WalleResult,
 };
-use crate::{HeartbeatBuild, ProtocolItem, Resps, StandardEvent};
+use crate::{MetaEvent, ProtocolItem, Resps, StandardEvent};
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tracing::{info, trace};
 
 pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
@@ -33,11 +34,15 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: ImplConfig,
     /// broadcast events
     pub broadcaster: CustomEventBroadcaster<E>,
+    #[cfg(feature = "websocket")]
+    pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
 
     pub action_handler: ArcActionHandler<A, R, Self>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
+    #[cfg(feature = "websocket")]
+    pub(crate) ws_connects: Mutex<HashSet<String>>,
 
     running: AtomicBool,
     online: AtomicBool,
@@ -87,7 +92,7 @@ impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
 
 impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
 where
-    E: ProtocolItem + HeartbeatBuild + Clone + Debug + Send + 'static,
+    E: ProtocolItem + Clone + Debug + Send + 'static,
     A: ProtocolItem + Clone + Debug + Send + 'static,
     R: ProtocolItem + Clone + Debug + Send + 'static,
 {
@@ -99,6 +104,8 @@ where
         action_handler: ArcActionHandler<A, R, Self>,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
+        #[cfg(feature = "websocket")]
+        let (heartbeat_tx, _) = tokio::sync::broadcast::channel(1024);
 
         let mut rx = broadcaster.subscribe(); // avoid no receiver error
         tokio::spawn(async move {
@@ -117,8 +124,12 @@ where
             action_handler,
             broadcaster,
             #[cfg(feature = "websocket")]
+            heartbeat_tx,
+            #[cfg(feature = "websocket")]
             #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
             ws_hooks: crate::hooks::empty_ws_hooks(),
+            #[cfg(feature = "websocket")]
+            ws_connects: Mutex::default(),
             running: AtomicBool::default(),
             online: AtomicBool::default(),
         }
@@ -166,6 +177,21 @@ where
         }
     }
 
+    pub(crate) async fn build_heartbeat(&self, interval: u32) -> MetaEvent {
+        crate::event::BaseEvent {
+            id: crate::utils::new_uuid(),
+            r#impl: self.r#impl.clone(),
+            platform: self.platform.clone(),
+            self_id: self.self_id.read().await.clone(),
+            time: crate::utils::timestamp_nano_f64(),
+            content: crate::MetaContent::Heartbeat {
+                interval,
+                status: self.get_status(),
+                sub_type: "".to_string(),
+            },
+        }
+    }
+
     fn start_heartbeat(self: &Arc<Self>) {
         let mut interval = self.config.heartbeat.interval;
         if interval == 0 {
@@ -179,8 +205,11 @@ where
                     break;
                 }
                 trace!(target:"Walle-core", "Heartbeating");
-                let hb = E::build_heartbeat(&ob, interval).await;
-                let _ = ob.send_event(hb);
+                if !ob.ws_connects.lock().await.is_empty() {
+                    ob.heartbeat_tx
+                        .send(ob.build_heartbeat(interval).await)
+                        .unwrap();
+                }
             }
         });
     }

@@ -95,26 +95,6 @@ impl_From!(MessageContent, Message);
 impl_From!(NoticeContent, Notice);
 impl_From!(RequestContent, Request);
 
-#[cfg(feature = "impl")]
-#[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
-#[async_trait::async_trait]
-impl crate::HeartbeatBuild for StandardEvent {
-    async fn build_heartbeat<A, R, const V: u8>(
-        ob: &crate::impls::CustomOneBot<Self, A, R, V>,
-        interval: u32,
-    ) -> Self {
-        ob.new_event(
-            EventContent::Meta(MetaContent::Heartbeat {
-                interval,
-                status: ob.get_status(),
-                sub_type: "".to_string(),
-            }),
-            crate::utils::timestamp_nano_f64(),
-        )
-        .await
-    }
-}
-
 impl<T> crate::SelfId for BaseEvent<T> {
     fn self_id(&self) -> String {
         self.self_id.clone()
