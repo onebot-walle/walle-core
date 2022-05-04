@@ -107,8 +107,14 @@ where
 
 fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> Response<Body> {
     match content_type {
-        ContentType::Json => Response::new(t.json_encode().into()),
-        ContentType::MsgPack => Response::new(t.rmp_encode().into()),
+        ContentType::Json => Response::builder()
+            .header(CONTENT_TYPE, "application/json")
+            .body(t.json_encode().into())
+            .unwrap(),
+        ContentType::MsgPack => Response::builder()
+            .header(CONTENT_TYPE, "application/msgpack")
+            .body(t.rmp_encode().into())
+            .unwrap(),
     }
 }
 

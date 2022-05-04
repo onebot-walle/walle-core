@@ -173,9 +173,9 @@ where
                             tokio::spawn(async move {
                                 // spawn to handle connect
                                 obc.ws_loop(ws_stream).await;
-                                obc.ws_connects.lock().await.remove(&addrc.to_string());
+                                obc.ws_connects.write().await.remove(&addrc.to_string());
                             });
-                            ob.ws_connects.lock().await.insert(addr.to_string());
+                            ob.ws_connects.write().await.insert(addr.to_string());
                         }
                     }
                 }
@@ -211,9 +211,9 @@ where
                         .unwrap();
                     match crate::comms::ws_utils::try_connect(&wsr, req).await {
                         Ok(ws_stream) => {
-                            ob.ws_connects.lock().await.insert(wsr.url.clone());
+                            ob.ws_connects.write().await.insert(wsr.url.clone());
                             ob.ws_loop(ws_stream).await;
-                            ob.ws_connects.lock().await.remove(&wsr.url);
+                            ob.ws_connects.write().await.remove(&wsr.url);
                         }
                         Err(e) => {
                             warn!(target: "Walle-core", "Failed to connect to {}, error:{}", wsr.url.red(),e);

@@ -30,7 +30,7 @@ impl Default for ImplConfig {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Heartbeat {
     pub enabled: bool,
-    pub interval: u32,
+    pub interval: u64,
 }
 
 impl Default for Heartbeat {

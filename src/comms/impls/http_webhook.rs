@@ -1,18 +1,20 @@
-use std::{sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 use hyper::{
     body::Buf,
     client::HttpConnector,
     header::{CONTENT_TYPE, USER_AGENT},
-    Body, Client as HyperClient, Method, Request, StatusCode,
+    Client as HyperClient, Method, Request, StatusCode,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use tracing::{debug, info, warn};
+
+use crate::ProtocolItem;
 
 impl<E, A, R, const V: u8> crate::impls::CustomOneBot<E, A, R, V>
 where
-    E: Clone + Serialize + Send + 'static,
-    A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: std::fmt::Debug + Serialize + Send + 'static,
+    E: ProtocolItem + Clone + Send + 'static,
+    A: ProtocolItem + Debug + Send + 'static,
+    R: ProtocolItem + Debug + Send + 'static,
 {
     pub(crate) async fn webhook(self: &Arc<Self>) {
         if self.config.http_webhook.is_empty() {
@@ -33,13 +35,7 @@ where
 
     async fn webhook_push(self: &Arc<Self>, event: E, client: &Arc<HyperClient<HttpConnector>>) {
         use crate::comms::utils::AuthReqHeaderExt;
-        let data = match serde_json::to_string(&event) {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::warn!("{}", e);
-                return;
-            }
-        };
+        let data = event.json_encode();
         for webhook in &self.config.http_webhook {
             let req = Request::builder()
                 .method(Method::POST)
@@ -54,23 +50,24 @@ where
                 .header("X-Platform", &self.platform)
                 .header("X-Self-ID", self.self_id.read().await.as_str())
                 .header_auth_token(&webhook.access_token)
-                .body(Body::from(data.clone()))
+                .body(data.clone().into())
                 .unwrap();
             let ob = self.clone();
             let client = client.clone();
             let timeout = webhook.timeout;
             tokio::spawn(async move {
+                debug!(target: "Walle-core", "Pushing event");
                 let resp =
                     match tokio::time::timeout(Duration::from_secs(timeout), client.request(req))
                         .await
                     {
                         Ok(Ok(r)) => r,
                         Ok(Err(e)) => {
-                            tracing::warn!("{}", e);
+                            warn!(target: "Walle-core", "{}", e);
                             return;
                         }
                         Err(_) => {
-                            tracing::warn!("push timeout");
+                            warn!(target:"Walle-core", "push event timeout");
                             return;
                         }
                     };
@@ -89,7 +86,7 @@ where
                             let _ = ob.action_handler.handle(a, &ob).await;
                         }
                     }
-                    x => tracing::info!("unhandle webhook push status: {}", x),
+                    x => info!("unhandle webhook push status: {}", x),
                 }
             });
         }

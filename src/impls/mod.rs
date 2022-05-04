@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tracing::{info, trace};
 
 pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
@@ -34,15 +34,16 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub config: ImplConfig,
     /// broadcast events
     pub broadcaster: CustomEventBroadcaster<E>,
-    #[cfg(feature = "websocket")]
-    pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
 
     pub action_handler: ArcActionHandler<A, R, Self>,
+
+    #[cfg(feature = "websocket")]
+    pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
     #[cfg(feature = "websocket")]
-    pub(crate) ws_connects: Mutex<HashSet<String>>,
+    pub(crate) ws_connects: RwLock<HashSet<String>>,
 
     running: AtomicBool,
     online: AtomicBool,
@@ -129,7 +130,7 @@ where
             #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
             ws_hooks: crate::hooks::empty_ws_hooks(),
             #[cfg(feature = "websocket")]
-            ws_connects: Mutex::default(),
+            ws_connects: RwLock::default(),
             running: AtomicBool::default(),
             online: AtomicBool::default(),
         }
@@ -177,12 +178,12 @@ where
         }
     }
 
-    pub(crate) async fn build_heartbeat(&self, interval: u32) -> MetaEvent {
+    pub(crate) async fn build_heartbeat(&self, interval: u64) -> MetaEvent {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
-            self_id: self.self_id.read().await.clone(),
+            self_id: self.self_id().await,
             time: crate::utils::timestamp_nano_f64(),
             content: crate::MetaContent::Heartbeat {
                 interval,
@@ -199,17 +200,14 @@ where
         }
         let ob = self.clone();
         tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(tokio::time::Duration::from_secs(interval as u64)).await;
-                if ob.is_shutdown() {
-                    break;
-                }
+            while ob.is_running() {
                 trace!(target:"Walle-core", "Heartbeating");
-                if !ob.ws_connects.lock().await.is_empty() {
+                if !ob.ws_connects.read().await.is_empty() {
                     ob.heartbeat_tx
                         .send(ob.build_heartbeat(interval).await)
                         .unwrap();
                 }
+                tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
             }
         });
     }

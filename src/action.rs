@@ -43,6 +43,15 @@ pub enum StandardAction {
     GetFileFragmented(GetFileFragmented),
 }
 
+/// OneBot 12 扩展动作
+///
+/// 任何符合 OneBot 12 格式的动作均可序列化为该 struct
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExtendedAction {
+    pub action: String,
+    pub params: ExtendedMap,
+}
+
 macro_rules! impl_from(
     ($to:ident => $($sub: ident),*) => {
         $(impl From<$sub> for $to {

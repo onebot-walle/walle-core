@@ -10,6 +10,8 @@ pub use meta::*;
 mod request;
 pub use request::*;
 
+use crate::ExtendedMap;
+
 /// OneBot 12 标准事件
 pub type StandardEvent = BaseEvent<EventContent>;
 pub type MessageEvent = BaseEvent<MessageContent>;
@@ -42,8 +44,7 @@ pub struct BaseEvent<T> {
 ///
 /// 该枚举为基础未扩展四种事件类型 Content 的枚举
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum EventContent {
     Meta(MetaContent),
     Message(MessageContent),
@@ -99,4 +100,11 @@ impl<T> crate::SelfId for BaseEvent<T> {
     fn self_id(&self) -> String {
         self.self_id.clone()
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DetailEventContent {
+    pub detail_type: String,
+    #[serde(flatten)]
+    pub content: ExtendedMap,
 }
