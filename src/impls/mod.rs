@@ -41,7 +41,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
+    pub(crate) ws_hooks: crate::hooks::BoxWsHooks<Self>,
     #[cfg(feature = "websocket")]
     pub(crate) ws_connects: RwLock<HashSet<String>>,
 

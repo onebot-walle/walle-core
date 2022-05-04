@@ -1,9 +1,9 @@
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, sync::Arc, vec};
 use tokio::{
     net::{TcpListener, TcpStream},
-    sync::{mpsc, oneshot, RwLock},
+    sync::{mpsc, oneshot},
     task::JoinHandle,
 };
 use tokio_tungstenite::{
@@ -13,7 +13,7 @@ use tokio_tungstenite::{
 use tracing::{info, warn};
 
 use crate::{
-    app::{CustomActionSender, OneBot, CustomRespSender},
+    app::{CustomActionSender, CustomRespSender, OneBot},
     Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleLogExt, WalleResult,
 };
 
@@ -30,12 +30,12 @@ where
         self.ws_hooks.on_connect(self).await;
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
-        let echo_map = RwLock::default();
+        let mut echo_map = HashMap::default();
         while self.is_running() {
             tokio::select! {
                 action = action_rx.recv() => {
                     if let Some((action,tx)) = action {
-                        if self.ws_send_action(&mut ws_stream, action, tx, &echo_map).await.is_err() {
+                        if self.ws_send_action(&mut ws_stream, action, tx, &mut echo_map).await.is_err() {
                             break;
                         }
                     }
@@ -44,7 +44,9 @@ where
                     if let Some(msg) = msg {
                         match msg {
                             Ok(msg) => {
-                                self.ws_recv(msg, &mut bot_ids,&action_tx, &echo_map).await.wran_err();
+                                if self.ws_recv(msg, &mut bot_ids, &action_tx, &mut echo_map, &mut ws_stream).await {
+                                    break;
+                                }
                             }
                             Err(_) => {
                                 break;
@@ -54,6 +56,7 @@ where
                 }
             }
         }
+        ws_stream.send(WsMsg::Close(None)).await.ok();
         for bot_id in bot_ids {
             self.remove_bot(&bot_id).await;
         }
@@ -66,12 +69,12 @@ where
         ws_stream: &mut WebSocketStream<TcpStream>,
         action: A,
         sender: CustomRespSender<R>,
-        echo_map: &RwLock<HashMap<EchoS, CustomRespSender<R>>>,
+        echo_map: &mut HashMap<EchoS, CustomRespSender<R>>,
     ) -> WsResult<()> {
         let echo_s = EchoS::new("action");
-        echo_map.write().await.insert(echo_s.clone(), sender);
+        echo_map.insert(echo_s.clone(), sender);
         let action = echo_s.pack(action);
-        let action = serde_json::to_string(&action).unwrap();
+        let action = action.json_encode();
         ws_stream.send(WsMsg::Text(action)).await
     }
 
@@ -80,20 +83,19 @@ where
         ws_msg: WsMsg,
         bot_ids: &mut Vec<String>,
         action_tx: &CustomActionSender<A, R>,
-        echo_map: &RwLock<HashMap<EchoS, oneshot::Sender<R>>>,
-    ) -> WalleResult<()> {
-        #[derive(Debug, Deserialize)]
+        echo_map: &mut HashMap<EchoS, oneshot::Sender<R>>,
+        ws_stream: &mut WebSocketStream<TcpStream>,
+    ) -> bool {
+        #[derive(Debug, Deserialize, Serialize)]
         #[serde(untagged)]
         enum ReceiveItem<E, R> {
             Event(E),
             Resp(Echo<R>),
         }
 
-        if let WsMsg::Text(text) = ws_msg {
-            let item: ReceiveItem<E, R> =
-                serde_json::from_str(&text).map_err(WalleError::SerdeJsonError)?;
+        let handle_ok = |item: Result<ReceiveItem<E, R>, String>| async move {
             match item {
-                ReceiveItem::Event(event) => {
+                Ok(ReceiveItem::Event(event)) => {
                     let ob = self.clone();
                     let self_id = event.self_id();
                     let bot = match self.get_bot(&self_id).await {
@@ -105,15 +107,28 @@ where
                     };
                     tokio::spawn(async move { ob.event_handler.handle(bot, event).await });
                 }
-                ReceiveItem::Resp(resp) => {
+                Ok(ReceiveItem::Resp(resp)) => {
                     let (resp, echos) = resp.unpack();
-                    if let Some(rx) = echo_map.write().await.remove(&echos) {
+                    if let Some(rx) = echo_map.remove(&echos) {
                         rx.send(resp).unwrap();
                     }
                 }
+                Err(s) => warn!(target: "Walle-core", "serde failed: {}", s),
             }
+        };
+
+        match ws_msg {
+            WsMsg::Text(text) => handle_ok(ProtocolItem::json_decode(&text)).await,
+            WsMsg::Binary(bin) => handle_ok(ProtocolItem::rmp_decode(&bin)).await,
+            WsMsg::Ping(b) => {
+                if let Err(_) = ws_stream.send(WsMsg::Pong(b)).await {
+                    return true;
+                }
+            }
+            WsMsg::Pong(_) => {}
+            WsMsg::Close(_) => return true,
         }
-        Ok(())
+        false
     }
 
     pub(crate) async fn ws(self: &Arc<Self>) -> Vec<JoinHandle<()>> {

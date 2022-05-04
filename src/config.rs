@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ImplConfig {
     pub heartbeat: Heartbeat,
-    pub http: Vec<Http>,
-    pub http_webhook: Vec<HttpWebhook>,
+    pub http: Vec<HttpServer>,
+    pub http_webhook: Vec<HttpClient>,
     pub websocket: Vec<WebSocketServer>,
     pub websocket_rev: Vec<WebSocketClient>,
 }
@@ -45,8 +45,8 @@ impl Default for Heartbeat {
 /// OneBot 应用端设置项
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub http: Vec<Http>,
-    pub http_webhook: Vec<HttpWebhook>,
+    pub http: HashMap<String, HttpClient>,
+    pub http_webhook: Vec<HttpServer>,
     pub websocket: Vec<WebSocketClient>,
     pub websocket_rev: Vec<WebSocketServer>,
 }
@@ -54,7 +54,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            http: vec![],
+            http: HashMap::default(),
             http_webhook: vec![],
             websocket: vec![],
             websocket_rev: vec![WebSocketServer::default()],
@@ -65,7 +65,7 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn empty() -> Self {
         Self {
-            http: vec![],
+            http: HashMap::default(),
             http_webhook: vec![],
             websocket: vec![],
             websocket_rev: vec![],
@@ -75,15 +75,17 @@ impl AppConfig {
 
 /// OneBot Impl Http 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Http {
+pub struct HttpServer {
     pub host: std::net::IpAddr,
     pub port: u16,
     pub access_token: Option<String>,
+    #[cfg(feature = "impl")]
     pub event_enable: bool,
+    #[cfg(feature = "impl")]
     pub event_buffer_size: usize,
 }
 
-impl Default for Http {
+impl Default for HttpServer {
     fn default() -> Self {
         Self {
             host: std::net::IpAddr::from([127, 0, 0, 1]),
@@ -97,13 +99,13 @@ impl Default for Http {
 
 /// OneBot Impl Http Webhook 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct HttpWebhook {
+pub struct HttpClient {
     pub url: String,
     pub access_token: Option<String>,
     pub timeout: u64,
 }
 
-impl Default for HttpWebhook {
+impl Default for HttpClient {
     fn default() -> Self {
         Self {
             url: "http://127.0.0.1:6700".to_owned(),

@@ -39,7 +39,7 @@ pub struct OneBot<E, A, R, const V: u8> {
 
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-    pub(crate) ws_hooks: crate::hooks::ArcWsHooks<Self>,
+    pub(crate) ws_hooks: crate::hooks::BoxWsHooks<Self>,
     pub(crate) event_handler: BoxEventHandler<E, A, R>,
 
     running: AtomicBool,
@@ -58,9 +58,9 @@ pub struct Bot<A, R> {
 
 impl<E, A, R, const V: u8> OneBot<E, A, R, V>
 where
-    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
-    A: ProtocolItem + Clone + Send + 'static + Debug,
-    R: ProtocolItem + Clone + Send + 'static + Debug,
+    E: Sync + Send + 'static,
+    A: Sync + Send + 'static,
+    R: Sync + Send + 'static,
 {
     /// 创建新的 OneBot 实例
     pub fn new(config: AppConfig, event_handler: BoxEventHandler<E, A, R>) -> Self {
@@ -74,7 +74,9 @@ where
             ws_hooks: crate::hooks::empty_ws_hooks(),
         }
     }
+}
 
+impl<E, A, R, const V: u8> OneBot<E, A, R, V> {
     /// 返回 Arc<OneBot>
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
@@ -90,6 +92,32 @@ where
         self.bots.read().await.clone()
     }
 
+    /// 返回 OneBot 实例是否运行中
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::SeqCst)
+    }
+
+    /// 返回 OneBot 实例是否停止运行
+    pub fn is_shutdown(&self) -> bool {
+        !self.is_running()
+    }
+
+    /// 关闭 OneBot 实例
+    pub async fn shutdown(&self) {
+        self.running.swap(false, Ordering::SeqCst);
+    }
+
+    pub(crate) fn set_running(&self) {
+        self.running.swap(true, Ordering::SeqCst);
+    }
+}
+
+impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+where
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
+    A: ProtocolItem + Clone + Send + 'static + Debug,
+    R: ProtocolItem + Clone + Send + 'static + Debug,
+{
     /// 添加 Bot 实例
     pub(crate) async fn insert_bot(
         &self,
@@ -122,6 +150,9 @@ where
         }
         info!(target: "Walle-core", "OneBot is starting...");
 
+        #[cfg(feature = "http")]
+        self.http().await;
+
         #[cfg(feature = "websocket")]
         self.ws().await;
 
@@ -152,20 +183,5 @@ where
             }
         }
         Ok(())
-    }
-
-    /// 返回 OneBot 实例是否运行中
-    pub fn is_running(&self) -> bool {
-        self.running.load(Ordering::SeqCst)
-    }
-
-    /// 返回 OneBot 实例是否停止运行
-    pub fn is_shutdown(&self) -> bool {
-        !self.is_running()
-    }
-
-    /// 关闭 OneBot 实例
-    pub async fn shutdown(&self) {
-        self.running.swap(false, Ordering::SeqCst);
     }
 }

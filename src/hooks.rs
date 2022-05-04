@@ -17,7 +17,7 @@ pub trait WsHooks<T>: Sync + Send {
     async fn on_shutdown(&self, _: &Arc<T>) {}
 }
 
-pub type ArcWsHooks<T> = Arc<dyn WsHooks<T>>;
+pub type BoxWsHooks<T> = Box<dyn WsHooks<T>>;
 
 /// default empty ws hooks
 pub(crate) struct EmptyWsHooks<T> {
@@ -36,6 +36,6 @@ impl<T> EmptyWsHooks<T> {
 impl<T: Send + Sync> WsHooks<T> for EmptyWsHooks<T> {}
 
 /// default empty ws hooks
-pub(crate) fn empty_ws_hooks<T: Send + Sync + 'static>() -> ArcWsHooks<T> {
-    Arc::new(EmptyWsHooks::new())
+pub(crate) fn empty_ws_hooks<T: Send + Sync + 'static>() -> BoxWsHooks<T> {
+    Box::new(EmptyWsHooks::new())
 }

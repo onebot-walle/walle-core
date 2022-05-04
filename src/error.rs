@@ -10,6 +10,8 @@ pub enum WalleError {
     // serde
     #[error("Serde Json error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
+    #[error("Serde MsgPack error: {0}")]
+    SerdeMsgPackError(#[from] rmp_serde::decode::Error),
     // comms
     #[error("Authorization failed")]
     AuthorizationFailed,

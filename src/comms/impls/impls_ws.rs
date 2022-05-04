@@ -75,6 +75,7 @@ where
                 }
             }
         }
+        ws_stream.send(WsMsg::Close(None)).await.ok();
         self.ws_hooks.on_disconnect(self).await;
     }
 
