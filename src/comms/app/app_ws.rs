@@ -127,6 +127,7 @@ where
             }
             WsMsg::Pong(_) => {}
             WsMsg::Close(_) => return true,
+            WsMsg::Frame(_) => unreachable!(),
         }
         false
     }
