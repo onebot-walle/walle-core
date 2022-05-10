@@ -46,6 +46,20 @@ pub enum StandardAction {
 /// OneBot 12 扩展动作
 ///
 /// 任何符合 OneBot 12 格式的动作均可序列化为该 struct
+/// 
+/// 如果需要使用该动作，可以使用 untagged enum 包裹该动作：
+/// 
+/// ```rust
+/// use onebot_12::{StandardAction, ExtendedAction};
+/// use serde::{Serialize, Deserialize};
+/// 
+/// #[derive(Serialize, Deserialize)]
+/// #[serde(untagged)]
+/// pub enum YourAction {
+///     Standard(StandardAction),
+///     Extended(ExtendedAction),
+/// }
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ExtendedAction {
     pub action: String,
