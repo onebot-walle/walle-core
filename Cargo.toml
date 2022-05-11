@@ -28,12 +28,12 @@ rmp-serde = "1.0"
 async-trait = "0.1"
 tracing = "0.1"
 colored = "2"
-uuid = { version = "0.8", optional = true }
+uuid = { version = "1.0", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
 tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
 tokio-tungstenite = { version = "0.17", optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
-thiserror = "*"
+thiserror = "1.0"
 
 [workspace]
 members = ["walle-py", "walle-v11"]
