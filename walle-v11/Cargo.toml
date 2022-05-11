@@ -1,24 +1,32 @@
 [package]
 name = "walle-v11"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+license = "MIT"
+description = "Onebot Lib in Rust"
+authors = ["Abrahum<307887491@qq.com>"]
+homepage = "https://github.com/abrahum/Walle-core"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-serde_json = "*"
+serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = "0.15"
-futures-util = "*"
-walle-core = { path = "../", features = ["full"] }
-async-trait = "*"
-thiserror = "*"
+tokio-tungstenite = "0.17"
+futures-util = "0.3"
+walle-core = { version = "0.2.0", features = ["full"] }
+async-trait = "0.1"
+thiserror = "1.0"
 tracing = "0.1"
 colored = "2"
 
 [dev-dependencies]
-tracing-subscriber = { version = "0.2", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 [[example]]
 name = "app"
