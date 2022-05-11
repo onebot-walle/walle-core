@@ -1,4 +1,4 @@
-use crate::{message::MSVister, ExtendedMap};
+use crate::{message::MSVistor, ExtendedMap};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 /// ## OneBot 12 标准动作
@@ -112,7 +112,7 @@ impl<'de> Visitor<'de> for MessageVisitor {
     where
         A: serde::de::MapAccess<'de>,
     {
-        MSVister::_visit_map(map).map(|s| vec![s])
+        MSVistor::_visit_map(map).map(|s| vec![s])
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>

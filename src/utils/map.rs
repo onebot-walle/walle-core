@@ -214,6 +214,48 @@ impl ExtendedValue {
     downcast_fn!(downcast_map, ExtendedMap);
     downcast_fn!(downcast_list, Vec<ExtendedValue>);
 
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::Str(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            Self::F64(f) => Some(*f),
+            _ => None,
+        }
+    }
+
+    pub fn as_i64(&self) -> Option<i64> {
+        match self {
+            Self::Int(i) => Some(*i),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Self::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    pub fn as_map(&self) -> Option<&ExtendedMap> {
+        match self {
+            Self::Map(m) => Some(m),
+            _ => None,
+        }
+    }
+
+    pub fn as_list(&self) -> Option<&Vec<ExtendedValue>> {
+        match self {
+            Self::List(l) => Some(l),
+            _ => None,
+        }
+    }
+
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
     }

@@ -43,8 +43,7 @@ use walle_core::{ImplConfig, impls::OneBot, DefaultHandler};
 
 #[tokio::main]
 async fn main() {
-    let env = tracing_subscriber::EnvFilter::from("Walle-core=trace"); 
-    tracing_subscriber::fmt().with_env_filter(env).init(); // 初始化 tracing
+    tracing_subscriber::fmt().init(); // 初始化 tracing
     let config = ImplConfig::default();
     let ob = OneBot::new(
         "Your impl name".to_owned(),
@@ -54,6 +53,7 @@ async fn main() {
         DefaultHandler::arc(), // ActionHandler
         ).arc();
     ob.run().await
+    ... // run is not blocking do your own things
 }
 ```
 
@@ -63,14 +63,16 @@ async fn main() {
 use walle_core::{AppConfig, app::OneBot, DefaultHandler};
 
 #[tokio::main]
-async fn main() {
-    let env = tracing_subscriber::EnvFilter::from("Walle-core=trace"); 
-    tracing_subscriber::fmt().with_env_filter(env).init(); // 初始化 tracing
+async fn main() { 
+    tracing_subscriber::fmt().init(); // 初始化 tracing
     let config = AppConfig::default();
     let ob = OneBot::new(
         config, 
         DefaultHandler::arc(), // EventHandler
     ).arc();
     ob.run().await
+    ... 
+    // run is not blocking do your own things
+    // or use run_block().await
 }
 ```

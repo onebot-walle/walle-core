@@ -1,3 +1,4 @@
+use crate::resp::StatusContent;
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 元事件 Content
@@ -10,7 +11,7 @@ pub enum MetaContent {
     /// OneBot 心跳事件， OneBot 实现应每间隔 `interval` 产生一个心跳事件
     Heartbeat {
         interval: u64,
-        status: crate::resp::StatusContent,
+        status: StatusContent,
         sub_type: String, // just for Deserialize
     },
 }

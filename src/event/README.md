@@ -51,41 +51,23 @@ EventContent 使用 type 字段区分不同的类型，因此符合 Onebot 的�
 > ```rust
 > /// OneBot 12 标准事件
 > pub type Event = BaseEvent<EventContent>;
+> pub type MessageEvent = BaseEvent<MessageContent>;
+> pub type NoticeEvent = BaseEvent<NoticeContent>;
+> pub type RequestEvent = BaseEvent<RequestContent>;
+> pub type MetaEvent = BaseEvent<MetaContent>;
 > ```
 
-当需要扩展事件时（扩展 detail_type ）, 可以使用 `ExtendedContent`
-
-```rust
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
-pub enum ExtendedContent<M, E, N, R> {
-    Meta(ExtendedMeta<M>),
-    Message(ExtendedMessage<E>),
-    Notice(ExtendedNotice<N>),
-    Request(ExtendedRequest<R>),
-}
-```
-
-其中每种扩展均为以下类似类型：
+当需要扩展事件时（扩展 detail_type ）, 请使用 untagged enum 来实现：
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
-pub enum ExtendedMeta<T> {
+pub enum YourExtendedMeta<T> {
     Standard(Meta),
     Extended(T),
 }
 ```
 
-这是一个 untagged 枚举，serde 将会尝试所有可能匹配， 这也意味着在你的扩展 content 类型 T 中，你依然可以使用 detail_type 字段进行反序列化操作。
+其中 T 为你自己定义的扩展事件。
 
-当然，你也可以自由定义 Content 枚举( 并不建议怎么做 )，但是你的 Content 需要实现 Trait EventContentExt
-
-```rust
-pub trait EventContentExt {
-    fn from_standard(content: EventContent) -> Self;
-}
-```
-
-由于某些原因（建立心跳包），lib 开发者需要这个 Trait 。
+当然，你也可以自由定义 Content 枚举( 并不建议怎么做 )。

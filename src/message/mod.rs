@@ -289,9 +289,9 @@ impl Serialize for MessageSegment {
     }
 }
 
-pub struct MSVister;
+pub struct MSVistor;
 
-impl MSVister {
+impl MSVistor {
     pub fn _visit_map<'de, A>(mut map: A) -> Result<MessageSegment, A::Error>
     where
         A: serde::de::MapAccess<'de>,
@@ -409,7 +409,7 @@ enum Field {
     Data,
 }
 
-impl<'de> Visitor<'de> for MSVister {
+impl<'de> Visitor<'de> for MSVistor {
     type Value = MessageSegment;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -429,6 +429,6 @@ impl<'de> Deserialize<'de> for MessageSegment {
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_map(MSVister)
+        deserializer.deserialize_map(MSVistor)
     }
 }
