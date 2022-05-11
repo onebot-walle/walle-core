@@ -4,6 +4,7 @@ use crate::{
     event::BaseEvent, resp::StatusContent, ImplConfig, StandardAction, WalleError, WalleResult,
 };
 use crate::{MetaEvent, ProtocolItem, Resps, StandardEvent};
+#[cfg(feature = "websocket")]
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -164,6 +165,7 @@ where
         #[cfg(feature = "websocket")]
         self.wsr().await;
 
+        #[cfg(feature = "websocket")]
         if self.config.heartbeat.enabled {
             self.start_heartbeat();
         }
@@ -178,6 +180,7 @@ where
         }
     }
 
+    #[cfg(feature = "websocket")]
     pub(crate) async fn build_heartbeat(&self, interval: u64) -> MetaEvent {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
@@ -193,6 +196,7 @@ where
         }
     }
 
+    #[cfg(feature = "websocket")]
     fn start_heartbeat(self: &Arc<Self>) {
         let mut interval = self.config.heartbeat.interval;
         if interval == 0 {

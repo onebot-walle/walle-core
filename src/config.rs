@@ -91,7 +91,9 @@ impl Default for HttpServer {
             host: std::net::IpAddr::from([127, 0, 0, 1]),
             port: 6700,
             access_token: None,
+            #[cfg(feature = "impl")]
             event_enable: true,
+            #[cfg(feature = "impl")]
             event_buffer_size: 16,
         }
     }

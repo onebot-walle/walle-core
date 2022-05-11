@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use std::sync::Arc;
+use walle_core::AppConfig;
 
 #[pymodule]
 /// this is the main module of walle(a rusty libonebot)
@@ -11,7 +12,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
     fn run_onebot_app(py: Python) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             let app = walle_core::app::StandardOneBot::new(
-                walle_core::AppConfig::default(),
+                AppConfig::default(),
                 Box::new(walle_core::DefaultHandler),
             )
             .arc();
@@ -24,7 +25,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
     fn run_onebot11_app(py: Python) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             let app = walle_v11::app::OneBot11::new(
-                walle_core::AppConfig::default(),
+                AppConfig::default(),
                 Box::new(walle_v11::DefaultHandler),
             )
             .arc();
@@ -37,7 +38,7 @@ fn walle(_py: Python, m: &PyModule) -> PyResult<()> {
     fn run_block_onebot11_app(py: Python) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             let app = walle_v11::app::OneBot11::new(
-                walle_core::AppConfig::default(),
+                AppConfig::default(),
                 Box::new(walle_v11::DefaultHandler),
             )
             .arc();
