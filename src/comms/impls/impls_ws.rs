@@ -207,9 +207,7 @@ where
                         .header("X-Impl", ob.r#impl.clone())
                         .header("X-Self-ID", ob.self_id.read().await.as_str())
                         .header("X-Client-Role", "Universal".to_string()) // for v11
-                        .header_auth_token(&wsr.access_token)
-                        .body(())
-                        .unwrap();
+                        .header_auth_token(&wsr.access_token);
                     match crate::comms::ws_utils::try_connect(&wsr, req).await {
                         Ok(ws_stream) => {
                             ob.ws_connects.write().await.insert(wsr.url.clone());

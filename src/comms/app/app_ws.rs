@@ -149,9 +149,7 @@ where
                             USER_AGENT,
                             format!("OneBot/{} Walle-App/{}", V, crate::VERSION),
                         )
-                        .header_auth_token(&wsc.access_token)
-                        .body(())
-                        .unwrap();
+                        .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
                         Ok(ws_stream) => {
                             info!(target: "Walle-core", "Successfully connected to {}", wsc.url);

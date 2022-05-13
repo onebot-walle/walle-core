@@ -3,8 +3,11 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{
     accept_hdr_async, client_async,
     tungstenite::{
-        handshake::client::{Request, Response},
-        http::{response::Builder as HttpRespBuilder, Response as HttpResp, Uri},
+        handshake::client::{generate_key, Request, Response},
+        http::{
+            request::Builder as HttpReqBuilder, response::Builder as HttpRespBuilder,
+            Response as HttpResp, Uri,
+        },
     },
     WebSocketStream,
 };
@@ -14,13 +17,19 @@ use crate::{WalleError, WalleLogExt, WalleResult};
 
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketClient,
-    req: Request,
+    req: HttpReqBuilder,
 ) -> WalleResult<WebSocketStream<TcpStream>> {
     let uri: Uri = config.url.parse().unwrap();
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
 
     match client_async(
-        req,
+        req.method("GET")
+            .header("Connection", "Upgrade")
+            .header("Upgrade", "websocket")
+            .header("Sec-WebSocket-Version", "13")
+            .header("Sec-WebSocket-Key", generate_key())
+            .body(())
+            .unwrap(),
         TcpStream::connect(&addr)
             .await
             .map_err(WalleError::TcpConnectFailed)?,
