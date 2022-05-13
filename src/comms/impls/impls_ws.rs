@@ -197,7 +197,6 @@ where
                 ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
                     let req = Request::builder()
-                        .uri(&wsr.url)
                         .header(
                             USER_AGENT,
                             format!("OneBot/{} ({}) Walle/{}", V, ob.platform, crate::VERSION),

@@ -23,6 +23,8 @@ pub enum WalleError {
     WebsocketUpgradeFail(#[from] WsError),
     #[error("Websocket link has no peer address")]
     WebsocketNoAddress,
+    #[error("Url error: {0}")]
+    UrlError(String),
     /// action
     #[error("Action send error")]
     ActionSendError,

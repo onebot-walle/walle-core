@@ -11,8 +11,6 @@ homepage = "https://github.com/abrahum/Walle-core"
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 http = ["hyper"]
 websocket = ["tokio-tungstenite"]
@@ -20,6 +18,7 @@ app = []
 impl = ["uuid"]
 v11 = []
 full = ["http", "websocket", "app", "impl"]
+tokio-rt = ["tokio/rt-multi-thread"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -30,10 +29,17 @@ tracing = "0.1"
 colored = "2"
 uuid = { version = "1.0", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
-tokio = { version = "1.0", features = ["sync", "net", "rt", "time", "macros"] }
+tokio = { version = "1.0", features = ["sync", "net", "time", "macros"] }
 tokio-tungstenite = { version = "0.17", optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "1.0"
+
+[dev-dependencies]
+tracing-subscriber = "0.3"
+
+[[example]]
+name = "impl_ws"
+required-features = ["impl", "websocket", "tokio-rt"]
 
 [workspace]
 members = ["walle-py", "walle-v11"]

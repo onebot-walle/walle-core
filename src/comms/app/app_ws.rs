@@ -144,7 +144,6 @@ where
                 ob.ws_hooks.before_connect(&ob).await;
                 while ob.is_running() {
                     let req = Request::builder()
-                        .uri(&wsc.url)
                         .header(
                             USER_AGENT,
                             format!("OneBot/{} Walle-App/{}", V, crate::VERSION),

@@ -21,13 +21,23 @@ pub(crate) async fn try_connect(
 ) -> WalleResult<WebSocketStream<TcpStream>> {
     let uri: Uri = config.url.parse().unwrap();
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
+    let authority = uri
+        .authority()
+        .ok_or(WalleError::UrlError(uri.to_string()))?
+        .as_str();
+    let host = authority
+        .find('@')
+        .map(|idx| authority.split_at(idx + 1).1)
+        .unwrap_or_else(|| authority);
 
     match client_async(
         req.method("GET")
+            .header("Host", host)
             .header("Connection", "Upgrade")
             .header("Upgrade", "websocket")
             .header("Sec-WebSocket-Version", "13")
             .header("Sec-WebSocket-Key", generate_key())
+            .uri(uri)
             .body(())
             .unwrap(),
         TcpStream::connect(&addr)
