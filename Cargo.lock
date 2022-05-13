@@ -1197,7 +1197,7 @@ dependencies = [
 
 [[package]]
 name = "walle-core"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "colored",

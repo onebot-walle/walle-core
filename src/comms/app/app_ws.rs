@@ -132,11 +132,10 @@ where
         false
     }
 
-    pub(crate) async fn ws(self: &Arc<Self>) -> Vec<JoinHandle<()>> {
+    pub(crate) async fn ws(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) {
         use crate::comms::utils::AuthReqHeaderExt;
         use tokio_tungstenite::tungstenite::http::Request;
 
-        let mut joins = vec![];
         for wsc in self.config.websocket.clone().into_iter() {
             info!(target: "Walle-core", "Start try connect to {}", wsc.url);
             let ob = self.clone();
@@ -167,13 +166,12 @@ where
                     }
                 }
                 ob.ws_hooks.on_shutdown(&ob).await;
-            }))
+            }));
+            self.set_running();
         }
-        joins
     }
 
-    pub(crate) async fn wsr(self: &Arc<Self>) -> WalleResult<Vec<JoinHandle<()>>> {
-        let mut joins = vec![];
+    pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleResult<()> {
         for wss in self.config.websocket_rev.clone().into_iter() {
             // info!(target: "Walle-core", "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -198,8 +196,9 @@ where
                 }
                 info!(target: "Walle-core", "Websocket server shutting down");
                 ob.ws_hooks.on_shutdown(&ob).await;
-            }))
+            }));
+            self.set_running();
         }
-        Ok(joins)
+        Ok(())
     }
 }

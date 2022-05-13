@@ -7,6 +7,7 @@ use std::{
     },
 };
 use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 use tracing::info;
 
 use crate::{
@@ -145,43 +146,28 @@ where
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
+    pub async fn run(self: &Arc<Self>) -> WalleResult<Vec<JoinHandle<()>>> {
         if self.is_running() {
             return Err(WalleError::AlreadyRunning);
         }
         info!(target: "Walle-core", "OneBot is starting...");
+        let mut joins = vec![];
 
         #[cfg(feature = "http")]
-        self.http().await;
+        self.http(&mut joins).await;
 
         #[cfg(feature = "websocket")]
-        self.ws().await;
+        self.ws(&mut joins).await;
 
         #[cfg(feature = "websocket")]
-        self.wsr().await?;
+        self.wsr(&mut joins).await?;
 
-        self.running.store(true, Ordering::Relaxed);
-        Ok(())
+        Ok(joins)
     }
 
     pub async fn run_block(self: &Arc<Self>) -> WalleResult<()> {
-        if self.is_running() {
-            return Err(WalleError::AlreadyRunning);
-        }
-        info!(target: "Walle-core", "OneBot is starting...");
-
-        #[cfg(feature = "websocket")]
-        {
-            let mut joins = self.ws().await;
-            for join in self.wsr().await? {
-                joins.push(join);
-            }
-            if !joins.is_empty() {
-                self.running.store(true, Ordering::Relaxed);
-            }
-            for join in joins {
-                let _ = join.await;
-            }
+        for join in self.run().await? {
+            let _ = join.await;
         }
         Ok(())
     }

@@ -5,6 +5,7 @@ use hyper::body::Buf;
 use hyper::client::HttpConnector;
 use hyper::header::CONTENT_TYPE;
 use hyper::{Body, Client as HyperClient, Method, Request};
+use tokio::task::JoinHandle;
 use tracing::warn;
 
 use crate::{
@@ -20,7 +21,7 @@ where
     R: ProtocolItem + Clone + Send + 'static + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
-    pub(crate) async fn http(self: &Arc<Self>) {
+    pub(crate) async fn http(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) {
         if self.config.http.is_empty() {
             return;
         }
@@ -31,13 +32,13 @@ where
             let ob = self.clone();
             let cli = client.clone();
             let http = http.clone();
-            tokio::spawn(async move {
+            joins.push(tokio::spawn(async move {
                 while ob.is_running() {
                     while let Some((action, action_tx)) = rx.recv().await {
                         ob.http_push(action, action_tx, &cli, &http).await;
                     }
                 }
-            });
+            }));
         }
         self.set_running();
     }
