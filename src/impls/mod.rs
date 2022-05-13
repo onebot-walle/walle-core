@@ -4,7 +4,7 @@ use crate::event::BaseEvent;
 use crate::handle::ActionHandler;
 use crate::resp::StatusContent;
 use crate::{ImplConfig, StandardAction, WalleError, WalleResult};
-use crate::{MetaEvent, ProtocolItem, Resps, StandardEvent};
+use crate::{ProtocolItem, Resps, StandardEvent};
 #[cfg(feature = "websocket")]
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -39,7 +39,7 @@ pub struct CustomOneBot<E, A, R, H, const V: u8> {
     pub action_handler: H,
 
     #[cfg(feature = "websocket")]
-    pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
+    pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<StandardEvent>,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::BoxWsHooks<Self>,
@@ -182,18 +182,18 @@ where
     }
 
     #[cfg(feature = "websocket")]
-    pub(crate) async fn build_heartbeat(&self, interval: u64) -> MetaEvent {
+    pub(crate) async fn build_heartbeat(&self, interval: u64) -> StandardEvent {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
             self_id: self.self_id().await,
             time: crate::utils::timestamp_nano_f64(),
-            content: crate::MetaContent::Heartbeat {
+            content: crate::EventContent::Meta(crate::MetaContent::Heartbeat {
                 interval,
                 status: self.get_status(),
                 sub_type: "".to_string(),
-            },
+            }),
         }
     }
 
