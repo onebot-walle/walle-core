@@ -66,7 +66,7 @@ where
                         .headers()
                         .get(CONTENT_TYPE)
                         .and_then(|v| v.to_str().ok())
-                        .and_then(|s| ContentType::new(s))
+                        .and_then(ContentType::new)
                     {
                         Some(t) => t,
                         None => return Ok(empty_error_response(415)),

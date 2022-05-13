@@ -1,15 +1,13 @@
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug, sync::Arc, vec};
-use tokio::{
-    net::{TcpListener, TcpStream},
-    sync::{mpsc, oneshot},
-    task::JoinHandle,
-};
-use tokio_tungstenite::{
-    tungstenite::{error::Result as WsResult, http::header::USER_AGENT, Message as WsMsg},
-    WebSocketStream,
-};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{mpsc, oneshot};
+use tokio::task::JoinHandle;
+use tokio_tungstenite::tungstenite::error::Result as WsResult;
+use tokio_tungstenite::tungstenite::http::header::USER_AGENT;
+use tokio_tungstenite::tungstenite::Message as WsMsg;
+use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
 use crate::{
@@ -123,7 +121,7 @@ where
             WsMsg::Text(text) => handle_ok(ProtocolItem::json_decode(&text)).await,
             WsMsg::Binary(bin) => handle_ok(ProtocolItem::rmp_decode(&bin)).await,
             WsMsg::Ping(b) => {
-                if let Err(_) = ws_stream.send(WsMsg::Pong(b)).await {
+                if ws_stream.send(WsMsg::Pong(b)).await.is_err() {
                     return true;
                 }
             }

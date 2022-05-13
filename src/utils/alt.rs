@@ -109,15 +109,15 @@ impl ColoredAlt for StandardAction {
                         c.message.alt(),
                         group_id.bright_blue(),
                     ))
-                } else if let Some(user_id) = &c.user_id {
-                    Some(format!(
-                        "[{}] {} to {}",
-                        "SendMessage".bright_yellow(),
-                        c.message.alt(),
-                        user_id.bright_green()
-                    ))
                 } else {
-                    None
+                    c.user_id.as_ref().map(|user_id| {
+                        format!(
+                            "[{}] {} to {}",
+                            "SendMessage".bright_yellow(),
+                            c.message.alt(),
+                            user_id.bright_green()
+                        )
+                    })
                 }
             }
             _ => None, //todo

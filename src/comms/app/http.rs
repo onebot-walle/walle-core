@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::{fmt::Debug, time::Duration};
 
 use hyper::body::Buf;
-use hyper::{
-    client::HttpConnector, header::CONTENT_TYPE, Body, Client as HyperClient, Method, Request,
-};
+use hyper::client::HttpConnector;
+use hyper::header::CONTENT_TYPE;
+use hyper::{Body, Client as HyperClient, Method, Request};
 use tracing::warn;
 
 use crate::{

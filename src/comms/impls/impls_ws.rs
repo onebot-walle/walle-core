@@ -172,11 +172,10 @@ where
                                 .await
                         {
                             let obc = ob.clone();
-                            let addrc = addr.clone();
                             tokio::spawn(async move {
                                 // spawn to handle connect
                                 obc.ws_loop(ws_stream).await;
-                                obc.ws_connects.write().await.remove(&addrc.to_string());
+                                obc.ws_connects.write().await.remove(&addr.to_string());
                             });
                             ob.ws_connects.write().await.insert(addr.to_string());
                         }

@@ -23,7 +23,7 @@ pub(crate) async fn try_connect(
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
     let authority = uri
         .authority()
-        .ok_or(WalleError::UrlError(uri.to_string()))?
+        .ok_or_else(|| WalleError::UrlError(uri.to_string()))?
         .as_str();
     let host = authority
         .find('@')

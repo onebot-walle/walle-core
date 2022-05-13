@@ -1,8 +1,9 @@
 use std::{convert::Infallible, sync::Arc};
 
-use hyper::{
-    header::AUTHORIZATION, server::conn::Http, service::service_fn, Body, Request, Response,
-};
+use hyper::header::AUTHORIZATION;
+use hyper::server::conn::Http;
+use hyper::service::service_fn;
+use hyper::{Body, Request, Response};
 use tokio::net::TcpListener;
 use tracing::info;
 

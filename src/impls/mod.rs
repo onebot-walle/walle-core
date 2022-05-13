@@ -17,13 +17,14 @@ pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
 pub type EventBroadcaster = CustomEventBroadcaster<StandardEvent>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot<H> = CustomOneBot<StandardEvent, StandardAction, Resps, H, 12>;
+pub type StandardOneBot<H> = CustomOneBot<StandardEvent, StandardAction, Resps, H, 12>;
 
 /// OneBot Implementation 实例
 ///
 /// E: Event 可以参考 crate::evnt::Event
 /// A: Action 可以参考 crate::action::Action
 /// R: ActionResp 可以参考 crate::action_resp::Resps
+/// H: ActionHandler 需要实现 trait `ActionHandler<A, R, OB>`
 /// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。

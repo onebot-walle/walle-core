@@ -1,11 +1,11 @@
 use walle_core::config::ImplConfig;
-use walle_core::impls::OneBot;
+use walle_core::impls::StandardOneBot;
 use walle_core::DefaultHandler;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let ob = OneBot::new(
+    let ob = StandardOneBot::new(
         "impl",
         "platform",
         "self_id",
