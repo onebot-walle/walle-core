@@ -55,7 +55,7 @@ where
 #[async_trait]
 pub trait EventHandler<E, A, R>
 where
-    E: Clone + DeserializeOwned + Send + 'static + Debug,
+    E: Clone + DeserializeOwned + Send + 'static,
 {
     async fn handle(&self, bot: ArcBot<A, R>, event: E);
 }
@@ -98,7 +98,9 @@ where
         };
 
         match action {
-            StandardAction::GetVersion(_) => Resp::success(RespContent::Version(get_version().await)),
+            StandardAction::GetVersion(_) => {
+                Resp::success(RespContent::Version(get_version().await))
+            }
             _ => Resp::unsupported_action(),
         }
     }

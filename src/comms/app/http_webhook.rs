@@ -6,13 +6,14 @@ use hyper::{
 use tokio::net::TcpListener;
 use tracing::info;
 
-use crate::{app::OneBot, ProtocolItem, SelfId, WalleError, WalleResult};
+use crate::{app::OneBot, handle::EventHandler, ProtocolItem, SelfId, WalleError, WalleResult};
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + SelfId + 'static,
+    E: ProtocolItem + Send + Clone + SelfId + 'static,
     A: ProtocolItem + Send + 'static,
     R: ProtocolItem + Send + 'static,
+    H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     #[allow(dead_code)]
     pub(crate) async fn http_webhook(self: &Arc<Self>) -> WalleResult<()> {

@@ -10,37 +10,36 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::{
-    config::AppConfig, ProtocolItem, Resps, SelfId, StandardAction, StandardEvent, WalleError,
-    WalleResult,
+    config::AppConfig, handle::EventHandler, ProtocolItem, Resps, SelfId, StandardAction,
+    StandardEvent, WalleError, WalleResult,
 };
 
 mod bot;
 
-pub(crate) type BoxEventHandler<E, A, R> =
-    Box<dyn crate::handle::EventHandler<E, A, R> + Send + Sync>;
 pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<R>;
 pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type StandardOneBot = OneBot<StandardEvent, StandardAction, Resps, 12>;
+pub type StandardOneBot<H> = OneBot<StandardEvent, StandardAction, Resps, H, 12>;
 
 /// OneBot Application 实例
 ///
 /// E: Event 可以参考 crate::evnt::Event
 /// A: Action 可以参考 crate::action::Action
 /// R: ActionResp 可以参考 crate::action_resp::ActionResps
+/// H: EventHandler 需要实现 trait `EventHandler<E, A, R>`
 /// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-pub struct OneBot<E, A, R, const V: u8> {
+pub struct OneBot<E, A, R, H, const V: u8> {
     pub config: AppConfig,
     pub bots: RwLock<HashMap<String, ArcBot<A, R>>>,
 
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     pub(crate) ws_hooks: crate::hooks::BoxWsHooks<Self>,
-    pub(crate) event_handler: BoxEventHandler<E, A, R>,
+    pub(crate) event_handler: H,
 
     running: AtomicBool,
 }
@@ -56,14 +55,15 @@ pub struct Bot<A, R> {
     sender: CustomActionSender<A, R>,
 }
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
     E: Sync + Send + 'static,
     A: Sync + Send + 'static,
     R: Sync + Send + 'static,
+    H: Sync + Send + 'static,
 {
     /// 创建新的 OneBot 实例
-    pub fn new(config: AppConfig, event_handler: BoxEventHandler<E, A, R>) -> Self {
+    pub fn new(config: AppConfig, event_handler: H) -> Self {
         Self {
             config,
             event_handler,
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V> {
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V> {
     /// 返回 Arc<OneBot>
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
@@ -112,11 +112,12 @@ impl<E, A, R, const V: u8> OneBot<E, A, R, V> {
     }
 }
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
     E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
     A: ProtocolItem + Clone + Send + 'static + Debug,
     R: ProtocolItem + Clone + Send + 'static + Debug,
+    H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     /// 添加 Bot 实例
     pub(crate) async fn insert_bot(

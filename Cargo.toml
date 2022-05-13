@@ -41,5 +41,9 @@ tracing-subscriber = "0.3"
 name = "impl_ws"
 required-features = ["impl", "websocket", "tokio-rt"]
 
+[[example]]
+name = "app_ws"
+required-features = ["app", "websocket", "tokio-rt"]
+
 [workspace]
 members = ["walle-py", "walle-v11"]

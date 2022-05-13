@@ -14,14 +14,16 @@ use tracing::{info, warn};
 
 use crate::{
     app::{CustomActionSender, CustomRespSender, OneBot},
+    handle::EventHandler,
     Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleLogExt, WalleResult,
 };
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
     E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
     A: ProtocolItem + Clone + Send + 'static + Debug,
     R: ProtocolItem + Clone + Send + 'static + Debug,
+    H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     async fn ws_loop(
         self: &Arc<Self>,

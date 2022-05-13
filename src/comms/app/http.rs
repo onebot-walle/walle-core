@@ -9,14 +9,16 @@ use tracing::warn;
 
 use crate::{
     app::{CustomRespSender, OneBot},
+    handle::EventHandler,
     HttpClient, ProtocolItem, SelfId,
 };
 
-impl<E, A, R, const V: u8> OneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
     E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
     A: ProtocolItem + Clone + Send + 'static + Debug,
     R: ProtocolItem + Clone + Send + 'static + Debug,
+    H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     pub(crate) async fn http(self: &Arc<Self>) {
         if self.config.http.is_empty() {
