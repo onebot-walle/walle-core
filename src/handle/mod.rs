@@ -82,7 +82,7 @@ impl<E, const V: u8>
     ActionHandler<
         crate::StandardAction,
         crate::Resps,
-        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, V>,
+        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, Self, V>,
     > for DefaultHandler
 where
     E: Send,
@@ -90,7 +90,7 @@ where
     async fn handle(
         &self,
         action: crate::StandardAction,
-        _ob: &crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, V>,
+        _ob: &crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, Self, V>,
     ) -> Resps {
         use crate::{
             resp::{Resp, RespContent},

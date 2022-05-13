@@ -1,8 +1,9 @@
 #![doc = include_str!("README.md")]
 
-use crate::{
-    event::BaseEvent, resp::StatusContent, ImplConfig, StandardAction, WalleError, WalleResult,
-};
+use crate::event::BaseEvent;
+use crate::handle::ActionHandler;
+use crate::resp::StatusContent;
+use crate::{ImplConfig, StandardAction, WalleError, WalleResult};
 use crate::{MetaEvent, ProtocolItem, Resps, StandardEvent};
 #[cfg(feature = "websocket")]
 use std::collections::HashSet;
@@ -13,12 +14,10 @@ use tokio::sync::RwLock;
 use tracing::{info, trace};
 
 pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
-pub(crate) type ArcActionHandler<A, R, OB> =
-    Arc<dyn crate::handle::ActionHandler<A, R, OB> + Send + Sync>;
 pub type EventBroadcaster = CustomEventBroadcaster<StandardEvent>;
 
 /// OneBot v12 无扩展实现端实例
-pub type OneBot = CustomOneBot<StandardEvent, StandardAction, Resps, 12>;
+pub type OneBot<H> = CustomOneBot<StandardEvent, StandardAction, Resps, H, 12>;
 
 /// OneBot Implementation 实例
 ///
@@ -28,7 +27,7 @@ pub type OneBot = CustomOneBot<StandardEvent, StandardAction, Resps, 12>;
 /// V: OneBot 协议版本号
 ///
 /// 如果希望包含 OneBot 的标准内容，可以使用 untagged enum 包裹。
-pub struct CustomOneBot<E, A, R, const V: u8> {
+pub struct CustomOneBot<E, A, R, H, const V: u8> {
     pub r#impl: String,
     pub platform: String,
     pub self_id: RwLock<String>,
@@ -36,7 +35,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     /// broadcast events
     pub broadcaster: CustomEventBroadcaster<E>,
 
-    pub action_handler: ArcActionHandler<A, R, Self>,
+    pub action_handler: H,
 
     #[cfg(feature = "websocket")]
     pub(crate) heartbeat_tx: tokio::sync::broadcast::Sender<MetaEvent>,
@@ -50,7 +49,7 @@ pub struct CustomOneBot<E, A, R, const V: u8> {
     online: AtomicBool,
 }
 
-impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
+impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
     pub async fn self_id(&self) -> String {
         self.self_id.read().await.clone()
     }
@@ -92,18 +91,19 @@ impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V> {
     }
 }
 
-impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Debug + Send + 'static,
     A: ProtocolItem + Clone + Debug + Send + 'static,
     R: ProtocolItem + Clone + Debug + Send + 'static,
+    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
 {
     pub fn new(
         r#impl: &str,
         platform: &str,
         self_id: &str,
         config: ImplConfig,
-        action_handler: ArcActionHandler<A, R, Self>,
+        action_handler: H,
     ) -> Self {
         let (broadcaster, _) = tokio::sync::broadcast::channel(1024);
         #[cfg(feature = "websocket")]
@@ -217,7 +217,7 @@ where
     }
 }
 
-impl<E, A, R, const V: u8> CustomOneBot<BaseEvent<E>, A, R, V> {
+impl<E, A, R, H, const V: u8> CustomOneBot<BaseEvent<E>, A, R, H, V> {
     pub async fn new_event(&self, content: E, time: f64) -> BaseEvent<E> {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),

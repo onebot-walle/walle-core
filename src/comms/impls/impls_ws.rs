@@ -1,3 +1,4 @@
+use crate::handle::ActionHandler;
 use crate::{impls::CustomOneBot, Echo, WalleError, WalleResult};
 use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
@@ -8,11 +9,12 @@ use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 use tracing::{debug, info, trace, warn};
 
-impl<E, A, R, const V: u8> CustomOneBot<E, A, R, V>
+impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Send + 'static + Debug,
     A: ProtocolItem + Send + 'static + Debug,
     R: ProtocolItem + Send + 'static + Debug,
+    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
 {
     pub(crate) async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         self.ws_hooks.on_connect(self).await;
