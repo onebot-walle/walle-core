@@ -16,6 +16,7 @@ pub enum ExtendedValue {
     Bool(bool),
     Map(HashMap<String, ExtendedValue>),
     List(Vec<ExtendedValue>),
+    Bytes(Vec<u8>),
     #[serde(serialize_with = "null_serialize")]
     // deserialize_with = "null_deserialize" will cause error
     Null,
@@ -46,6 +47,7 @@ impl_from!(Int, i32, i64);
 impl_from!(F64, f64);
 impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
+impl_from!(Bytes, Vec<u8>);
 
 impl From<&str> for ExtendedValue {
     fn from(v: &str) -> Self {
@@ -99,6 +101,7 @@ impl_try_from!(Int, i64);
 impl_try_from!(F64, f64);
 impl_try_from!(Bool, bool);
 impl_try_from!(Map, ExtendedMap);
+impl_try_from!(Bytes, Vec<u8>);
 impl_try_from!(List, Vec<ExtendedValue>);
 
 fn null_serialize<S>(serializer: S) -> Result<S::Ok, S::Error>
@@ -138,6 +141,20 @@ impl<'de> Visitor<'de> for ValueVisitor {
         E: serde::de::Error,
     {
         Ok(ExtendedValue::Str(v.to_owned()))
+    }
+
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(ExtendedValue::Bytes(v.to_owned()))
+    }
+
+    fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(ExtendedValue::Bytes(v))
     }
 
     fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
@@ -196,7 +213,7 @@ macro_rules! downcast_fn {
 
 #[allow(dead_code)]
 impl ExtendedValue {
-    pub fn empty() -> Self {
+    pub fn empty_map() -> Self {
         Self::Map(ExtendedMap::default())
     }
 
@@ -211,6 +228,7 @@ impl ExtendedValue {
     downcast_fn!(downcast_int, i64);
     downcast_fn!(downcast_f64, f64);
     downcast_fn!(downcast_bool, bool);
+    downcast_fn!(downcast_bytes, Vec<u8>);
     downcast_fn!(downcast_map, ExtendedMap);
     downcast_fn!(downcast_list, Vec<ExtendedValue>);
 
@@ -242,6 +260,13 @@ impl ExtendedValue {
         }
     }
 
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Bytes(b) => Some(b),
+            _ => None,
+        }
+    }
+
     pub fn as_map(&self) -> Option<&ExtendedMap> {
         match self {
             Self::Map(m) => Some(m),
@@ -267,6 +292,9 @@ impl ExtendedValue {
     }
     pub fn is_bool(&self) -> bool {
         matches!(self, Self::Bool(_))
+    }
+    pub fn is_bytes(&self) -> bool {
+        matches!(self, Self::Bytes(_))
     }
     pub fn is_map(&self) -> bool {
         matches!(self, Self::Map(_))

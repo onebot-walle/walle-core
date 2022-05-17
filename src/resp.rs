@@ -109,12 +109,12 @@ where
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from(ExtendedValue::empty()))
+        Self::success(T::from(ExtendedValue::empty_map()))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
-        Self::fail(T::from(ExtendedValue::empty()), retcode, message)
+        Self::fail(T::from(ExtendedValue::empty_map()), retcode, message)
     }
 
     empty_err_resp!(bad_request, 10001, "无效的动作请求");
