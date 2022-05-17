@@ -17,7 +17,8 @@ pub type CustomEventBroadcaster<E> = tokio::sync::broadcast::Sender<E>;
 pub type EventBroadcaster = CustomEventBroadcaster<StandardEvent>;
 
 /// OneBot v12 无扩展实现端实例
-pub type StandardOneBot<H> = CustomOneBot<StandardEvent, StandardAction, Resps, H, 12>;
+pub type StandardOneBot<H> =
+    CustomOneBot<StandardEvent, StandardAction, Resps<StandardEvent>, H, 12>;
 
 /// OneBot Implementation 实例
 ///

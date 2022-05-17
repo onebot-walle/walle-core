@@ -14,7 +14,7 @@ use crate::ExtendedMap;
 
 /// OneBot 12 标准事件
 pub type StandardEvent = BaseEvent<EventContent>;
-pub type MessageEvent = BaseEvent<MessageContent>;
+pub type MessageEvent = BaseEvent<MessageContent<MessageEventDetail>>;
 pub type NoticeEvent = BaseEvent<NoticeContent>;
 pub type RequestEvent = BaseEvent<RequestContent>;
 pub type MetaEvent = BaseEvent<MetaContent>;
@@ -47,7 +47,7 @@ pub struct BaseEvent<T> {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EventContent {
     Meta(MetaContent),
-    Message(MessageContent),
+    Message(MessageContent<MessageEventDetail>),
     Notice(NoticeContent),
     Request(RequestContent),
 }
@@ -92,7 +92,7 @@ macro_rules! impl_From {
 }
 
 impl_From!(MetaContent, Meta);
-impl_From!(MessageContent, Message);
+impl_From!(MessageContent<MessageEventDetail>, Message);
 impl_From!(NoticeContent, Notice);
 impl_From!(RequestContent, Request);
 

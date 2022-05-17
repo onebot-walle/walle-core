@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::{action::UploadFile, ExtendedValue, StandardEvent};
 
 /// ## OneBot 12 标准动作响应
-pub type Resps = Resp<RespContent>;
+pub type StandardResps = Resps<StandardEvent>;
+pub type Resps<E> = Resp<RespContent<E>>;
 
 /// ## 动作响应
 ///
@@ -22,13 +23,13 @@ pub struct Resp<T> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
-pub enum RespContent {
+pub enum RespContent<E> {
     SendMessage(SendMessageRespContent),
-    LatestEvents(Vec<StandardEvent>),
+    LatestEvents(Vec<E>),
     SupportActions(Vec<String>),
     Status(StatusContent),
     Version(VersionContent),
-    MessageEvent(StandardEvent),
+    MessageEvent(E),
     UserInfo(UserInfoContent),
     FriendList(Vec<UserInfoContent>),
     GroupInfo(GroupInfoContent),
@@ -42,7 +43,7 @@ pub enum RespContent {
 
 macro_rules! resp_content {
     ($t:ty, $name: tt) => {
-        impl From<$t> for RespContent {
+        impl<E> From<$t> for RespContent<E> {
             fn from(t: $t) -> Self {
                 RespContent::$name(t)
             }
@@ -51,11 +52,11 @@ macro_rules! resp_content {
 }
 
 resp_content!(SendMessageRespContent, SendMessage);
-resp_content!(Vec<StandardEvent>, LatestEvents);
+// resp_content!(Vec<StandardEvent>, LatestEvents);
 resp_content!(Vec<String>, SupportActions);
 resp_content!(StatusContent, Status);
 resp_content!(VersionContent, Version);
-resp_content!(StandardEvent, MessageEvent);
+// resp_content!(StandardEvent, MessageEvent);
 resp_content!(UserInfoContent, UserInfo);
 resp_content!(Vec<UserInfoContent>, FriendList);
 resp_content!(GroupInfoContent, GroupInfo);
@@ -64,41 +65,7 @@ resp_content!(FileIdContent, FileId);
 resp_content!(FileFragmentedHead, PrepareFileFragmented);
 resp_content!(Vec<u8>, TransferFileFragmented);
 resp_content!(UploadFile, GetFile);
-
-/// ## 扩展动作响应
-///
-/// 已经包含标准动作响应，传 T 为扩展动作响应
-///
-/// 要求实现 Trait： Debug + Clone + Serialize + Deserialize + PartialEq
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(untagged)]
-pub enum ExtendedRespContent<T> {
-    Standard(RespContent),
-    Extended(T),
-}
-
-/// 转化标准动作响应为扩展动作响应
-pub trait FromStandard {
-    fn from_standard(standard: RespContent) -> Self;
-}
-
-impl<T> FromStandard for ExtendedRespContent<T> {
-    fn from_standard(standard: RespContent) -> Self {
-        ExtendedRespContent::Standard(standard)
-    }
-}
-
-impl RespContent {
-    pub fn empty() -> Self {
-        Self::Other(ExtendedValue::empty())
-    }
-}
-
-impl FromStandard for RespContent {
-    fn from_standard(standard: RespContent) -> Self {
-        standard
-    }
-}
+resp_content!(ExtendedValue, Other);
 
 impl<T> Resp<T> {
     #[allow(dead_code)]
@@ -138,16 +105,16 @@ macro_rules! empty_err_resp {
 
 impl<T> Resp<T>
 where
-    T: FromStandard,
+    T: From<ExtendedValue>,
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from_standard(RespContent::empty()))
+        Self::success(T::from(ExtendedValue::empty()))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: i64, message: String) -> Self {
-        Self::fail(T::from_standard(RespContent::empty()), retcode, message)
+        Self::fail(T::from(ExtendedValue::empty()), retcode, message)
     }
 
     empty_err_resp!(bad_request, 10001, "无效的动作请求");
@@ -178,7 +145,7 @@ pub struct VersionContent {
 impl Default for VersionContent {
     fn default() -> Self {
         VersionContent {
-            r#impl: "AbrasOneBot".to_owned(),
+            r#impl: "Walle".to_owned(),
             platform: "RustOneBot".to_owned(),
             version: "0.0.1".to_owned(),
             onebot_version: "12".to_owned(),

@@ -1,45 +1,53 @@
 use super::BaseEvent;
-use crate::ExtendedMap;
 #[cfg(feature = "impl")]
 use crate::MessageAlt;
+use crate::{AsStandard, ExtendedMap};
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 消息事件 Content
 ///
 /// 消息事件是聊天机器人收到其他用户发送的消息对应的一类事件，例如私聊消息等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct MessageContent {
+pub struct MessageContent<D> {
     #[serde(flatten)]
-    pub ty: MessageEventType,
+    pub detail: D,
     pub message_id: String,
     pub message: crate::Message,
     pub alt_message: String,
     pub user_id: String,
     /// just for Deserialize
     pub sub_type: String,
-    #[serde(flatten)]
-    pub extra: ExtendedMap,
 }
 
 /// MessageEvent detail_type ( private or group )
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "detail_type", rename_all = "snake_case")]
-pub enum MessageEventType {
-    Private,
-    Group { group_id: String },
+pub enum MessageEventDetail {
+    Private {
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
+    Group {
+        group_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
 }
 
-impl MessageEventType {
+impl MessageEventDetail {
     pub fn group_id(&self) -> Option<&str> {
         match self {
-            MessageEventType::Group { group_id } => Some(group_id),
+            MessageEventDetail::Group { group_id, .. } => Some(group_id),
             _ => None,
         }
     }
 }
 
 #[cfg(feature = "impl")]
-impl MessageContent {
+impl<D> MessageContent<D>
+where
+    D: From<MessageEventDetail>,
+{
     pub fn new_group_message_content(
         message: crate::Message,
         message_id: String,
@@ -48,13 +56,12 @@ impl MessageContent {
         extra: ExtendedMap,
     ) -> Self {
         Self {
-            ty: MessageEventType::Group { group_id },
+            detail: MessageEventDetail::Group { group_id, extra }.into(),
             message_id,
             alt_message: message.alt(),
             message,
             user_id,
             sub_type: "".to_owned(),
-            extra,
         }
     }
 
@@ -65,26 +72,28 @@ impl MessageContent {
         extra: ExtendedMap,
     ) -> Self {
         Self {
-            ty: MessageEventType::Private,
+            detail: MessageEventDetail::Private { extra }.into(),
             message_id,
             alt_message: message.alt(),
             message,
             user_id,
             sub_type: "".to_owned(),
-            extra,
         }
     }
 }
 
-impl BaseEvent<MessageContent> {
+impl<D> BaseEvent<MessageContent<D>>
+where
+    D: AsStandard<MessageEventDetail>,
+{
     pub fn group_id(&self) -> Option<&str> {
-        self.content.ty.group_id()
+        self.content.detail.as_standard().group_id()
     }
     pub fn user_id(&self) -> &str {
         &self.content.user_id
     }
-    pub fn ty(&self) -> &MessageEventType {
-        &self.content.ty
+    pub fn detail(&self) -> &MessageEventDetail {
+        &self.content.detail.as_standard()
     }
     pub fn message_id(&self) -> &str {
         &self.content.message_id
@@ -99,6 +108,9 @@ impl BaseEvent<MessageContent> {
         &self.content.sub_type
     }
     pub fn extra(&self) -> &ExtendedMap {
-        &self.content.extra
+        match self.content.detail.as_standard() {
+            MessageEventDetail::Private { extra, .. } => extra,
+            MessageEventDetail::Group { extra, .. } => extra,
+        }
     }
 }

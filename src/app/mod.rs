@@ -22,7 +22,7 @@ pub(crate) type CustomActionSender<A, R> =
     tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
 
 /// OneBot v12 无扩展应用端实例
-pub type StandardOneBot<H> = OneBot<StandardEvent, StandardAction, Resps, H, 12>;
+pub type StandardOneBot<H> = OneBot<StandardEvent, StandardAction, Resps<StandardEvent>, H, 12>;
 
 /// OneBot Application 实例
 ///
@@ -47,7 +47,7 @@ pub struct OneBot<E, A, R, H, const V: u8> {
 
 /// Arc<Bot>
 pub type ArcBot<A, R> = Arc<Bot<A, R>>;
-pub type StandardArcBot = ArcBot<StandardAction, Resps>;
+pub type StandardArcBot = ArcBot<StandardAction, Resps<StandardEvent>>;
 
 /// Bot 实例
 pub struct Bot<A, R> {

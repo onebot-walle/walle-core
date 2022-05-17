@@ -6,6 +6,7 @@ use std::{fmt::Debug, sync::Arc};
 use crate::app::ArcBot;
 #[cfg(feature = "impl")]
 use crate::Resps;
+use crate::StandardEvent;
 
 mod fnt;
 
@@ -81,8 +82,8 @@ impl DefaultHandler {
 impl<E, const V: u8>
     ActionHandler<
         crate::StandardAction,
-        crate::Resps,
-        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, Self, V>,
+        crate::Resps<StandardEvent>,
+        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps<StandardEvent>, Self, V>,
     > for DefaultHandler
 where
     E: Send,
@@ -90,8 +91,14 @@ where
     async fn handle(
         &self,
         action: crate::StandardAction,
-        _ob: &crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps, Self, V>,
-    ) -> Resps {
+        _ob: &crate::impls::CustomOneBot<
+            E,
+            crate::StandardAction,
+            crate::Resps<StandardEvent>,
+            Self,
+            V,
+        >,
+    ) -> Resps<StandardEvent> {
         use crate::{
             resp::{Resp, RespContent},
             StandardAction,

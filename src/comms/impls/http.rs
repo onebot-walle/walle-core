@@ -41,7 +41,7 @@ fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> Response<Bo
 
 impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
-    E: Clone + Send + 'static,
+    E: ProtocolItem + Clone + Send + 'static,
     A: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
     R: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
     H: ActionHandler<A, R, Self> + Send + Sync + 'static,
@@ -98,9 +98,9 @@ where
                         }
                         Err(e) => Ok(encode2resp(
                             if e.starts_with("missing field") {
-                                Resps::empty_fail(10006, e)
+                                Resps::<E>::empty_fail(10006, e)
                             } else {
-                                Resps::unsupported_action()
+                                Resps::<E>::unsupported_action()
                             },
                             &content_type,
                         )),

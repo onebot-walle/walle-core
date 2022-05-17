@@ -101,7 +101,7 @@ where
                 }
             });
         };
-        let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<crate::Resps> {
+        let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<crate::Resps<E>> {
             let (_, echo_s) = a.unpack();
             warn!(target: "Walle-core", "action warn: {}", msg);
             if msg.starts_with("missing field") {

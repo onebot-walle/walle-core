@@ -1,9 +1,10 @@
+use crate::ExtendedMap;
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 通知事件 Content
 ///
 /// 通知事件是机器人平台向机器人发送通知对应的事件，例如群成员变动等。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "detail_type", rename_all = "snake_case")]
 pub enum NoticeContent {
     GroupMemberIncrease {
@@ -11,36 +12,48 @@ pub enum NoticeContent {
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupMemberDecrease {
         sub_type: String,
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupMemberBan {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupMemberUnban {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupAdminSet {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupAdminUnset {
         sub_type: String, // just for Deserialize
         group_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     GroupMessageDelete {
         sub_type: String,
@@ -48,19 +61,27 @@ pub enum NoticeContent {
         message_id: String,
         user_id: String,
         operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     FriendIncrease {
         sub_type: String, // just for Deserialize
         user_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     FriendDecrease {
         sub_type: String, // just for Deserialize
         user_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     PrivateMessageDelete {
         sub_type: String, // just for Deserialize
         message_id: String,
         user_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
 }
 

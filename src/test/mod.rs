@@ -2,7 +2,7 @@
 fn event() {
     use crate::event::StandardEvent;
     use crate::event::{
-        BaseEvent, EventContent, MessageContent as MsgContent, MessageEventType, MetaContent,
+        BaseEvent, EventContent, MessageContent as MsgContent, MessageEventDetail, MetaContent,
         NoticeContent,
     };
     use crate::resp::StatusContent;
@@ -78,7 +78,9 @@ fn event() {
                 time: 1632847927.0,
                 content: EventContent::Message(MsgContent {
                     sub_type: String::default(),
-                    ty: MessageEventType::Private,
+                    detail: MessageEventDetail::Private {
+                        extra: ExtendedMap::new(),
+                    },
                     message_id: "6283".to_owned(),
                     message: vec![
                         MessageSegment::Text {
@@ -92,7 +94,6 @@ fn event() {
                     ],
                     alt_message: "OneBot is not a bot[图片]".to_owned(),
                     user_id: "123456788".to_owned(),
-                    extra: ExtendedMap::default(),
                 }),
             },
         ),
@@ -121,6 +122,7 @@ fn event() {
                     group_id: "87654321".to_owned(),
                     user_id: "123456788".to_owned(),
                     operator_id: "1234567".to_owned(),
+                    extra: ExtendedMap::default(),
                 }),
             },
         ),
@@ -208,6 +210,7 @@ fn action() {
 fn action_resp() {
     use crate::resp::*;
     use crate::ExtendedValue;
+    use crate::StandardEvent;
     use std::collections::HashMap;
 
     let status_data = (
@@ -248,7 +251,7 @@ fn action_resp() {
     );
     let json_str = serde_json::to_string(&status_data.1).unwrap();
     assert_eq!(
-        serde_json::from_str::<Resp<RespContent>>(&json_str).unwrap(),
+        serde_json::from_str::<Resp<RespContent<StandardEvent>>>(&json_str).unwrap(),
         status_data.2
     );
 
@@ -258,7 +261,7 @@ fn action_resp() {
     );
     let json_str = serde_json::to_string(&empty_data.1).unwrap();
     assert_eq!(
-        serde_json::from_str::<Resp<RespContent>>(&json_str).unwrap(),
+        serde_json::from_str::<Resp<RespContent<StandardEvent>>>(&json_str).unwrap(),
         empty_data.2
     );
 }

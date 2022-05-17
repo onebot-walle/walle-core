@@ -149,3 +149,7 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
 }
 
 impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
+
+pub trait AsStandard<T> {
+    fn as_standard(&self) -> &T;
+}
