@@ -1,10 +1,9 @@
-from asyncio.runners import run
+# from asyncio.runners import run
 import walle
-import asyncio
 
+# import asyncio
 
-async def main():
-    await walle.run_block_onebot11_app()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    event = walle.Event()
+    print(event.impl)

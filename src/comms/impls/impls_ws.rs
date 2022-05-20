@@ -1,5 +1,6 @@
 use crate::handle::ActionHandler;
-use crate::{impls::CustomOneBot, Echo, WalleError, WalleResult};
+use crate::resp::resp_error_builder;
+use crate::{impls::CustomOneBot, Echo, WalleRtError, WalleRtResult};
 use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
@@ -9,12 +10,12 @@ use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::{tungstenite::Message as WsMsg, WebSocketStream};
 use tracing::{debug, info, trace, warn};
 
-impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
+impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Send + 'static + Debug,
     A: ProtocolItem + Send + 'static + Debug,
-    R: ProtocolItem + Send + 'static + Debug,
-    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
+    R: ProtocolItem + From<ER> + Send + 'static + Debug,
+    H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
     pub(crate) async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         self.ws_hooks.on_connect(self).await;
@@ -92,7 +93,10 @@ where
             let ob = self.clone();
             debug!(target: "Walle-core", "Handling action: {:?}", action);
             tokio::spawn(async move {
-                let r = ob.action_handler.handle(action, &ob).await;
+                let r = match ob.action_handler.handle(action, &ob).await {
+                    Ok(r) => r,
+                    Err(e) => e.into(),
+                };
                 let echo = echo_s.pack(r);
                 if binary {
                     sender.send(WsMsg::Binary(echo.rmp_encode())).unwrap();
@@ -107,7 +111,7 @@ where
             if msg.starts_with("missing field") {
                 echo_s.pack(crate::Resps::empty_fail(10006, msg))
             } else {
-                echo_s.pack(crate::Resps::unsupported_action())
+                echo_s.pack(resp_error_builder::unsupported_action().into())
             }
         };
 
@@ -151,7 +155,7 @@ where
         false
     }
 
-    pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {
+    pub(crate) async fn ws(self: &Arc<Self>) -> WalleRtResult<()> {
         if !self.config.websocket.is_empty() {
             info!(target: "Walle-core", "Starting websocket reverse server.");
         }
@@ -160,7 +164,7 @@ where
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
-                .map_err(WalleError::from)?;
+                .map_err(WalleRtError::from)?;
             info!(target: "Walle-core", "Websocket listening on {}", addr.to_string().red());
             let ob = self.clone();
             tokio::spawn(async move {

@@ -11,12 +11,12 @@ use tracing::{debug, info, warn};
 use crate::handle::ActionHandler;
 use crate::ProtocolItem;
 
-impl<E, A, R, H, const V: u8> crate::impls::CustomOneBot<E, A, R, H, V>
+impl<E, A, R, ER, H, const V: u8> crate::impls::CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Send + 'static,
     A: ProtocolItem + Debug + Send + 'static,
-    R: ProtocolItem + Debug + Send + 'static,
-    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
+    R: ProtocolItem + From<ER> + Debug + Send + 'static,
+    H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
     pub(crate) async fn webhook(self: &Arc<Self>) {
         if self.config.http_webhook.is_empty() {

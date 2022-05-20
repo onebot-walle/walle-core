@@ -3,10 +3,10 @@ use thiserror::Error;
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 use tokio_tungstenite::tungstenite::Error as WsError;
 
-pub type WalleResult<T> = std::result::Result<T, WalleError>;
+pub type WalleRtResult<T> = Result<T, WalleRtError>;
 
 #[derive(Error, Debug)]
-pub enum WalleError {
+pub enum WalleRtError {
     // serde
     #[error("Serde Json error: {0}")]
     SerdeJsonError(#[from] serde_json::Error),
@@ -64,7 +64,7 @@ pub(crate) trait WalleLogExt: Sized {
     }
 }
 
-impl<T> WalleLogExt for WalleResult<T> {
+impl<T> WalleLogExt for WalleRtResult<T> {
     fn wran_err(&self) {
         if let Err(e) = self {
             e.wran_err();
@@ -78,7 +78,7 @@ impl<T> WalleLogExt for WalleResult<T> {
     }
 }
 
-impl WalleLogExt for WalleError {
+impl WalleLogExt for WalleRtError {
     fn wran_err(&self) {
         use tracing::warn;
         warn!(target: "Walle-core","{}", self);

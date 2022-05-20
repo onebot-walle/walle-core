@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{action::UploadFile, ExtendedValue, StandardEvent};
+use crate::{action::UploadFile, ExtendedMap, ExtendedValue, StandardEvent};
 
 /// ## OneBot 12 标准动作响应
 pub type StandardResps = Resps<StandardEvent>;
+pub type StandardRespContent = RespContent<StandardEvent>;
 pub type Resps<E> = Resp<RespContent<E>>;
 
 /// ## 动作响应
@@ -14,7 +15,7 @@ pub struct Resp<T> {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
     pub status: String,
     /// 返回码，必须符合返回码规则
-    pub retcode: i64,
+    pub retcode: u32,
     /// 响应数据
     pub data: T,
     /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
@@ -71,7 +72,7 @@ impl<T> Resp<T> {
     #[allow(dead_code)]
     pub fn success(data: T) -> Self {
         Resp {
-            status: "ok".to_owned(),
+            status: "ok".to_string(),
             retcode: 0,
             data,
             message: "".to_owned(),
@@ -79,28 +80,14 @@ impl<T> Resp<T> {
     }
 
     #[allow(dead_code)]
-    pub fn fail(data: T, retcode: i64, message: String) -> Self {
+    pub fn fail(data: T, retcode: u32, message: String) -> Self {
         Resp {
-            status: "failed".to_owned(),
+            status: "failed".to_string(),
             retcode,
             data,
             message,
         }
     }
-
-    #[allow(dead_code)]
-    pub fn tired(data: T) -> Self {
-        Self::fail(data, 36000, "I Am Tired!".to_owned())
-    }
-}
-
-macro_rules! empty_err_resp {
-    ($fn_name: ident, $retcode: expr, $message: expr) => {
-        #[allow(dead_code)]
-        pub fn $fn_name() -> Self {
-            Self::empty_fail($retcode, $message.to_owned())
-        }
-    };
 }
 
 impl<T> Resp<T>
@@ -113,25 +100,17 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn empty_fail(retcode: i64, message: String) -> Self {
+    pub fn empty_fail(retcode: u32, message: String) -> Self {
         Self::fail(T::from(ExtendedValue::empty_map()), retcode, message)
     }
-
-    empty_err_resp!(bad_request, 10001, "无效的动作请求");
-    empty_err_resp!(unsupported_action, 10002, "不支持的动作请求");
-    empty_err_resp!(bad_param, 10003, "无效的动作请求参数");
-    empty_err_resp!(unsupported_param, 10004, "不支持的动作请求参数");
-    empty_err_resp!(unsupported_segment, 10005, "不支持的消息段类型");
-    empty_err_resp!(bad_segment_data, 10006, "无效的消息段参数");
-    empty_err_resp!(unsupported_segment_data, 10007, "不支持的消息段参数");
-
-    empty_err_resp!(platform_error, 34000, "机器人平台错误");
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct StatusContent {
     pub good: bool,
     pub online: bool,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -140,6 +119,8 @@ pub struct VersionContent {
     pub platform: String,
     pub version: String,
     pub onebot_version: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 impl Default for VersionContent {
@@ -149,6 +130,7 @@ impl Default for VersionContent {
             platform: "RustOneBot".to_owned(),
             version: "0.0.1".to_owned(),
             onebot_version: "12".to_owned(),
+            extra: ExtendedMap::default(),
         }
     }
 }
@@ -157,23 +139,31 @@ impl Default for VersionContent {
 pub struct SendMessageRespContent {
     pub message_id: String,
     pub time: f64,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserInfoContent {
     pub user_id: String,
     pub nickname: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GroupInfoContent {
     pub group_id: String,
     pub group_name: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileIdContent {
     pub file_id: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -184,6 +174,8 @@ pub struct FileContent {
     pub path: Option<String>,
     pub data: Option<Vec<u8>>,
     pub sha256: Option<String>,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -191,4 +183,67 @@ pub struct FileFragmentedHead {
     pub name: String,
     pub total_size: i64,
     pub sha256: String,
+    #[serde(flatten)]
+    pub extra: ExtendedMap,
+}
+
+pub struct RespError<T> {
+    pub code: u32,
+    pub message: String,
+    pub data: T,
+}
+
+impl<T> From<RespError<T>> for Resp<T> {
+    fn from(err: RespError<T>) -> Self {
+        Resp::fail(err.data.into(), err.code, err.message)
+    }
+}
+
+impl<T> TryFrom<Resp<T>> for RespError<T> {
+    type Error = Resp<T>;
+
+    fn try_from(resp: Resp<T>) -> Result<Self, Self::Error> {
+        if resp.status == "ok" {
+            Err(resp)
+        } else {
+            Ok(RespError {
+                code: resp.retcode,
+                message: resp.message,
+                data: resp.data,
+            })
+        }
+    }
+}
+
+pub mod resp_error_builder {
+    use super::RespError;
+    use crate::ExtendedValue;
+    #[macro_export]
+    macro_rules! error_type {
+        ($name: ident, $retcode: expr, $message: expr) => {
+            pub fn $name<T>() -> RespError<T>
+            where
+                T: From<ExtendedValue>,
+            {
+                RespError {
+                    code: $retcode,
+                    message: $message.to_owned(),
+                    data: ExtendedValue::Null.into(),
+                }
+            }
+        };
+    }
+
+    error_type!(bad_request, 10001, "无效的动作请求");
+    error_type!(unsupported_action, 10002, "不支持的动作");
+    error_type!(bad_param, 10003, "无效的动作请求参数");
+    error_type!(unsupported_param, 10004, "不支持的动作请求参数");
+    error_type!(unsupported_segment, 10005, "不支持的消息段类型");
+    error_type!(bad_segment_data, 10006, "无效的消息段参数");
+    error_type!(unsupported_segment_data, 10007, "不支持的消息段参数");
+
+    error_type!(bad_handler, 20001, "动作处理器实现错误");
+    error_type!(internal_handler, 20002, "动作处理器运行时抛出异常");
+
+    error_type!(tired, 36000, "I Am Tired!");
 }

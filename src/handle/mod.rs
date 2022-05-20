@@ -4,9 +4,10 @@ use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
-#[cfg(feature = "impl")]
-use crate::Resps;
-use crate::StandardEvent;
+use crate::{
+    resp::{resp_error_builder, StandardResps},
+    StandardAction, StandardEvent,
+};
 
 mod fnt;
 
@@ -44,9 +45,10 @@ mod fnt;
 pub trait ActionHandler<A, R, OB>
 where
     A: DeserializeOwned + Debug + Send + 'static,
-    R: Serialize + Debug + Send + 'static,
+    R: Serialize + From<Self::Error> + Debug + Send + 'static,
 {
-    async fn handle(&self, action: A, ob: &OB) -> R;
+    type Error;
+    async fn handle(&self, action: A, ob: &OB) -> Result<R, Self::Error>;
 }
 
 /// 应用端处理 Event 需要实现的 Trait
@@ -81,13 +83,14 @@ impl DefaultHandler {
 #[async_trait]
 impl<E, const V: u8>
     ActionHandler<
-        crate::StandardAction,
-        crate::Resps<StandardEvent>,
-        crate::impls::CustomOneBot<E, crate::StandardAction, crate::Resps<StandardEvent>, Self, V>,
+        StandardAction,
+        StandardResps,
+        crate::impls::CustomOneBot<E, StandardAction, StandardResps, Self, V>,
     > for DefaultHandler
 where
     E: Send,
 {
+    type Error = crate::resp::RespError<crate::resp::StandardRespContent>;
     async fn handle(
         &self,
         action: crate::StandardAction,
@@ -98,7 +101,7 @@ where
             Self,
             V,
         >,
-    ) -> Resps<StandardEvent> {
+    ) -> Result<StandardResps, Self::Error> {
         use crate::{
             resp::{Resp, RespContent},
             StandardAction,
@@ -106,9 +109,9 @@ where
 
         match action {
             StandardAction::GetVersion(_) => {
-                Resp::success(RespContent::Version(get_version().await))
+                Ok(Resp::success(RespContent::Version(get_version().await)))
             }
-            _ => Resp::unsupported_action(),
+            _ => Err(resp_error_builder::unsupported_action()),
         }
     }
 }

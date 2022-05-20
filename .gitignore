@@ -1,3 +1,5 @@
 /target
 *mira.toml
 *recruit.toml
+*.pyc
+*.pyd

@@ -13,7 +13,7 @@ use tracing::{info, warn};
 use crate::{
     app::{CustomActionSender, CustomRespSender, OneBot},
     handle::EventHandler,
-    Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleLogExt, WalleResult,
+    Echo, EchoS, ProtocolItem, SelfId, WalleRtError, WalleLogExt, WalleRtResult,
 };
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
@@ -26,7 +26,7 @@ where
     async fn ws_loop(
         self: &Arc<Self>,
         mut ws_stream: WebSocketStream<TcpStream>,
-    ) -> WalleResult<()> {
+    ) -> WalleRtResult<()> {
         self.ws_hooks.on_connect(self).await;
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
@@ -171,14 +171,14 @@ where
         }
     }
 
-    pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleResult<()> {
+    pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleRtResult<()> {
         for wss in self.config.websocket_rev.clone().into_iter() {
             // info!(target: "Walle-core", "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             info!(target: "Walle-core", "Starting Websocket server in {}", addr);
             let tcp_listener = TcpListener::bind(&addr)
                 .await
-                .map_err(WalleError::TcpServerBindAddressError)?;
+                .map_err(WalleRtError::TcpServerBindAddressError)?;
             let ob = self.clone();
             joins.push(tokio::spawn(async move {
                 info!(target: "Walle-core", "Websocket server started");

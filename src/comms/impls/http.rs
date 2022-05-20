@@ -11,9 +11,10 @@ use tracing::info;
 use crate::comms::utils::ContentType;
 use crate::handle::ActionHandler;
 use crate::impls::CustomOneBot;
+use crate::resp::resp_error_builder;
 use crate::utils::Echo;
 use crate::Resps;
-use crate::{ProtocolItem, WalleError, WalleResult};
+use crate::{ProtocolItem, WalleRtError, WalleRtResult};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
@@ -39,14 +40,14 @@ fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> Response<Bo
     }
 }
 
-impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
+impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Send + 'static,
     A: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
-    R: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
-    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
+    R: ProtocolItem + From<ER> + std::fmt::Debug + Clone + Send + 'static,
+    H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
-    pub(crate) async fn http(self: &Arc<Self>) -> WalleResult<()> {
+    pub(crate) async fn http(self: &Arc<Self>) -> WalleRtResult<()> {
         for http in &self.config.http {
             let ob = self.clone();
             let addr = std::net::SocketAddr::new(http.host, http.port);
@@ -93,14 +94,17 @@ where
                     match action {
                         Ok(action) => {
                             let (action, echo) = action.unpack();
-                            let action_resp = ob.action_handler.handle(action, &ob).await;
+                            let action_resp = match ob.action_handler.handle(action, &ob).await {
+                                Ok(r) => r,
+                                Err(e) => e.into(),
+                            };
                             Ok(encode2resp(echo.pack(action_resp), &content_type))
                         }
                         Err(e) => Ok(encode2resp(
                             if e.starts_with("missing field") {
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
-                                Resps::<E>::unsupported_action()
+                                resp_error_builder::unsupported_action().into()
                             },
                             &content_type,
                         )),
@@ -108,7 +112,7 @@ where
                 }
             });
             let ob = self.clone();
-            let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
+            let listener = TcpListener::bind(&addr).await.map_err(WalleRtError::from)?;
             tokio::spawn(async move {
                 while ob.is_running() {
                     let (tcp_stream, _) = listener.accept().await.unwrap();

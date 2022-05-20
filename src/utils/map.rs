@@ -1,7 +1,7 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::WalleError;
+use crate::WalleRtError;
 
 /// 扩展字段 Map
 pub type ExtendedMap = HashMap<String, ExtendedValue>;
@@ -308,23 +308,23 @@ impl ExtendedValue {
 }
 
 pub trait ExtendedMapExt {
-    fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleError>
+    fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleRtError>
     where
         T: TryFrom<ExtendedValue, Error = ExtendedValue>;
 }
 
 impl ExtendedMapExt for ExtendedMap {
-    fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleError>
+    fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleRtError>
     where
         T: TryFrom<ExtendedValue, Error = ExtendedValue>,
     {
         let value = self
             .remove(key)
-            .ok_or_else(|| WalleError::MapMissedKey(key.to_owned()))?;
+            .ok_or_else(|| WalleRtError::MapMissedKey(key.to_owned()))?;
         T::try_from(value).map_err(|v| {
             let msg = format!("{:?}", v);
             self.insert(key.to_owned(), v);
-            WalleError::MapValueTypeMismatch(std::any::type_name::<T>().to_string(), msg)
+            WalleRtError::MapValueTypeMismatch(std::any::type_name::<T>().to_string(), msg)
         })
     }
 }

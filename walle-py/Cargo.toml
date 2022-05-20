@@ -1,5 +1,5 @@
 [package]
-name = "walle-py"
+name = "walle_py"
 version = "0.1.0"
 edition = "2018"
 
@@ -11,11 +11,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-walle-core = { version = "0.2.0", features = ["full"] }
-walle-v11 = { version = "0.2.0" }
-pyo3-asyncio = { version = "0.15", features = ["tokio-runtime", "attributes"] }
+walle-core = { version = "0.3", features = ["full"] }
+pyo3-asyncio = { version = "0.16", features = ["tokio-runtime", "attributes"] }
 tokio = "1.4"
 
 [dependencies.pyo3]
-version = "0.15"
+version = "0.16"
 features = ["extension-module"]

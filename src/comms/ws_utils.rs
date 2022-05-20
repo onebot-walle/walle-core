@@ -13,17 +13,17 @@ use tokio_tungstenite::{
 };
 use tracing::info;
 
-use crate::{WalleError, WalleLogExt, WalleResult};
+use crate::{WalleRtError, WalleLogExt, WalleRtResult};
 
 pub(crate) async fn try_connect(
     config: &crate::config::WebSocketClient,
     req: HttpReqBuilder,
-) -> WalleResult<WebSocketStream<TcpStream>> {
+) -> WalleRtResult<WebSocketStream<TcpStream>> {
     let uri: Uri = config.url.parse().unwrap();
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
     let authority = uri
         .authority()
-        .ok_or_else(|| WalleError::UrlError(uri.to_string()))?
+        .ok_or_else(|| WalleRtError::UrlError(uri.to_string()))?
         .as_str();
     let host = authority
         .find('@')
@@ -42,22 +42,22 @@ pub(crate) async fn try_connect(
             .unwrap(),
         TcpStream::connect(&addr)
             .await
-            .map_err(WalleError::TcpConnectFailed)?,
+            .map_err(WalleRtError::TcpConnectFailed)?,
     )
     .await
     {
         Ok((ws_stream, _)) => Ok(ws_stream).info(&format!("success connect to {}", config.url)),
-        Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
+        Err(e) => Err(WalleRtError::WebsocketUpgradeFail(e)),
     }
 }
 
 pub(crate) async fn upgrade_websocket(
     access_token: &Option<String>,
     stream: TcpStream,
-) -> WalleResult<WebSocketStream<TcpStream>> {
+) -> WalleRtResult<WebSocketStream<TcpStream>> {
     let addr = stream
         .peer_addr()
-        .map_err(|_| WalleError::WebsocketNoAddress)?;
+        .map_err(|_| WalleRtError::WebsocketNoAddress)?;
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         let headers = req.headers();
@@ -85,6 +85,6 @@ pub(crate) async fn upgrade_websocket(
 
     match accept_hdr_async(stream, callback).await {
         Ok(s) => Ok(s).info(&format!("new websocket connectted from {}", addr)),
-        Err(e) => Err(WalleError::WebsocketUpgradeFail(e)),
+        Err(e) => Err(WalleRtError::WebsocketUpgradeFail(e)),
     }
 }

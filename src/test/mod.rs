@@ -37,6 +37,7 @@ fn event() {
                     status: StatusContent {
                         good: true,
                         online: true,
+                        extra: ExtendedMap::new(),
                     },
                     sub_type: "".to_owned(),
                 }),
@@ -85,11 +86,11 @@ fn event() {
                     message: vec![
                         MessageSegment::Text {
                             text: "OneBot is not a bot".to_owned(),
-                            extend: HashMap::new(),
+                            extra: HashMap::new(),
                         },
                         MessageSegment::Image {
                             file_id: "e30f9684-3d54-4f65-b2da-db291a477f16".to_owned(),
-                            extend: HashMap::new(),
+                            extra: HashMap::new(),
                         },
                     ],
                     alt_message: "OneBot is not a bot[图片]".to_owned(),
@@ -176,7 +177,7 @@ fn action() {
                 user_id: None,
                 message: vec![MessageSegment::Text {
                     text: "我是文字巴拉巴拉巴拉".to_owned(),
-                    extend: HashMap::new(),
+                    extra: HashMap::new(),
                 }],
                 extra: [].into(),
             }),
@@ -209,8 +210,8 @@ fn action() {
 #[test]
 fn action_resp() {
     use crate::resp::*;
-    use crate::ExtendedValue;
     use crate::StandardEvent;
+    use crate::{ExtendedMap, ExtendedValue};
     use std::collections::HashMap;
 
     let status_data = (
@@ -226,10 +227,12 @@ fn action_resp() {
         Resp::success(StatusContent {
             good: true,
             online: true,
+            extra: ExtendedMap::default(),
         }),
         Resp::success(RespContent::Status(StatusContent {
             good: true,
             online: true,
+            extra: ExtendedMap::default(),
         })),
     );
     let empty_data = (

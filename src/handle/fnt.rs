@@ -8,14 +8,15 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::app::ArcBot;
 
 #[async_trait]
-impl<A, R, F, OB> super::ActionHandler<A, R, OB> for Arc<F>
+impl<A, R, ER, F, OB> super::ActionHandler<A, R, OB> for Arc<F>
 where
     A: DeserializeOwned + std::fmt::Debug + Send + 'static,
-    R: Serialize + std::fmt::Debug + Send + 'static,
-    F: Fn(A) -> BoxFuture<'static, R> + Send + Sync + 'static,
+    R: Serialize + From<ER> + std::fmt::Debug + Send + 'static,
+    F: Fn(A) -> BoxFuture<'static, Result<R, ER>> + Send + Sync + 'static,
     OB: Sync,
 {
-    async fn handle(&self, action: A, _ob: &OB) -> R {
+    type Error = ER;
+    async fn handle(&self, action: A, _ob: &OB) -> Result<R, ER> {
         self(action).await
     }
 }

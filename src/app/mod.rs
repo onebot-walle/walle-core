@@ -12,7 +12,7 @@ use tracing::info;
 
 use crate::{
     config::AppConfig, handle::EventHandler, ProtocolItem, Resps, SelfId, StandardAction,
-    StandardEvent, WalleError, WalleResult,
+    StandardEvent, WalleRtError, WalleRtResult,
 };
 
 mod bot;
@@ -146,9 +146,9 @@ where
     /// 当重复运行同一个实例或未设置任何通讯协议，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(self: &Arc<Self>) -> WalleResult<Vec<JoinHandle<()>>> {
+    pub async fn run(self: &Arc<Self>) -> WalleRtResult<Vec<JoinHandle<()>>> {
         if self.is_running() {
-            return Err(WalleError::AlreadyRunning);
+            return Err(WalleRtError::AlreadyRunning);
         }
         info!(target: "Walle-core", "OneBot is starting...");
         let mut joins = vec![];
@@ -165,7 +165,7 @@ where
         Ok(joins)
     }
 
-    pub async fn run_block(self: &Arc<Self>) -> WalleResult<()> {
+    pub async fn run_block(self: &Arc<Self>) -> WalleRtResult<()> {
         for join in self.run().await? {
             let _ = join.await;
         }

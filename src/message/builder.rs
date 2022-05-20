@@ -26,22 +26,22 @@ impl IntoMessage for Message {
 
 macro_rules! impl_self_build {
     ($fname0: ident, $fname1: ident,$sub: tt) => {
-        fn $fname0(mut self, extend: ExtendedMap) -> Self {
-            self.push(MessageSegment::$sub { extend });
+        fn $fname0(mut self, extra: ExtendedMap) -> Self {
+            self.push(MessageSegment::$sub { extra });
             self
         }
         fn $fname1(mut self) -> Self {
-            self.push(MessageSegment::$sub { extend: ExtendedMap::new() });
+            self.push(MessageSegment::$sub { extra: ExtendedMap::new() });
             self
         }
     };
     ($fname0: ident, $fname1: ident,$sub: tt, $($key: ident: $key_ty: ty),*) => {
-        fn $fname0(mut self, $($key: $key_ty),*, extend: ExtendedMap) -> Self {
-            self.push(MessageSegment::$sub { $($key ,)* extend, });
+        fn $fname0(mut self, $($key: $key_ty),*, extra: ExtendedMap) -> Self {
+            self.push(MessageSegment::$sub { $($key ,)* extra, });
             self
         }
         fn $fname1(mut self, $($key: $key_ty),*) -> Self {
-            self.push(MessageSegment::$sub { $($key ,)* extend: ExtendedMap::new(), });
+            self.push(MessageSegment::$sub { $($key ,)* extra: ExtendedMap::new(), });
             self
         }
     };

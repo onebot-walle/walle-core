@@ -1,23 +1,23 @@
-use crate::{action::*, ExtendedMap, ProtocolItem, WalleError, WalleResult};
+use crate::{action::*, ExtendedMap, ProtocolItem, WalleRtError, WalleRtResult};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::time::Duration;
 
 macro_rules! action_api {
     ($fn_name: ident,$action_ty:ident,$content:ident) => {
-        pub async fn $fn_name(&self) -> WalleResult<R> {
+        pub async fn $fn_name(&self) -> WalleRtResult<R> {
             self.call_action_resp(StandardAction::$action_ty($content::default()).into()).await
         }
     };
     ($fn_name: ident,$action_ty:ident,$content:ident, $field_name: ident: $field_ty: ty) => {
-        pub async fn $fn_name(&self, $field_name: $field_ty, extra: ExtendedMap) -> WalleResult<R> {
+        pub async fn $fn_name(&self, $field_name: $field_ty, extra: ExtendedMap) -> WalleRtResult<R> {
             self.call_action_resp(StandardAction::$action_ty($content{
                 $field_name, extra
             }).into()).await
         }
     };
     ($fn_name: ident,$action_ty:ident,$content:ident, $($field_name: ident: $field_ty: ty),*) => {
-        pub async fn $fn_name(&self, $($field_name: $field_ty,)* extra: ExtendedMap) -> WalleResult<R> {
+        pub async fn $fn_name(&self, $($field_name: $field_ty,)* extra: ExtendedMap) -> WalleRtResult<R> {
             self.call_action_resp(StandardAction::$action_ty($content{
                 $($field_name,)* extra
             }).into()).await
@@ -36,15 +36,15 @@ where
     A: ProtocolItem + From<StandardAction> + Clone + Send + 'static + Debug,
     R: ProtocolItem + Clone + Send + 'static + Debug,
 {
-    pub async fn call_action_resp(&self, action: A) -> WalleResult<R> {
+    pub async fn call_action_resp(&self, action: A) -> WalleRtResult<R> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.sender
             .send((action, tx))
-            .map_err(|_| WalleError::ActionSendError)?;
+            .map_err(|_| WalleRtError::ActionSendError)?;
         tokio::time::timeout(Duration::from_secs(10), rx)
             .await
-            .map_err(|_| WalleError::ActionResponseTimeout)?
-            .map_err(WalleError::ActionResponseRecvError)
+            .map_err(|_| WalleRtError::ActionResponseTimeout)?
+            .map_err(WalleRtError::ActionResponseRecvError)
     }
 
     action_api!(
@@ -156,7 +156,7 @@ where
         &self,
         group_id: String,
         message: crate::Message,
-    ) -> WalleResult<R> {
+    ) -> WalleRtResult<R> {
         self.send_message(
             "group".to_string(),
             Some(group_id),
@@ -171,7 +171,7 @@ where
         &self,
         user_id: String,
         message: crate::Message,
-    ) -> WalleResult<R> {
+    ) -> WalleRtResult<R> {
         self.send_message(
             "private".to_string(),
             None,

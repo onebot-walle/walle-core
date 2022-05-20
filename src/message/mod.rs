@@ -7,7 +7,7 @@ use crate::utils::{ExtendedMap, ExtendedValue};
 mod builder;
 pub use builder::*;
 mod read;
-pub use read::*; 
+pub use read::*;
 
 /// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
@@ -31,46 +31,46 @@ impl MessageAlt for Message {
 pub enum MessageSegment {
     Text {
         text: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Mention {
         user_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     MentionAll {
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Image {
         file_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Voice {
         file_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Audio {
         file_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Video {
         file_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     File {
         file_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Location {
         latitude: f64,
         longitude: f64,
         title: String,
         content: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Reply {
         message_id: String,
         user_id: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     },
     Custom {
         ty: String,
@@ -80,28 +80,28 @@ pub enum MessageSegment {
 
 macro_rules! impl_build {
     ($fname0: ident, $fname1: ident,$sub: tt) => {
-        pub fn $fname0(extend: ExtendedMap) -> Self {
+        pub fn $fname0(extra: ExtendedMap) -> Self {
             Self::$sub {
-                extend,
+                extra,
             }
         }
         pub fn $fname1() -> Self {
             Self::$sub {
-                extend: ExtendedMap::new(),
+                extra: ExtendedMap::new(),
             }
         }
     };
     ($fname0: ident, $fname1: ident,$sub: tt, $($key: ident: $key_ty: ty),*) => {
-        pub fn $fname0($($key: $key_ty),*, extend: ExtendedMap) -> Self {
+        pub fn $fname0($($key: $key_ty),*, extra: ExtendedMap) -> Self {
             Self::$sub {
                 $($key,)*
-                extend,
+                extra,
             }
         }
         pub fn $fname1($($key: $key_ty),*) -> Self {
             Self::$sub {
                 $($key,)*
-                extend: ExtendedMap::new(),
+                extra: ExtendedMap::new(),
             }
         }
     };
@@ -146,31 +146,31 @@ impl MessageAlt for MessageSegment {
             Self::Image { file_id, .. } => format!("[Image,file_id={file_id}]"),
             Self::Voice {
                 file_id: _,
-                extend: _,
+                extra: _,
             } => "[Voice]".to_owned(),
             Self::Audio {
                 file_id: _,
-                extend: _,
+                extra: _,
             } => "[Audio]".to_owned(),
             Self::Video {
                 file_id: _,
-                extend: _,
+                extra: _,
             } => "[Video]".to_owned(),
             Self::File {
                 file_id: _,
-                extend: _,
+                extra: _,
             } => "[File]".to_owned(),
             Self::Location {
                 latitude: _,
                 longitude: _,
                 title: _,
                 content: _,
-                extend: _,
+                extra: _,
             } => "[Location]".to_owned(),
             Self::Reply {
                 message_id: _,
                 user_id,
-                extend: _,
+                extra: _,
             } => format!("[Reply={}]", user_id),
             Self::Custom { ty, data: _ } => format!("[{}]", ty),
         }
@@ -217,35 +217,46 @@ impl Serialize for MessageSegment {
         }
 
         match self {
-            Self::Text { text, extend } => smap(serializer, "text", "text", text, extend),
-            Self::Mention { user_id, extend } => {
-                smap(serializer, "mention", "user_id", user_id, extend)
-            }
-            Self::MentionAll { extend } => {
+            Self::Text {
+                text,
+                extra: extend,
+            } => smap(serializer, "text", "text", text, extend),
+            Self::Mention {
+                user_id,
+                extra: extend,
+            } => smap(serializer, "mention", "user_id", user_id, extend),
+            Self::MentionAll { extra: extend } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "mention_all")?;
                 map.serialize_entry("data", &extend)?;
                 map.end()
             }
-            Self::Image { file_id, extend } => {
-                smap(serializer, "image", "file_id", file_id, extend)
-            }
-            Self::Voice { file_id, extend } => {
-                smap(serializer, "voice", "file_id", file_id, extend)
-            }
-            Self::Audio { file_id, extend } => {
-                smap(serializer, "audio", "file_id", file_id, extend)
-            }
-            Self::Video { file_id, extend } => {
-                smap(serializer, "video", "file_id", file_id, extend)
-            }
-            Self::File { file_id, extend } => smap(serializer, "file", "file_id", file_id, extend),
+            Self::Image {
+                file_id,
+                extra: extend,
+            } => smap(serializer, "image", "file_id", file_id, extend),
+            Self::Voice {
+                file_id,
+                extra: extend,
+            } => smap(serializer, "voice", "file_id", file_id, extend),
+            Self::Audio {
+                file_id,
+                extra: extend,
+            } => smap(serializer, "audio", "file_id", file_id, extend),
+            Self::Video {
+                file_id,
+                extra: extend,
+            } => smap(serializer, "video", "file_id", file_id, extend),
+            Self::File {
+                file_id,
+                extra: extend,
+            } => smap(serializer, "file", "file_id", file_id, extend),
             Self::Location {
                 latitude,
                 longitude,
                 title,
                 content,
-                extend,
+                extra: extend,
             } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "location")?;
@@ -264,7 +275,7 @@ impl Serialize for MessageSegment {
             Self::Reply {
                 message_id,
                 user_id,
-                extend,
+                extra: extend,
             } => {
                 let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("type", "location")?;
@@ -321,49 +332,49 @@ impl MSVistor {
         match ty {
             "text" => {
                 let text = get_data::<A>(&mut data, "text")?;
-                Ok(MessageSegment::Text { text, extend: data })
+                Ok(MessageSegment::Text { text, extra: data })
             }
             "mention" => {
                 let user_id = get_data::<A>(&mut data, "user_id")?;
                 Ok(MessageSegment::Mention {
                     user_id,
-                    extend: data,
+                    extra: data,
                 })
             }
-            "mention_all" => Ok(MessageSegment::MentionAll { extend: data }),
+            "mention_all" => Ok(MessageSegment::MentionAll { extra: data }),
             "image" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
                 Ok(MessageSegment::Image {
                     file_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             "voice" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
                 Ok(MessageSegment::Voice {
                     file_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             "audio" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
                 Ok(MessageSegment::Audio {
                     file_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             "video" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
                 Ok(MessageSegment::Video {
                     file_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             "file" => {
                 let file_id = get_data::<A>(&mut data, "file_id")?;
                 Ok(MessageSegment::File {
                     file_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             "location" => {
@@ -382,7 +393,7 @@ impl MSVistor {
                     longitude,
                     title,
                     content,
-                    extend: data,
+                    extra: data,
                 })
             }
             "reply" => {
@@ -391,7 +402,7 @@ impl MSVistor {
                 Ok(MessageSegment::Reply {
                     message_id,
                     user_id,
-                    extend: data,
+                    extra: data,
                 })
             }
             _ => Ok(MessageSegment::Custom {

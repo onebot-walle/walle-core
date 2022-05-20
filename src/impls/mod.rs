@@ -3,7 +3,7 @@
 use crate::event::BaseEvent;
 use crate::handle::ActionHandler;
 use crate::resp::StatusContent;
-use crate::{ImplConfig, StandardAction, WalleError, WalleResult};
+use crate::{ExtendedMap, ImplConfig, StandardAction, WalleRtError, WalleRtResult};
 use crate::{ProtocolItem, Resps, StandardEvent};
 #[cfg(feature = "websocket")]
 use std::collections::HashSet;
@@ -68,6 +68,7 @@ impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
         StatusContent {
             good: self.is_running(),
             online: self.online.load(Ordering::SeqCst),
+            extra: ExtendedMap::default(),
         }
     }
 
@@ -93,12 +94,13 @@ impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
     }
 }
 
-impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V>
+impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
     E: ProtocolItem + Clone + Debug + Send + 'static,
     A: ProtocolItem + Clone + Debug + Send + 'static,
-    R: ProtocolItem + Clone + Debug + Send + 'static,
-    H: ActionHandler<A, R, Self> + Send + Sync + 'static,
+    R: ProtocolItem + From<ER> + Clone + Debug + Send + 'static,
+    H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
+    ER: Into<R>,
 {
     pub fn new(
         r#impl: &str,
@@ -146,11 +148,11 @@ where
     /// 当重复运行同一个实例，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
+    pub async fn run(self: &Arc<Self>) -> WalleRtResult<()> {
         use colored::*;
 
         if self.is_running() {
-            return Err(WalleError::AlreadyRunning);
+            return Err(WalleRtError::AlreadyRunning);
         }
 
         info!(target: "Walle-core", "{} is booting", self.r#impl.red());
