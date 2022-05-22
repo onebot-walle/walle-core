@@ -63,11 +63,11 @@ where
             match tokio::time::timeout(Duration::from_secs(http.timeout), cli.request(req)).await {
                 Ok(Ok(r)) => r,
                 Ok(Err(e)) => {
-                    warn!(target: "Walle-core", "HTTP request error: {}", e);
+                    warn!(target: crate::WALLE_CORE, "HTTP request error: {}", e);
                     return;
                 }
                 Err(_) => {
-                    warn!(target: "Walle-core", "call action timeout");
+                    warn!(target: crate::WALLE_CORE, "call action timeout");
                     return;
                 }
             };

@@ -155,7 +155,11 @@ where
             return Err(WalleError::AlreadyRunning);
         }
 
-        info!(target: "Walle-core", "{} is booting", self.r#impl.red());
+        info!(
+            target: crate::WALLE_CORE,
+            "{} is booting",
+            self.r#impl.red()
+        );
 
         #[cfg(feature = "http")]
         self.http().await?;
@@ -209,7 +213,7 @@ where
         let ob = self.clone();
         tokio::spawn(async move {
             while ob.is_running() {
-                trace!(target:"Walle-core", "Heartbeating");
+                trace!(target: crate::WALLE_CORE, "Heartbeating");
                 if !ob.ws_connects.read().await.is_empty() {
                     ob.heartbeat_tx
                         .send(ob.build_heartbeat(interval).await)

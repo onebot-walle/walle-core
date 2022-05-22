@@ -22,7 +22,10 @@ where
             let ob = self.clone();
             let access_token = webhook.access_token.clone();
             let addr = std::net::SocketAddr::new(webhook.host, webhook.port);
-            info!(target: "Walle-core", "Starting HTTP Webhook server on http://{}", addr);
+            info!(
+                target: crate::WALLE_CORE,
+                "Starting HTTP Webhook server on http://{}", addr
+            );
             let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
             let serv = service_fn(move |req: Request<Body>| {
                 let access_token = access_token.clone();

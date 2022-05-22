@@ -109,7 +109,7 @@ where
                         rx.send(resp).unwrap();
                     }
                 }
-                Err(s) => warn!(target: "Walle-core", "serde failed: {}", s),
+                Err(s) => warn!(target: crate::WALLE_CORE, "serde failed: {}", s),
             }
         };
 
@@ -133,10 +133,13 @@ where
         use tokio_tungstenite::tungstenite::http::Request;
 
         for wsc in self.config.websocket.clone().into_iter() {
-            info!(target: "Walle-core", "Start try connect to {}", wsc.url);
+            info!(
+                target: crate::WALLE_CORE,
+                "Start try connect to {}", wsc.url
+            );
             let ob = self.clone();
             joins.push(tokio::spawn(async move {
-                ob.ws_hooks.before_connect(&ob).await;
+                ob.ws_hooks.before_client_connect(&ob).await;
                 while ob.is_running() {
                     let req = Request::builder()
                         .header(
@@ -146,15 +149,15 @@ where
                         .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
                         Some(ws_stream) => {
-                            ob.clone().ws_loop(ws_stream).await;
-                            warn!(target: "Walle-core", "Disconnected from {}", wsc.url);
+                            ob.ws_loop(ws_stream).await;
+                            warn!(target: crate::WALLE_CORE, "Disconnected from {}", wsc.url);
                         }
                         None => {
                             tokio::time::sleep(std::time::Duration::from_secs(
                                 wsc.reconnect_interval as u64,
                             ))
                             .await;
-                            ob.ws_hooks.before_reconnect(&ob).await;
+                            ob.ws_hooks.before_client_reconnect(&ob).await;
                         }
                     }
                 }
@@ -166,19 +169,20 @@ where
 
     pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleResult<()> {
         if !self.config.websocket_rev.is_empty() {
-            info!(target: "Walle-core", "Starting websocket server.");
+            info!(target: crate::WALLE_CORE, "Starting websocket server.");
         }
 
         for wss in self.config.websocket_rev.clone().into_iter() {
-            // info!(target: "Walle-core", "Running WebSocket Reverse");
+            // info!(target: crate::WALLE_CORE, "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
-            let tcp_listener = TcpListener::bind(&addr)
-                .await
-                .map_err(WalleError::IO)?;
-            info!(target: "Walle-core", "Websocket server listening on ws://{}", addr);
+            let tcp_listener = TcpListener::bind(&addr).await.map_err(WalleError::IO)?;
+            info!(
+                target: crate::WALLE_CORE,
+                "Websocket server listening on ws://{}", addr
+            );
             let ob = self.clone();
             joins.push(tokio::spawn(async move {
-                ob.ws_hooks.on_start(&ob).await;
+                ob.ws_hooks.before_server_start(&ob).await;
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
                         if let Some(ws_stream) =
@@ -190,7 +194,7 @@ where
                         }
                     }
                 }
-                info!(target: "Walle-core", "Websocket server shutting down");
+                info!(target: crate::WALLE_CORE, "Websocket server shutting down");
                 ob.ws_hooks.on_shutdown(&ob).await;
             }));
             self.set_running();

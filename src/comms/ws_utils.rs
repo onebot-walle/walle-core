@@ -18,8 +18,14 @@ pub(crate) async fn try_connect(
         config: &WebSocketClient,
         e: E,
     ) -> Option<WebSocketStream<TcpStream>> {
-        warn!(target: "Walle-core", "connect to {} failed: {}", config.url, e);
-        info!(target: "Walle-core", "Retry in {} seconds", config.reconnect_interval);
+        warn!(
+            target: crate::WALLE_CORE,
+            "connect to {} failed: {}", config.url, e
+        );
+        info!(
+            target: crate::WALLE_CORE,
+            "Retry in {} seconds", config.reconnect_interval
+        );
         return None;
     }
     let uri: Uri = config.url.parse().unwrap();
@@ -53,7 +59,10 @@ pub(crate) async fn try_connect(
     .await
     {
         Ok((ws_stream, _)) => {
-            info!(target: "Walle-core", "Success connect to {}", config.url);
+            info!(
+                target: crate::WALLE_CORE,
+                "Success connect to {}", config.url
+            );
             Some(ws_stream)
         }
         Err(e) => return err(config, e),
@@ -67,7 +76,7 @@ pub(crate) async fn upgrade_websocket(
     let addr = match stream.peer_addr() {
         Ok(addr) => addr,
         Err(e) => {
-            warn!(target: "Walle-core", "Upgrade websocket failed: {}", e);
+            warn!(target: crate::WALLE_CORE, "Upgrade websocket failed: {}", e);
             return None;
         }
     };
@@ -92,17 +101,27 @@ pub(crate) async fn upgrade_websocket(
                 }
             }
         }
-        info!(target: "Walle-core", "Websocket connectted with {}", addr.to_string().blue());
+        info!(
+            target: crate::WALLE_CORE,
+            "Websocket connectted with {}",
+            addr.to_string().blue()
+        );
         Ok(resp)
     };
 
     match accept_hdr_async(stream, callback).await {
         Ok(s) => {
-            info!(target: "Walle-core", "New websocket client connected from {}", addr);
+            info!(
+                target: crate::WALLE_CORE,
+                "New websocket client connected from {}", addr
+            );
             Some(s)
         }
         Err(e) => {
-            info!(target: "Walle-core", "Upgrade websocket from {} failed: {}", addr, e);
+            info!(
+                target: crate::WALLE_CORE,
+                "Upgrade websocket from {} failed: {}", addr, e
+            );
             None
         }
     }

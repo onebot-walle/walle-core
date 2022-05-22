@@ -51,7 +51,10 @@ where
         for http in &self.config.http {
             let ob = self.clone();
             let addr = std::net::SocketAddr::new(http.host, http.port);
-            info!(target: "Walle-core", "Starting HTTP server on http://{}", addr);
+            info!(
+                target: crate::WALLE_CORE,
+                "Starting HTTP server on http://{}", addr
+            );
             let access_token = http.access_token.clone();
             let serv = service_fn(move |req: Request<Body>| {
                 let access_token = access_token.clone();

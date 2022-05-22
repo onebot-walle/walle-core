@@ -150,7 +150,7 @@ where
         if self.is_running() {
             return Err(WalleError::AlreadyRunning);
         }
-        info!(target: "Walle-core", "OneBot is starting...");
+        info!(target: crate::WALLE_CORE, "OneBot is starting...");
         let mut joins = vec![];
 
         #[cfg(feature = "http")]

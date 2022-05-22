@@ -126,7 +126,7 @@ impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
 
         match &event.content {
             EventContent::Meta(m) => debug!(
-                target: "Walle-core",
+                target: crate::WALLE_CORE,
                 "[{}] MetaEvent -> Type {}",
                 event.self_id.red(),
                 m.detail_type().green()
@@ -142,7 +142,7 @@ impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
                     m.alt_message.clone()
                 };
                 info!(
-                    target: "Walle-core",
+                    target: crate::WALLE_CORE,
                     "[{}] MessageEvent -> from {} alt {}",
                     event.self_id.red(),
                     m.user_id.blue(),
@@ -150,10 +150,18 @@ impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
                 )
             }
             EventContent::Notice(_) => {
-                trace!(target: "Walle-core","[{}] NoticeEvent ->", event.self_id.red())
+                trace!(
+                    target: crate::WALLE_CORE,
+                    "[{}] NoticeEvent ->",
+                    event.self_id.red()
+                )
             }
             EventContent::Request(_) => {
-                info!(target: "Walle-core","[{}] RequestEvent ->", event.self_id.red())
+                info!(
+                    target: crate::WALLE_CORE,
+                    "[{}] RequestEvent ->",
+                    event.self_id.red()
+                )
             }
         }
     }

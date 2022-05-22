@@ -2,7 +2,8 @@
 #![doc = include_str!("../README.md")]
 
 #[allow(dead_code)]
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = std::env!("CARGO_PKG_VERSION");
+pub const WALLE_CORE: &str = "Walle-core";
 
 /// Onebot Action
 pub mod action;
@@ -29,8 +30,6 @@ mod message;
 pub mod resp;
 mod test;
 mod utils;
-
-use std::env;
 
 pub use action::StandardAction;
 pub use config::*;

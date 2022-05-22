@@ -58,18 +58,18 @@ where
             let client = client.clone();
             let timeout = webhook.timeout;
             tokio::spawn(async move {
-                debug!(target: "Walle-core", "Pushing event");
+                debug!(target: crate::WALLE_CORE, "Pushing event");
                 let resp =
                     match tokio::time::timeout(Duration::from_secs(timeout), client.request(req))
                         .await
                     {
                         Ok(Ok(r)) => r,
                         Ok(Err(e)) => {
-                            warn!(target: "Walle-core", "{}", e);
+                            warn!(target: crate::WALLE_CORE, "{}", e);
                             return;
                         }
                         Err(_) => {
-                            warn!(target:"Walle-core", "push event timeout");
+                            warn!(target: crate::WALLE_CORE, "push event timeout");
                             return;
                         }
                     };

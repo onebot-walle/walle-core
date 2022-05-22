@@ -22,10 +22,21 @@ where
     async fn handle(&self, _: ArcBot<A, R>, event: Event) {
         match event.content {
             EventContent::Message(msg_c) => {
-                info!(target: "Walle-core", "[{}] Message -> from {}: {}", event.self_id.to_string().red(), msg_c.user_id.to_string().blue(), msg_c.raw_message.green());
+                info!(
+                    target: "Walle-core",
+                    "[{}] Message -> from {}: {}",
+                    event.self_id.to_string().red(),
+                    msg_c.user_id.to_string().blue(),
+                    msg_c.raw_message.green()
+                );
             }
             EventContent::MetaEvent(meta_c) => {
-                debug!(target: "Walle-core", "[{}] Meta -> Type {}", event.self_id.to_string().red(), meta_c.detail_type().green());
+                debug!(
+                    target: "Walle-core",
+                    "[{}] Meta -> Type {}",
+                    event.self_id.to_string().red(),
+                    meta_c.detail_type().green()
+                );
             }
             _ => {}
         }
