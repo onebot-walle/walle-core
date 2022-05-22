@@ -1,4 +1,4 @@
-use crate::{message::MSVistor, ExtendedMap};
+use crate::{message::MSVistor, ExtendedMap, Message, WalleResult};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 /// ## OneBot 12 标准动作
@@ -307,4 +307,167 @@ macro_rules! onebot_action_ext {
             }
         })*
     };
+}
+
+use std::{future::Future, pin::Pin};
+
+macro_rules! exts {
+    ($ex_name: ident, $name: ident) => {
+        fn $ex_name<'a, 'b>(
+            &'a self,
+            extra: ExtendedMap,
+        ) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b;
+        fn $name<'a, 'b>(&'a self) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b,
+        {
+            self.$ex_name(ExtendedMap::default())
+        }
+    };
+    ($ex_name: ident, $name:ident, $field_name: ident: $field_ty: ty) => {
+        fn $ex_name<'a, 'b>(
+            &'a self,
+            $field_name: $field_ty,
+            extra: ExtendedMap,
+        ) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b;
+        fn $name<'a, 'b>(
+            &'a self,
+            $field_name: $field_ty,
+        ) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b,
+        {
+            self.$ex_name($field_name, ExtendedMap::default())
+        }
+    };
+    ($ex_name: ident, $name:ident, $($field_name: ident: $field_ty: ty),*) => {
+        fn $ex_name<'a, 'b>(
+            &'a self,
+            $($field_name: $field_ty,)*
+            extra: ExtendedMap,
+        ) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b;
+        fn $name<'a, 'b>(
+            &'a self,
+            $($field_name: $field_ty,)*
+        ) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b,
+        {
+            self.$ex_name($($field_name,)* ExtendedMap::default())
+        }
+    };
+}
+
+pub trait BotActionExt<R>: Sync {
+    exts!(
+        get_latest_events_ex,
+        get_latest_events,
+        limit: i64,
+        timeout: i64
+    );
+    exts!(get_supported_actions_ex, get_supported_actions);
+    exts!(get_status_ex, get_status);
+    exts!(get_version_ex, get_version);
+    exts!(
+        send_message_ex,
+        send_message,
+        detail_type: String,
+        group_id: Option<String>,
+        user_id: Option<String>,
+        message: Message
+    );
+    exts!(delete_message_ex, delete_message, message_id: String);
+    exts!(get_message_ex, get_message, message_id: String);
+    exts!(get_self_info_ex, get_self_info);
+    exts!(get_user_info_ex, get_user_info, user_id: String);
+    exts!(get_friend_list_ex, get_friend_list);
+    exts!(get_group_info_ex, get_group_info, group_id: String);
+    exts!(get_group_list_ex, get_group_list);
+    exts!(
+        get_group_member_info_ex,
+        get_group_member_info,
+        group_id: String,
+        user_id: String
+    );
+    exts!(
+        get_group_member_list_ex,
+        get_group_member_list,
+        group_id: String
+    );
+    exts!(
+        set_group_name_ex,
+        set_group_name,
+        group_id: String,
+        name: String
+    );
+    exts!(leave_group_ex, leave_group, group_id: String);
+    exts!(
+        kick_group_member_ex,
+        kick_group_member,
+        group_id: String,
+        user_id: String
+    );
+    exts!(
+        ban_group_member_ex,
+        ban_group_member,
+        group_id: String,
+        user_id: String
+    );
+    exts!(
+        unban_group_member_ex,
+        unban_group_member,
+        group_id: String,
+        user_id: String
+    );
+    exts!(
+        set_group_admin_ex,
+        set_group_admin,
+        group_id: String,
+        user_id: String
+    );
+    exts!(
+        unset_group_admin_ex,
+        unset_group_admin,
+        group_id: String,
+        user_id: String
+    );
+    // exts!(
+    //     upload_file_ex,
+    //     upload_file,
+    //     group_id: String,
+    //     file_path: String
+    // );
+    // exts!(
+    //     upload_file_fragmented_ex,
+    //     upload_file_fragmented,
+    //     group_id: String,
+    //     file_path: String,
+    //     file_size: i64,
+    //     file_fragment_size: i64
+    // );
+    // exts!(get_file_ex, get_file, group_id: String, file_id: String);
+    // exts!(
+    //     get_file_fragmented_ex,
+    //     get_file_fragmented,
+    //     group_id: String,
+    //     file_id: String,
+    //     file_fragment_index: i64
+    // );
+}
+
+#[cfg(any(feature = "http", feature = "websocket"))]
+pub trait ActionType {
+    fn content_type(&self) -> crate::comms::utils::ContentType;
 }

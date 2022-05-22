@@ -11,7 +11,7 @@ use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
 use crate::{
-    app::{CustomActionSender, CustomRespSender, OneBot},
+    app::{CustomActionSender, OneBot, OneshotSender},
     handle::EventHandler,
     Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleResult,
 };
@@ -64,11 +64,17 @@ where
         &self,
         ws_stream: &mut WebSocketStream<TcpStream>,
         action: A,
-        sender: CustomRespSender<R>,
-        echo_map: &mut HashMap<EchoS, CustomRespSender<R>>,
+        sender: Option<OneshotSender<R>>,
+        echo_map: &mut HashMap<EchoS, OneshotSender<R>>,
     ) -> WsResult<()> {
         let echo_s = EchoS::new("action");
-        echo_map.insert(echo_s.clone(), sender);
+        match sender {
+            Some(sender) => echo_map.insert(echo_s.clone(), sender),
+            None => {
+                echo_map.remove(&echo_s);
+                return Ok(());
+            }
+        };
         let action = echo_s.pack(action);
         let action = action.json_encode();
         ws_stream.send(WsMsg::Text(action)).await
@@ -106,7 +112,7 @@ where
                 Ok(ReceiveItem::Resp(resp)) => {
                     let (resp, echos) = resp.unpack();
                     if let Some(rx) = echo_map.remove(&echos) {
-                        rx.send(resp).unwrap();
+                        rx.send(resp).ok();
                     }
                 }
                 Err(s) => warn!(target: crate::WALLE_CORE, "serde failed: {}", s),

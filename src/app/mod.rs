@@ -17,9 +17,9 @@ use crate::{
 
 mod bot;
 
-pub(crate) type CustomRespSender<R> = tokio::sync::oneshot::Sender<R>;
+pub(crate) use tokio::sync::oneshot::Sender as OneshotSender;
 pub(crate) type CustomActionSender<A, R> =
-    tokio::sync::mpsc::UnboundedSender<(A, CustomRespSender<R>)>;
+    tokio::sync::mpsc::UnboundedSender<(A, Option<OneshotSender<R>>)>;
 
 /// OneBot v12 无扩展应用端实例
 pub type StandardOneBot<H> = OneBot<StandardEvent, StandardAction, Resps<StandardEvent>, H, 12>;

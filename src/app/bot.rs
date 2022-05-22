@@ -1,184 +1,134 @@
-use crate::{action::*, ExtendedMap, ProtocolItem, WalleError, WalleResult};
-use std::collections::HashMap;
-use std::fmt::Debug;
+use crate::action::BotActionExt;
+use crate::Message;
+use crate::{action::*, ExtendedMap, WalleError, WalleResult};
+use std::future::Future;
+use std::pin::Pin;
 use std::time::Duration;
 
-macro_rules! action_api {
-    ($fn_name: ident,$action_ty:ident,$content:ident) => {
-        pub async fn $fn_name(&self) -> WalleResult<R> {
-            self.call_action_resp(StandardAction::$action_ty($content::default()).into()).await
+macro_rules! exts {
+    ($fn_name: ident, $content:ident) => {
+        fn $fn_name<'a, 'b>(&'a self, extra: ExtendedMap) -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>>
+        where
+            'a: 'b,
+            Self: 'b,
+        {
+            Box::pin(self.call_action(StandardAction::$content(extra).into()))
         }
     };
-    ($fn_name: ident,$action_ty:ident,$content:ident, $field_name: ident: $field_ty: ty) => {
-        pub async fn $fn_name(&self, $field_name: $field_ty, extra: ExtendedMap) -> WalleResult<R> {
-            self.call_action_resp(StandardAction::$action_ty($content{
+    ($fn_name: ident, $content:ident, $field_name: ident: $field_ty: ty) => {
+        fn $fn_name<'a, 'b>(&'a self, $field_name: $field_ty, extra: ExtendedMap)  -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>> where 'a: 'b, Self: 'b, {
+            Box::pin(self.call_action(StandardAction::$content($content{
                 $field_name, extra
-            }).into()).await
+            }).into()))
         }
     };
-    ($fn_name: ident,$action_ty:ident,$content:ident, $($field_name: ident: $field_ty: ty),*) => {
-        pub async fn $fn_name(&self, $($field_name: $field_ty,)* extra: ExtendedMap) -> WalleResult<R> {
-            self.call_action_resp(StandardAction::$action_ty($content{
+    ($fn_name: ident, $content:ident, $($field_name: ident: $field_ty: ty),*) => {
+        fn $fn_name<'a, 'b>(&'a self, $($field_name: $field_ty,)* extra: ExtendedMap)  -> Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'b>> where 'a: 'b, Self: 'b, {
+            Box::pin(self.call_action(StandardAction::$content($content{
                 $($field_name,)* extra
-            }).into()).await
+            }).into()))
         }
     };
-}
-
-impl<A, R> super::Bot<A, R> {
-    pub fn new(self_id: String, sender: super::CustomActionSender<A, R>) -> Self {
-        Self { self_id, sender }
-    }
 }
 
 impl<A, R> super::Bot<A, R>
 where
-    A: ProtocolItem + From<StandardAction> + Clone + Send + 'static + Debug,
-    R: ProtocolItem + Clone + Send + 'static + Debug,
+    A: Clone,
 {
-    pub async fn call_action_resp(&self, action: A) -> WalleResult<R> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.sender
-            .send((action, tx))
-            .map_err(|_| WalleError::ActionSendError)?;
-        tokio::time::timeout(Duration::from_secs(10), rx)
-            .await
-            .map_err(|_| WalleError::ResponseTimeout)?
-            .map_err(WalleError::ResponseRecvError)
+    pub fn new(self_id: String, sender: super::CustomActionSender<A, R>) -> Self {
+        Self { self_id, sender }
     }
 
-    action_api!(
-        get_latest_events,
-        GetLatestEvents,
+    pub async fn call_action(&self, action: A) -> WalleResult<R> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.sender
+            .send((action.clone(), Some(tx)))
+            .map_err(|_| WalleError::ActionSendError)?;
+        Ok(tokio::time::timeout(Duration::from_secs(10), rx)
+            .await
+            .map_err(|_| {
+                self.sender.send((action, None)).ok();
+                WalleError::ResponseTimeout
+            })?
+            .unwrap())
+    }
+}
+
+impl<A, R> BotActionExt<R> for super::Bot<A, R>
+where
+    A: From<StandardAction> + Clone + Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    exts!(
+        get_latest_events_ex,
         GetLatestEvents,
         limit: i64,
         timeout: i64
     );
-    action_api!(get_supported_actions, GetSupportedActions, ExtendedMap);
-    action_api!(get_status, GetStatus, ExtendedMap);
-    action_api!(get_version, GetVersion, ExtendedMap);
-
-    action_api!(
-        send_message,
-        SendMessage,
+    exts!(get_supported_actions_ex, GetSupportedActions);
+    exts!(get_status_ex, GetStatus);
+    exts!(get_version_ex, GetVersion);
+    exts!(
+        send_message_ex,
         SendMessage,
         detail_type: String,
         group_id: Option<String>,
         user_id: Option<String>,
-        message: crate::Message
+        message: Message
     );
-    action_api!(
-        deletemessage,
-        DeleteMessage,
-        DeleteMessage,
-        message_id: String
-    );
-
-    action_api!(get_self_info, GetSelfInfo, ExtendedMap);
-    action_api!(get_user_info, GetUserInfo, GetUserInfo, user_id: String);
-    action_api!(get_friend_list, GetFriendList, ExtendedMap);
-
-    action_api!(get_group_info, GetGroupInfo, GetGroupInfo, group_id: String);
-    action_api!(get_group_list, GetGroupList, ExtendedMap);
-    action_api!(
-        get_group_member_info,
-        GetGroupMemberInfo,
+    exts!(delete_message_ex, DeleteMessage, message_id: String);
+    exts!(get_message_ex, GetMessage, message_id: String);
+    exts!(get_self_info_ex, GetSelfInfo);
+    exts!(get_user_info_ex, GetUserInfo, user_id: String);
+    exts!(get_friend_list_ex, GetFriendList);
+    exts!(get_group_info_ex, GetGroupInfo, group_id: String);
+    exts!(get_group_list_ex, GetGroupList);
+    exts!(
+        get_group_member_info_ex,
         GetGroupMemberInfo,
         group_id: String,
         user_id: String
     );
-    action_api!(
-        get_group_member_list,
-        GetGroupMemberList,
+    exts!(
+        get_group_member_list_ex,
         GetGroupMemberList,
         group_id: String
     );
-    action_api!(
-        set_group_name,
-        SetGroupName,
+    exts!(
+        set_group_name_ex,
         SetGroupName,
         group_id: String,
         group_name: String
     );
-    action_api!(leave_group, LeaveGroup, LeaveGroup, group_id: String);
-    action_api!(
-        kick_group_member,
-        KickGroupMember,
+    exts!(leave_group_ex, LeaveGroup, group_id: String);
+    exts!(
+        kick_group_member_ex,
         KickGroupMember,
         group_id: String,
         user_id: String
     );
-    action_api!(
-        ban_group_member,
-        BanGroupMember,
+    exts!(
+        ban_group_member_ex,
         BanGroupMember,
         group_id: String,
         user_id: String
     );
-    action_api!(
-        unban_group_member,
-        UnbanGroupMember,
+    exts!(
+        unban_group_member_ex,
         UnbanGroupMember,
         group_id: String,
         user_id: String
     );
-    action_api!(
-        set_grop_admin,
-        SetGroupAdmin,
+    exts!(
+        set_group_admin_ex,
         SetGroupAdmin,
         group_id: String,
         user_id: String
     );
-    action_api!(
-        unset_grop_admin,
-        UnsetGroupAdmin,
+    exts!(
+        unset_group_admin_ex,
         UnsetGroupAdmin,
         group_id: String,
         user_id: String
     );
-
-    action_api!(
-        upload_file,
-        UploadFile,
-        UploadFile,
-        r#type: String,
-        name: String,
-        url: Option<String>,
-        headers: Option<std::collections::HashMap<String, String>>,
-        path: Option<String>,
-        data: Option<Vec<u8>>,
-        sha256: Option<String>
-    );
-    action_api!(get_file, GetFile, GetFile, file_id: String, r#type: String);
-    // todo fragmented file
-
-    pub async fn send_group_message(
-        &self,
-        group_id: String,
-        message: crate::Message,
-    ) -> WalleResult<R> {
-        self.send_message(
-            "group".to_string(),
-            Some(group_id),
-            None,
-            message,
-            HashMap::default(),
-        )
-        .await
-    }
-
-    pub async fn send_private_message(
-        &self,
-        user_id: String,
-        message: crate::Message,
-    ) -> WalleResult<R> {
-        self.send_message(
-            "private".to_string(),
-            None,
-            Some(user_id),
-            message,
-            HashMap::default(),
-        )
-        .await
-    }
 }

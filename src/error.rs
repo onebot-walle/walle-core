@@ -10,8 +10,6 @@ pub enum WalleError {
     /// resp
     #[error("Action Response Timeout")]
     ResponseTimeout,
-    #[error("Action Response RecvError:{0}")]
-    ResponseRecvError(#[from] tokio::sync::oneshot::error::RecvError),
     /// server
     #[error("{0}")]
     IO(#[from] std::io::Error),
