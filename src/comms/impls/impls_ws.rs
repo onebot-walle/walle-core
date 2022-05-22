@@ -1,6 +1,6 @@
 use crate::handle::ActionHandler;
 use crate::resp::resp_error_builder;
-use crate::{impls::CustomOneBot, Echo, WalleRtError, WalleRtResult};
+use crate::{impls::CustomOneBot, Echo, WalleError, WalleResult};
 use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
@@ -155,29 +155,28 @@ where
         false
     }
 
-    pub(crate) async fn ws(self: &Arc<Self>) -> WalleRtResult<()> {
+    pub(crate) async fn ws(self: &Arc<Self>) -> WalleResult<()> {
         if !self.config.websocket.is_empty() {
-            info!(target: "Walle-core", "Starting websocket reverse server.");
+            info!(target: "Walle-core", "Starting websocket server.");
         }
 
         for wss in self.config.websocket.clone().into_iter() {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
-                .map_err(WalleRtError::from)?;
-            info!(target: "Walle-core", "Websocket listening on {}", addr.to_string().red());
+                .map_err(WalleError::from)?;
+            info!(target: "Walle-core", "Websocket server listening on ws://{}", addr);
             let ob = self.clone();
             tokio::spawn(async move {
                 ob.ws_hooks.on_start(&ob).await;
                 while ob.is_running() {
                     if let Ok((stream, addr)) = tcp_listener.accept().await {
-                        if let Ok(ws_stream) =
+                        if let Some(ws_stream) =
                             crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {
                             let obc = ob.clone();
                             tokio::spawn(async move {
-                                // spawn to handle connect
                                 obc.ws_loop(ws_stream).await;
                                 obc.ws_connects.write().await.remove(&addr.to_string());
                             });
@@ -213,14 +212,13 @@ where
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token);
                     match crate::comms::ws_utils::try_connect(&wsr, req).await {
-                        Ok(ws_stream) => {
+                        Some(ws_stream) => {
                             ob.ws_connects.write().await.insert(wsr.url.clone());
                             ob.ws_loop(ws_stream).await;
                             ob.ws_connects.write().await.remove(&wsr.url);
+                            warn!(target: "Walle-core", "Disconnected from {}", wsr.url);
                         }
-                        Err(e) => {
-                            warn!(target: "Walle-core", "Failed to connect to {}, error:{}", wsr.url.red(),e);
-                            info!(target: "Walle-core", "Retry in {} seconds", wsr.reconnect_interval);
+                        None => {
                             tokio::time::sleep(Duration::from_secs(wsr.reconnect_interval as u64))
                                 .await;
                             ob.ws_hooks.before_reconnect(&ob).await;

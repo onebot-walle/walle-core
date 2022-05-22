@@ -3,7 +3,7 @@
 use crate::event::BaseEvent;
 use crate::handle::ActionHandler;
 use crate::resp::StatusContent;
-use crate::{ExtendedMap, ImplConfig, StandardAction, WalleRtError, WalleRtResult};
+use crate::{ExtendedMap, ImplConfig, StandardAction, WalleError, WalleResult};
 use crate::{ProtocolItem, Resps, StandardEvent};
 #[cfg(feature = "websocket")]
 use std::collections::HashSet;
@@ -148,11 +148,11 @@ where
     /// 当重复运行同一个实例，将会返回 Err
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
-    pub async fn run(self: &Arc<Self>) -> WalleRtResult<()> {
+    pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
         use colored::*;
 
         if self.is_running() {
-            return Err(WalleRtError::AlreadyRunning);
+            return Err(WalleError::AlreadyRunning);
         }
 
         info!(target: "Walle-core", "{} is booting", self.r#impl.red());

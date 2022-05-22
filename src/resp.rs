@@ -103,6 +103,18 @@ where
     pub fn empty_fail(retcode: u32, message: String) -> Self {
         Self::fail(T::from(ExtendedValue::empty_map()), retcode, message)
     }
+
+    pub fn as_result(self) -> Result<Self, RespError<T>> {
+        if self.status == "ok" {
+            Ok(self)
+        } else {
+            Err(RespError {
+                code: self.retcode,
+                message: self.message,
+                data: self.data,
+            })
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -196,22 +208,6 @@ pub struct RespError<T> {
 impl<T> From<RespError<T>> for Resp<T> {
     fn from(err: RespError<T>) -> Self {
         Resp::fail(err.data.into(), err.code, err.message)
-    }
-}
-
-impl<T> TryFrom<Resp<T>> for RespError<T> {
-    type Error = Resp<T>;
-
-    fn try_from(resp: Resp<T>) -> Result<Self, Self::Error> {
-        if resp.status == "ok" {
-            Err(resp)
-        } else {
-            Ok(RespError {
-                code: resp.retcode,
-                message: resp.message,
-                data: resp.data,
-            })
-        }
     }
 }
 

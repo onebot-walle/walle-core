@@ -1,6 +1,6 @@
 use crate::message::MessageSegment as PyMsgSeg;
-use pyo3::{prelude::*, pyclass_init::PyObjectInit};
-use walle_core::{EventContent, MessageEventType, StandardEvent};
+use pyo3::prelude::*;
+// use walle_core::StandardEvent;
 
 #[pyclass(subclass)]
 pub struct Event {
@@ -106,14 +106,14 @@ impl PrivateMessageEvent {
     }
 }
 
-pub struct PyStandardEvent(StandardEvent);
+// pub struct PyStandardEvent(StandardEvent);
 
-impl IntoPy<PyObject> for PyStandardEvent {
-    fn into_py(self, py: Python) -> PyObject {
-        match self.0.content {
-            EventContent::Message(c) => match c.ty {
-                MessageEventType::Private => PrivateMessageEvent.into_py(py),
-            },
-        }
-    }
-}
+// impl IntoPy<PyObject> for PyStandardEvent {
+//     fn into_py(self, py: Python) -> PyObject {
+//         match self.0.content {
+//             EventContent::Message(c) => match c.ty {
+//                 MessageEventType::Private => PrivateMessageEvent.into_py(py),
+//             },
+//         }
+//     }
+// }

@@ -13,7 +13,7 @@ use tracing::{info, warn};
 use crate::{
     app::{CustomActionSender, CustomRespSender, OneBot},
     handle::EventHandler,
-    Echo, EchoS, ProtocolItem, SelfId, WalleRtError, WalleLogExt, WalleRtResult,
+    Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleResult,
 };
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
@@ -23,10 +23,7 @@ where
     R: ProtocolItem + Clone + Send + 'static + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
-    async fn ws_loop(
-        self: &Arc<Self>,
-        mut ws_stream: WebSocketStream<TcpStream>,
-    ) -> WalleRtResult<()> {
+    async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {
         self.ws_hooks.on_connect(self).await;
         let (action_tx, mut action_rx) = mpsc::unbounded_channel();
         let mut bot_ids: Vec<String> = vec![];
@@ -61,7 +58,6 @@ where
             self.remove_bot(&bot_id).await;
         }
         self.ws_hooks.on_disconnect(self).await;
-        Ok(())
     }
 
     async fn ws_send_action(
@@ -149,14 +145,11 @@ where
                         )
                         .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
-                        Ok(ws_stream) => {
-                            info!(target: "Walle-core", "Successfully connected to {}", wsc.url);
-                            ob.clone().ws_loop(ws_stream).await.wran_err();
+                        Some(ws_stream) => {
+                            ob.clone().ws_loop(ws_stream).await;
                             warn!(target: "Walle-core", "Disconnected from {}", wsc.url);
                         }
-                        Err(_) => {
-                            warn!(target: "Walle-core", "Failed to connect to {}", wsc.url);
-                            warn!(target: "Walle-core", "Retry in {} seconds", wsc.reconnect_interval);
+                        None => {
                             tokio::time::sleep(std::time::Duration::from_secs(
                                 wsc.reconnect_interval as u64,
                             ))
@@ -171,21 +164,24 @@ where
         }
     }
 
-    pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleRtResult<()> {
+    pub(crate) async fn wsr(self: &Arc<Self>, joins: &mut Vec<JoinHandle<()>>) -> WalleResult<()> {
+        if !self.config.websocket_rev.is_empty() {
+            info!(target: "Walle-core", "Starting websocket server.");
+        }
+
         for wss in self.config.websocket_rev.clone().into_iter() {
             // info!(target: "Walle-core", "Running WebSocket Reverse");
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
-            info!(target: "Walle-core", "Starting Websocket server in {}", addr);
             let tcp_listener = TcpListener::bind(&addr)
                 .await
-                .map_err(WalleRtError::TcpServerBindAddressError)?;
+                .map_err(WalleError::IO)?;
+            info!(target: "Walle-core", "Websocket server listening on ws://{}", addr);
             let ob = self.clone();
             joins.push(tokio::spawn(async move {
-                info!(target: "Walle-core", "Websocket server started");
                 ob.ws_hooks.on_start(&ob).await;
                 while ob.is_running() {
                     if let Ok((stream, _)) = tcp_listener.accept().await {
-                        if let Ok(ws_stream) =
+                        if let Some(ws_stream) =
                             crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
                                 .await
                         {

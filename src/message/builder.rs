@@ -49,23 +49,23 @@ macro_rules! impl_self_build {
 
 /// Message 构建 trait
 pub trait MessageBuild {
-    fn text_with_extend(self, text: String, extend: ExtendedMap) -> Self;
-    fn mention_with_extend(self, user_id: String, extend: ExtendedMap) -> Self;
-    fn mention_all_with_extend(self, extend: ExtendedMap) -> Self;
-    fn image_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
-    fn voice_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
-    fn audio_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
-    fn video_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
-    fn file_with_extend(self, file_id: String, extend: ExtendedMap) -> Self;
+    fn text_with_extend(self, text: String, extra: ExtendedMap) -> Self;
+    fn mention_with_extend(self, user_id: String, extra: ExtendedMap) -> Self;
+    fn mention_all_with_extend(self, extra: ExtendedMap) -> Self;
+    fn image_with_extend(self, file_id: String, extra: ExtendedMap) -> Self;
+    fn voice_with_extend(self, file_id: String, extra: ExtendedMap) -> Self;
+    fn audio_with_extend(self, file_id: String, extra: ExtendedMap) -> Self;
+    fn video_with_extend(self, file_id: String, extra: ExtendedMap) -> Self;
+    fn file_with_extend(self, file_id: String, extra: ExtendedMap) -> Self;
     fn location_with_extend(
         self,
         latitude: f64,
         longitude: f64,
         title: String,
         content: String,
-        extend: ExtendedMap,
+        extra: ExtendedMap,
     ) -> Self;
-    fn reply_with_extend(self, message_id: String, user_id: String, extend: ExtendedMap) -> Self;
+    fn reply_with_extend(self, message_id: String, user_id: String, extra: ExtendedMap) -> Self;
 
     fn text(self, text: String) -> Self;
     fn mention(self, user_id: String) -> Self;

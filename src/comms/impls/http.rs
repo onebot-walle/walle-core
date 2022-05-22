@@ -14,7 +14,7 @@ use crate::impls::CustomOneBot;
 use crate::resp::resp_error_builder;
 use crate::utils::Echo;
 use crate::Resps;
-use crate::{ProtocolItem, WalleRtError, WalleRtResult};
+use crate::{ProtocolItem, WalleError, WalleResult};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()
@@ -47,7 +47,7 @@ where
     R: ProtocolItem + From<ER> + std::fmt::Debug + Clone + Send + 'static,
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
-    pub(crate) async fn http(self: &Arc<Self>) -> WalleRtResult<()> {
+    pub(crate) async fn http(self: &Arc<Self>) -> WalleResult<()> {
         for http in &self.config.http {
             let ob = self.clone();
             let addr = std::net::SocketAddr::new(http.host, http.port);
@@ -112,7 +112,7 @@ where
                 }
             });
             let ob = self.clone();
-            let listener = TcpListener::bind(&addr).await.map_err(WalleRtError::from)?;
+            let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
             tokio::spawn(async move {
                 while ob.is_running() {
                     let (tcp_stream, _) = listener.accept().await.unwrap();
