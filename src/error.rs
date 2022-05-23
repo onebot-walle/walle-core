@@ -22,4 +22,8 @@ pub enum WalleError {
     MapMissedKey(String),
     #[error("ExtendedMap value type mismatch: expect {0}, got {1}")]
     MapValueTypeMismatch(String, String),
+
+    /// Resp
+    #[error("RespMissmatch")]
+    RespMissmatch, //todo
 }

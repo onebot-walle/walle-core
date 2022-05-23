@@ -153,3 +153,19 @@ impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
 pub trait AsStandard<T> {
     fn as_standard(&self) -> &T;
 }
+
+pub enum ContentType {
+    Json,
+    MsgPack,
+}
+
+impl ContentType {
+    #[allow(dead_code)]
+    pub fn new(s: &str) -> Option<Self> {
+        match s {
+            "application/json" => Some(Self::Json),
+            "application/msgpack" => Some(Self::MsgPack),
+            _ => None,
+        }
+    }
+}

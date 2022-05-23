@@ -8,10 +8,10 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::info;
 
-use crate::comms::utils::ContentType;
 use crate::handle::ActionHandler;
 use crate::impls::CustomOneBot;
 use crate::resp::resp_error_builder;
+use crate::utils::ContentType;
 use crate::utils::Echo;
 use crate::Resps;
 use crate::{ProtocolItem, WalleError, WalleResult};

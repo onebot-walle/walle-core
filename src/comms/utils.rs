@@ -1,22 +1,3 @@
-#[cfg(any(feature = "http", feature = "websocket"))]
-#[allow(dead_code)]
-pub enum ContentType {
-    Json,
-    MsgPack,
-}
-
-#[cfg(any(feature = "http", feature = "websocket"))]
-impl ContentType {
-    #[allow(dead_code)]
-    pub fn new(s: &str) -> Option<Self> {
-        match s {
-            "application/json" => Some(Self::Json),
-            "application/msgpack" => Some(Self::MsgPack),
-            _ => None,
-        }
-    }
-}
-
 pub(crate) trait AuthReqHeaderExt {
     fn header_auth_token(self, token: &Option<String>) -> Self;
 }

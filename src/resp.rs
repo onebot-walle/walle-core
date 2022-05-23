@@ -49,15 +49,51 @@ macro_rules! resp_content {
                 RespContent::$name(t)
             }
         }
+        impl<E> TryFrom<RespContent<E>> for $t {
+            type Error = RespContent<E>;
+            fn try_from(resp: RespContent<E>) -> Result<Self, Self::Error> {
+                match resp {
+                    RespContent::$name(t) => Ok(t),
+                    _ => Err(resp),
+                }
+            }
+        }
+        impl<E> From<Resp<$t>> for Resp<RespContent<E>> {
+            fn from(resp: Resp<$t>) -> Self {
+                Resp {
+                    status: resp.status,
+                    retcode: resp.retcode,
+                    data: resp.data.into(),
+                    message: resp.message,
+                }
+            }
+        }
+        impl<E> TryFrom<Resp<RespContent<E>>> for Resp<$t> {
+            type Error = Resp<RespContent<E>>;
+            fn try_from(resp: Resp<RespContent<E>>) -> Result<Self, Self::Error> {
+                match resp {
+                    Resp {
+                        status,
+                        retcode,
+                        data: RespContent::$name(t),
+                        message,
+                    } => Ok(Resp {
+                        status,
+                        retcode,
+                        data: t,
+                        message,
+                    }),
+                    _ => Err(resp),
+                }
+            }
+        }
     };
 }
 
 resp_content!(SendMessageRespContent, SendMessage);
-// resp_content!(Vec<StandardEvent>, LatestEvents);
 resp_content!(Vec<String>, SupportActions);
 resp_content!(StatusContent, Status);
 resp_content!(VersionContent, Version);
-// resp_content!(StandardEvent, MessageEvent);
 resp_content!(UserInfoContent, UserInfo);
 resp_content!(Vec<UserInfoContent>, FriendList);
 resp_content!(GroupInfoContent, GroupInfo);
@@ -203,6 +239,12 @@ pub struct RespError<T> {
     pub code: u32,
     pub message: String,
     pub data: T,
+}
+
+impl<T> std::fmt::Debug for RespError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RespError[{}]: {}", self.code, self.message)
+    }
 }
 
 impl<T> From<RespError<T>> for Resp<T> {
