@@ -10,10 +10,12 @@ use tokio_tungstenite::tungstenite::Message as WsMsg;
 use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
+use crate::utils::ProtocolItem;
+use crate::utils::{Echo, EchoS};
 use crate::{
     app::{CustomActionSender, OneBot, OneshotSender},
     handle::EventHandler,
-    Echo, EchoS, ProtocolItem, SelfId, WalleError, WalleResult,
+    SelfId, WalleError, WalleResult,
 };
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>

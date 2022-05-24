@@ -1,7 +1,9 @@
 use crate::{message::MSVistor, ExtendedMap};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
+#[cfg(feature = "app")]
 mod ext;
+#[cfg(feature = "app")]
 pub use ext::*;
 
 /// ## OneBot 12 标准动作
@@ -133,6 +135,20 @@ where
     deserializer.deserialize_any(MessageVisitor)
 }
 
+/// 定义 action strcut
+///
+/// ```rust
+/// onebot_action!(DeleteMessage, message_id: String);
+/// ```
+/// generate code:
+/// ```rust
+/// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+/// pub struct DeleteMessage {
+///     pub message_id: String,
+///     #[serde(flatten)]
+///     pub extra: ExtendedMap,
+/// }
+/// ```
 #[macro_export]
 macro_rules! onebot_action {
     ($action_name: ident, $($field_name: ident: $field_ty: ty),*) => {

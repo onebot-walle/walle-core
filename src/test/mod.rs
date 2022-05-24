@@ -78,8 +78,8 @@ fn event() {
                 self_id: "123234".to_owned(),
                 time: 1632847927.0,
                 content: EventContent::Message(MsgContent {
-                    sub_type: String::default(),
                     detail: MessageEventDetail::Private {
+                        sub_type: String::default(),
                         extra: ExtendedMap::new(),
                     },
                     message_id: "6283".to_owned(),
@@ -143,7 +143,7 @@ fn event() {
 fn action() {
     use crate::action::GetLatestEvents;
     use crate::action::*;
-    use crate::Echo;
+    use crate::utils::Echo;
     use crate::{MessageSegment, StandardAction};
     use std::collections::HashMap;
 

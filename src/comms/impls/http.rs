@@ -13,8 +13,9 @@ use crate::impls::CustomOneBot;
 use crate::resp::error_builder;
 use crate::utils::ContentType;
 use crate::utils::Echo;
+use crate::utils::ProtocolItem;
 use crate::Resps;
-use crate::{ProtocolItem, WalleError, WalleResult};
+use crate::{WalleError, WalleResult};
 
 fn empty_error_response(code: u16) -> Response<Body> {
     Response::builder()

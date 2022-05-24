@@ -8,7 +8,7 @@ use tokio_tungstenite::tungstenite::http::{
 use tokio_tungstenite::{accept_hdr_async, client_async, WebSocketStream};
 use tracing::{info, warn};
 
-use crate::WebSocketClient;
+use crate::config::WebSocketClient;
 
 pub(crate) async fn try_connect(
     config: &WebSocketClient,
@@ -26,7 +26,7 @@ pub(crate) async fn try_connect(
             target: crate::WALLE_CORE,
             "Retry in {} seconds", config.reconnect_interval
         );
-        return None;
+        None
     }
     let uri: Uri = config.url.parse().unwrap();
     let addr = format!("{}:{}", uri.host().unwrap(), uri.port().unwrap());
@@ -65,7 +65,7 @@ pub(crate) async fn try_connect(
             );
             Some(ws_stream)
         }
-        Err(e) => return err(config, e),
+        Err(e) => err(config, e),
     }
 }
 

@@ -6,14 +6,14 @@ use crate::Message;
 use crate::WalleResult;
 use crate::{ExtendedMap, ExtendedValue};
 
-type PBFR<'r, R> = Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'r>>;
+type Pbfr<'r, R> = Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'r>>;
 
 macro_rules! exts {
     ($ex_name: ident, $name: ident, $rty: ty) => {
         fn $ex_name<'a, 'b>(
             &'a self,
             extra: ExtendedMap,
-        ) -> PBFR<'b, $rty>
+        ) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -25,7 +25,7 @@ macro_rules! exts {
             &'a self,
             $field_name: $field_ty,
             extra: ExtendedMap,
-        ) -> PBFR<'b, $rty>
+        ) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -37,7 +37,7 @@ macro_rules! exts {
             &'a self,
             $($field_name: $field_ty,)*
             extra: ExtendedMap,
-        ) -> PBFR<'b, $rty>
+        ) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -48,7 +48,7 @@ macro_rules! exts {
 
 macro_rules! exts_noex {
     ($ex_name: ident, $name: ident, $rty: ty) => {
-        fn $name<'a, 'b>(&'a self) -> PBFR<'b, $rty>
+        fn $name<'a, 'b>(&'a self) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -61,7 +61,7 @@ macro_rules! exts_noex {
         fn $name<'a, 'b>(
             &'a self,
             $field_name: $field_ty,
-        ) -> PBFR<'b, $rty>
+        ) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -74,7 +74,7 @@ macro_rules! exts_noex {
         fn $name<'a, 'b>(
             &'a self,
             $($field_name: $field_ty,)*
-        ) -> PBFR<'b, $rty>
+        ) -> Pbfr<'b, $rty>
         where
             'a: 'b,
             Self: 'b,
@@ -228,7 +228,7 @@ pub trait BotActionExt<R>: Sync {
         user_id: String,
         message: Message,
         extra: ExtendedMap,
-    ) -> PBFR<'b, Resp<SendMessageRespContent>>
+    ) -> Pbfr<'b, Resp<SendMessageRespContent>>
     where
         'a: 'b,
         Self: 'b,
@@ -248,7 +248,7 @@ pub trait BotActionExt<R>: Sync {
         group_id: String,
         message: Message,
         extra: ExtendedMap,
-    ) -> PBFR<'b, Resp<SendMessageRespContent>>
+    ) -> Pbfr<'b, Resp<SendMessageRespContent>>
     where
         'a: 'b,
         Self: 'b,
@@ -270,7 +270,7 @@ pub trait BotActionExt<R>: Sync {
         headers: std::collections::HashMap<String, String>,
         sha256: Option<String>,
         extra: ExtendedMap,
-    ) -> PBFR<'b, Resp<FileIdContent>>
+    ) -> Pbfr<'b, Resp<FileIdContent>>
     where
         'a: 'b,
         Self: 'b,
@@ -302,7 +302,7 @@ pub trait BotActionExt<R>: Sync {
         path: String,
         sha256: Option<String>,
         extra: ExtendedMap,
-    ) -> PBFR<'b, Resp<FileIdContent>>
+    ) -> Pbfr<'b, Resp<FileIdContent>>
     where
         'a: 'b,
         Self: 'b,
@@ -333,7 +333,7 @@ pub trait BotActionExt<R>: Sync {
         data: Vec<u8>,
         sha256: Option<String>,
         extra: ExtendedMap,
-    ) -> PBFR<'b, Resp<FileIdContent>>
+    ) -> Pbfr<'b, Resp<FileIdContent>>
     where
         'a: 'b,
         Self: 'b,

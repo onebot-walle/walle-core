@@ -1,7 +1,7 @@
 use super::BaseEvent;
+use crate::ExtendedMap;
 #[cfg(feature = "impl")]
 use crate::MessageAlt;
-use crate::{AsStandard, ExtendedMap};
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 消息事件 Content
@@ -15,8 +15,6 @@ pub struct MessageContent<D> {
     pub message: crate::Message,
     pub alt_message: String,
     pub user_id: String,
-    /// just for Deserialize
-    pub sub_type: String,
 }
 
 /// MessageEvent detail_type ( private or group )
@@ -24,10 +22,14 @@ pub struct MessageContent<D> {
 #[serde(tag = "detail_type", rename_all = "snake_case")]
 pub enum MessageEventDetail {
     Private {
+        /// just for Deserialize
+        sub_type: String,
         #[serde(flatten)]
         extra: ExtendedMap,
     },
     Group {
+        /// just for Deserialize
+        sub_type: String,
         group_id: String,
         #[serde(flatten)]
         extra: ExtendedMap,
@@ -56,12 +58,16 @@ where
         extra: ExtendedMap,
     ) -> Self {
         Self {
-            detail: MessageEventDetail::Group { group_id, extra }.into(),
+            detail: MessageEventDetail::Group {
+                sub_type: "".to_owned(),
+                group_id,
+                extra,
+            }
+            .into(),
             message_id,
             alt_message: message.alt(),
             message,
             user_id,
-            sub_type: "".to_owned(),
         }
     }
 
@@ -72,28 +78,28 @@ where
         extra: ExtendedMap,
     ) -> Self {
         Self {
-            detail: MessageEventDetail::Private { extra }.into(),
+            detail: MessageEventDetail::Private {
+                sub_type: "".to_owned(),
+                extra,
+            }
+            .into(),
             message_id,
             alt_message: message.alt(),
             message,
             user_id,
-            sub_type: "".to_owned(),
         }
     }
 }
 
-impl<D> BaseEvent<MessageContent<D>>
-where
-    D: AsStandard<MessageEventDetail>,
-{
+impl BaseEvent<MessageContent<MessageEventDetail>> {
     pub fn group_id(&self) -> Option<&str> {
-        self.content.detail.as_standard().group_id()
+        self.content.detail.group_id()
     }
     pub fn user_id(&self) -> &str {
         &self.content.user_id
     }
     pub fn detail(&self) -> &MessageEventDetail {
-        &self.content.detail.as_standard()
+        &self.content.detail
     }
     pub fn message_id(&self) -> &str {
         &self.content.message_id
@@ -105,12 +111,15 @@ where
         &self.content.alt_message
     }
     pub fn sub_type(&self) -> &str {
-        &self.content.sub_type
+        match self.content.detail {
+            MessageEventDetail::Private { ref sub_type, .. } => sub_type,
+            MessageEventDetail::Group { ref sub_type, .. } => sub_type,
+        }
     }
     pub fn extra(&self) -> &ExtendedMap {
-        match self.content.detail.as_standard() {
-            MessageEventDetail::Private { extra, .. } => extra,
-            MessageEventDetail::Group { extra, .. } => extra,
+        match self.content.detail {
+            MessageEventDetail::Private { ref extra, .. } => extra,
+            MessageEventDetail::Group { ref extra, .. } => extra,
         }
     }
 }

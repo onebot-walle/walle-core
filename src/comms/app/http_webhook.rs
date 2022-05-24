@@ -7,7 +7,8 @@ use hyper::{Body, Request, Response};
 use tokio::net::TcpListener;
 use tracing::info;
 
-use crate::{app::OneBot, handle::EventHandler, ProtocolItem, SelfId, WalleError, WalleResult};
+use crate::utils::ProtocolItem;
+use crate::{app::OneBot, handle::EventHandler, SelfId, WalleError, WalleResult};
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where

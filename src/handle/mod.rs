@@ -4,10 +4,6 @@ use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
-use crate::{
-    resp::{error_builder, StandardResps},
-    StandardAction, StandardEvent,
-};
 
 mod fnt;
 
@@ -80,6 +76,9 @@ impl DefaultHandler {
 }
 
 #[cfg(feature = "impl")]
+use crate::{resp::error_builder, StandardAction, StandardEvent, StandardResps};
+
+#[cfg(feature = "impl")]
 #[async_trait]
 impl<E, const V: u8>
     ActionHandler<
@@ -120,7 +119,7 @@ where
 #[async_trait]
 impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
     async fn handle(&self, _: ArcBot<A, R>, event: crate::StandardEvent) {
-        use crate::EventContent;
+        use crate::event::EventContent;
         use colored::*;
         use tracing::{debug, info, trace};
 

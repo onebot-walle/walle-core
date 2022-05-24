@@ -12,6 +12,8 @@ pub fn timestamp_nano() -> u128 {
         .as_nanos()
 }
 
+#[cfg(all(feature = "websocket", feature = "impl"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "websocket", feature = "impl"))))]
 pub fn timestamp_nano_f64() -> f64 {
     timestamp_nano() as f64 / 1_000_000_000.0
 }
@@ -24,17 +26,17 @@ pub fn new_uuid() -> String {
 use serde::{de::Visitor, Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Echo<I> {
+pub(crate) struct Echo<I> {
     #[serde(flatten)]
     pub inner: I,
     pub echo: Option<EchoInner>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EchoS(Option<EchoInner>);
+pub(crate) struct EchoS(Option<EchoInner>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum EchoInner {
+pub(crate) enum EchoInner {
     S(String),
     Map(String),
 }
@@ -91,30 +93,31 @@ impl<'de> Deserialize<'de> for EchoInner {
     }
 }
 
-#[allow(dead_code)]
 impl<I> Echo<I> {
-    pub fn unpack(self) -> (I, EchoS) {
+    pub(crate) fn unpack(self) -> (I, EchoS) {
         (self.inner, EchoS(self.echo))
     }
 }
-#[allow(dead_code)]
+
 impl EchoS {
-    pub fn pack<I>(&self, i: I) -> Echo<I> {
+    pub(crate) fn pack<I>(&self, i: I) -> Echo<I> {
         Echo {
             inner: i,
             echo: self.0.clone(),
         }
     }
 
-    pub fn new(tag: &str) -> Self {
+    pub(crate) fn new(tag: &str) -> Self {
         return Self(Some(EchoInner::S(format!("{}-{}", tag, timestamp_nano()))));
     }
 }
 
+/// Event 模型 self_id 字段约束
 pub trait SelfId: Sized {
     fn self_id(&self) -> String;
 }
 
+#[doc(hidden)]
 pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
     fn json_encode(&self) -> String {
         serde_json::to_string(self).unwrap()
@@ -150,10 +153,9 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
 
 impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
 
-pub trait AsStandard<T> {
-    fn as_standard(&self) -> &T;
-}
-
+/// Onebot 协议支持的数据编码格式
+///
+/// Json or MessagePack
 pub enum ContentType {
     Json,
     MsgPack,

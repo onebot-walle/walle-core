@@ -9,7 +9,7 @@ use hyper::{
 use tracing::{debug, info, warn};
 
 use crate::handle::ActionHandler;
-use crate::ProtocolItem;
+use crate::utils::ProtocolItem;
 
 impl<E, A, R, ER, H, const V: u8> crate::impls::CustomOneBot<E, A, R, H, V>
 where

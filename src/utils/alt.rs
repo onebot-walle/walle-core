@@ -1,9 +1,9 @@
 use colored::*;
 
-use crate::{
-    BaseEvent, EventContent, MessageAlt, MessageContent, MessageEventDetail, NoticeContent,
-    RequestContent, StandardAction,
+use crate::event::{
+    EventContent, MessageContent, MessageEventDetail, NoticeContent, RequestContent,
 };
+use crate::{BaseEvent, MessageAlt, StandardAction};
 
 pub trait ColoredAlt {
     fn colored_alt(&self) -> Option<String>;
@@ -29,13 +29,13 @@ impl ColoredAlt for EventContent {
 impl ColoredAlt for MessageContent<MessageEventDetail> {
     fn colored_alt(&self) -> Option<String> {
         match &self.detail {
-            crate::MessageEventDetail::Group { group_id, .. } => Some(format!(
+            MessageEventDetail::Group { group_id, .. } => Some(format!(
                 "[{}] {} from {}",
                 group_id.bright_blue(),
                 self.alt_message,
                 self.user_id.bright_green()
             )),
-            crate::MessageEventDetail::Private { .. } => Some(format!(
+            MessageEventDetail::Private { .. } => Some(format!(
                 "[{}] {}",
                 self.user_id.bright_green(),
                 self.alt_message

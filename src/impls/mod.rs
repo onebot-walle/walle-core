@@ -1,10 +1,12 @@
 #![doc = include_str!("README.md")]
 
+use crate::config::ImplConfig;
 use crate::event::BaseEvent;
 use crate::handle::ActionHandler;
 use crate::resp::StatusContent;
-use crate::{ExtendedMap, ImplConfig, StandardAction, WalleError, WalleResult};
-use crate::{ProtocolItem, Resps, StandardEvent};
+use crate::utils::ProtocolItem;
+use crate::{ExtendedMap, StandardAction, WalleError, WalleResult};
+use crate::{Resps, StandardEvent};
 #[cfg(feature = "websocket")]
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -196,7 +198,7 @@ where
             platform: self.platform.clone(),
             self_id: self.self_id().await,
             time: crate::utils::timestamp_nano_f64(),
-            content: crate::EventContent::Meta(crate::MetaContent::Heartbeat {
+            content: crate::event::EventContent::Meta(crate::event::MetaContent::Heartbeat {
                 interval,
                 status: self.get_status(),
                 sub_type: "".to_string(),

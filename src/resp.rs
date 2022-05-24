@@ -141,16 +141,16 @@ where
     }
 }
 
-pub trait RespStatusExt {
+pub trait RespExt {
     type Error;
-    fn as_result(self) -> Result<Self, Self::Error>
+    fn to_result(self) -> Result<Self, Self::Error>
     where
         Self: Sized;
 }
 
-impl<T> RespStatusExt for Resp<T> {
+impl<T> RespExt for Resp<T> {
     type Error = RespError;
-    fn as_result(self) -> Result<Self, RespError> {
+    fn to_result(self) -> Result<Self, RespError> {
         if self.status == "ok" {
             Ok(self)
         } else {
@@ -266,6 +266,19 @@ where
 
 pub mod error_builder {
     use super::RespError;
+    /// RespError 构造函数声明
+    /// ```rust
+    /// error_type!(bad_request, 10001, "无效的动作请求");
+    /// ```
+    /// generate code:
+    /// ```rust
+    /// pub fn bad_request() -> RespError {
+    ///     RespError {
+    ///         code: 10001,
+    ///         message: "无效的动作请求".to_owned(),
+    ///     }
+    /// }
+    /// ```
     #[macro_export]
     macro_rules! error_type {
         ($name: ident, $retcode: expr, $message: expr) => {

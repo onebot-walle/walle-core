@@ -8,10 +8,12 @@ use hyper::{Body, Client as HyperClient, Method, Request};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
+use crate::config::HttpClient;
+use crate::utils::ProtocolItem;
 use crate::{
     app::{OneBot, OneshotSender},
     handle::EventHandler,
-    HttpClient, ProtocolItem, SelfId,
+    SelfId,
 };
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>

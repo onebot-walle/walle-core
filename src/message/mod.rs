@@ -12,6 +12,7 @@ pub use read::*;
 /// 在事件和动作参数中用于表示聊天消息的数据类型
 pub type Message = Vec<MessageSegment>;
 
+/// 生成 alt_message 字段内容
 pub trait MessageAlt {
     fn alt(&self) -> String;
 }

@@ -2,7 +2,7 @@ use crate::{ExtendedMap, MessageSegment};
 
 use super::Message;
 
-pub trait IntoMessage {
+pub(crate) trait IntoMessage {
     fn into_message(self) -> Message;
 }
 

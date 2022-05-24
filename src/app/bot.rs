@@ -18,7 +18,7 @@ macro_rules! exts {
             Box::pin(async move {
                 self.call_action(StandardAction::$content(extra).into())
                     .await?
-                    .as_result()
+                    .to_result()
                     .map_err(WalleError::RespError)?
                     .try_into()
                     .map_err(|_| WalleError::RespMissmatch)
@@ -38,7 +38,7 @@ macro_rules! exts {
                     $field_name, extra
                 }).into())
                     .await?
-                    .as_result()
+                    .to_result()
                     .map_err(WalleError::RespError)?
                     .try_into()
                     .map_err(|_| WalleError::RespMissmatch)
@@ -58,7 +58,7 @@ macro_rules! exts {
                     $($field_name,)* extra
                 }).into())
                     .await?
-                    .as_result()
+                    .to_result()
                     .map_err(WalleError::RespError)?
                     .try_into()
                     .map_err(|_| WalleError::RespMissmatch)
@@ -94,7 +94,7 @@ where
 impl<A, R> BotActionExt<R> for super::Bot<A, R>
 where
     A: From<StandardAction> + Clone + Send + Sync + 'static,
-    R: RespStatusExt<Error = RespError> + Send + Sync + 'static,
+    R: RespExt<Error = RespError> + Send + Sync + 'static,
 {
     // exts!(
     //     get_latest_events_ex,
@@ -245,7 +245,7 @@ where
                 .into(),
             )
             .await?
-            .as_result()
+            .to_result()
             .map_err(WalleError::RespError)?
             .try_into()
             .map_err(|_| WalleError::RespMissmatch)?;
@@ -265,7 +265,7 @@ where
                 .into(),
             )
             .await?
-            .as_result()
+            .to_result()
             .map_err(WalleError::RespError)?;
             cache.clear();
             t += 1;
@@ -276,7 +276,7 @@ where
                 .into(),
         )
         .await?
-        .as_result()
+        .to_result()
         .map_err(WalleError::RespError)?
         .try_into()
         .map_err(|_| WalleError::RespMissmatch)

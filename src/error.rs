@@ -4,6 +4,7 @@ use crate::resp::RespError;
 
 pub type WalleResult<T> = Result<T, WalleError>;
 
+/// Walle-core errors
 #[derive(Error, Debug)]
 pub enum WalleError {
     /// action

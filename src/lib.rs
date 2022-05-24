@@ -3,7 +3,17 @@
 
 #[allow(dead_code)]
 const VERSION: &str = std::env!("CARGO_PKG_VERSION");
-pub const WALLE_CORE: &str = "Walle-core";
+const WALLE_CORE: &str = "Walle-core";
+
+mod comms;
+mod error;
+mod handle;
+#[cfg(feature = "websocket")]
+#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+mod hooks;
+mod message;
+mod test;
+mod utils;
 
 /// Onebot Action
 pub mod action;
@@ -11,28 +21,18 @@ pub mod action;
 #[cfg_attr(docsrs, doc(cfg(feature = "app")))]
 /// 应用端相关 api
 pub mod app;
-mod comms;
 /// 相关配置项
 pub mod config;
-mod error;
 /// Onebot Event
 pub mod event;
-mod handle;
-#[cfg(feature = "websocket")]
-#[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
-mod hooks;
 #[cfg(feature = "impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 /// 实现端相关 api
 pub mod impls;
-mod message;
 /// Onebot ActionResp
 pub mod resp;
-mod test;
-mod utils;
 
 pub use action::StandardAction;
-pub use config::*;
 pub use error::*;
 pub use event::*;
 #[cfg(feature = "app")]
@@ -41,8 +41,8 @@ pub use handle::{ActionHandler, DefaultHandler};
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub use hooks::*;
-pub use message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
-pub use resp::{Resp, RespContent, Resps};
-pub use utils::*;
+pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
+pub use resp::{Resp, RespContent, Resps, StandardResps};
+pub use utils::{ExtendedMap, ExtendedValue, SelfId};
 
 pub use async_trait::async_trait;
