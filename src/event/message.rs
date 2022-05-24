@@ -34,6 +34,14 @@ pub enum MessageEventDetail {
         #[serde(flatten)]
         extra: ExtendedMap,
     },
+    Channel {
+        /// just for Deserialize
+        sub_type: String,
+        guild_id: String,
+        channel_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
 }
 
 impl MessageEventDetail {
@@ -114,12 +122,14 @@ impl BaseEvent<MessageContent<MessageEventDetail>> {
         match self.content.detail {
             MessageEventDetail::Private { ref sub_type, .. } => sub_type,
             MessageEventDetail::Group { ref sub_type, .. } => sub_type,
+            MessageEventDetail::Channel { ref sub_type, .. } => sub_type,
         }
     }
     pub fn extra(&self) -> &ExtendedMap {
         match self.content.detail {
             MessageEventDetail::Private { ref extra, .. } => extra,
             MessageEventDetail::Group { ref extra, .. } => extra,
+            MessageEventDetail::Channel { ref extra, .. } => extra,
         }
     }
 }

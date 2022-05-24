@@ -175,6 +175,8 @@ fn action() {
                 detail_type: "group".to_owned(),
                 group_id: Some("12467".to_owned()),
                 user_id: None,
+                guild_id: None,
+                channel_id: None,
                 message: vec![MessageSegment::Text {
                     text: "我是文字巴拉巴拉巴拉".to_owned(),
                     extra: HashMap::new(),

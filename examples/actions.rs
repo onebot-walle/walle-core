@@ -11,8 +11,8 @@ pub struct Action1 {
     pub param1: u8,
 }
 
-use walle_core::{onebot_action, onebot_action_ext, ExtendedMap};
-onebot_action!(ActionExtA, field0: u8);
+use walle_core::{extra_struct, onebot_action_ext, ExtendedMap};
+extra_struct!(ActionExtA, field0: u8);
 onebot_action_ext!(MyActionExt => ActionExtA);
 
 fn main() {}

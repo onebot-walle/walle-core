@@ -29,6 +29,17 @@ impl ColoredAlt for EventContent {
 impl ColoredAlt for MessageContent<MessageEventDetail> {
     fn colored_alt(&self) -> Option<String> {
         match &self.detail {
+            MessageEventDetail::Channel {
+                guild_id,
+                channel_id,
+                ..
+            } => Some(format!(
+                "[{}:{}] {} from {}",
+                guild_id.blue(),
+                channel_id.bright_blue(),
+                self.alt_message,
+                self.user_id.bright_green()
+            )),
             MessageEventDetail::Group { group_id, .. } => Some(format!(
                 "[{}] {} from {}",
                 group_id.bright_blue(),

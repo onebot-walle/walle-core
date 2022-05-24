@@ -83,6 +83,48 @@ pub enum NoticeContent {
         #[serde(flatten)]
         extra: ExtendedMap,
     },
+    GuildMemberIncrease {
+        sub_type: String,
+        guild_id: String,
+        user_id: String,
+        operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
+    GuildMemberDecrease {
+        sub_type: String,
+        guild_id: String,
+        user_id: String,
+        operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
+    ChannelMessageDelete {
+        sub_type: String,
+        guild_id: String,
+        channel_id: String,
+        user_id: String,
+        operator_id: String,
+        message_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
+    ChannelCreate {
+        sub_type: String,
+        guild_id: String,
+        channel_id: String,
+        operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
+    ChannelDelete {
+        sub_type: String,
+        guild_id: String,
+        channel_id: String,
+        operator_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
+    },
 }
 
 impl NoticeContent {
@@ -98,6 +140,11 @@ impl NoticeContent {
             Self::FriendIncrease { .. } => "friend_increase",
             Self::FriendDecrease { .. } => "friend_decrease",
             Self::PrivateMessageDelete { .. } => "private_message_delete",
+            Self::GuildMemberIncrease { .. } => "guild_member_increase",
+            Self::GuildMemberDecrease { .. } => "guild_member_decrease",
+            Self::ChannelMessageDelete { .. } => "channel_message_delete",
+            Self::ChannelCreate { .. } => "channel_create",
+            Self::ChannelDelete { .. } => "channel_delete",
         }
     }
 }

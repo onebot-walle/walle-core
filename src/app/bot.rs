@@ -116,6 +116,8 @@ where
         detail_type: String,
         group_id: Option<String>,
         user_id: Option<String>,
+        guild_id: Option<String>,
+        channel_id: Option<String>,
         message: Message
     );
     exts!(
@@ -203,6 +205,60 @@ where
         Resp<ExtendedValue>,
         group_id: String,
         user_id: String
+    );
+    exts!(
+        get_guild_info_ex,
+        GetGuildInfo,
+        Resp<GuildInfoContent>,
+        guild_id: String
+    );
+    exts!(get_guild_list_ex, GetGuildList, Resp<Vec<GuildInfoContent>>);
+    exts!(
+        get_channel_info_ex,
+        GetChannelInfo,
+        Resp<ChannelInfoContent>,
+        guild_id: String,
+        channel_id: String
+    );
+    exts!(
+        get_channel_list_ex,
+        GetChannelList,
+        Resp<Vec<ChannelInfoContent>>,
+        guild_id: String
+    );
+    exts!(
+        get_guild_member_info_ex,
+        GetGuildMemberInfo,
+        Resp<UserInfoContent>,
+        guild_id: String,
+        user_id: String
+    );
+    exts!(
+        get_guild_member_list_ex,
+        GetGuildMemberList,
+        Resp<Vec<UserInfoContent>>,
+        guild_id: String
+    );
+    exts!(
+        set_guild_name_ex,
+        SetGuildName,
+        Resp<ExtendedValue>,
+        guild_id: String,
+        guild_name: String
+    );
+    exts!(
+        set_channel_name_ex,
+        SetChannelName,
+        Resp<ExtendedValue>,
+        guild_id: String,
+        channel_id: String,
+        channel_name: String
+    );
+    exts!(
+        leave_guild_ex,
+        LeaveGuild,
+        Resp<ExtendedValue>,
+        guild_id: String
     );
     exts!(
         upload_file_ex,

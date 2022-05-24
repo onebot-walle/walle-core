@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::extra_struct;
 use crate::{action::UploadFile, ExtendedMap, ExtendedValue, StandardEvent};
 
 /// ## OneBot 12 标准动作响应
@@ -35,6 +36,10 @@ pub enum RespContent<E> {
     FriendList(Vec<UserInfoContent>),
     GroupInfo(GroupInfoContent),
     GroupList(Vec<GroupInfoContent>),
+    GuildInfo(GuildInfoContent),
+    GuildList(Vec<GuildInfoContent>),
+    ChannelInfo(ChannelInfoContent),
+    ChannelList(Vec<ChannelInfoContent>),
     FileId(FileIdContent),
     PrepareFileFragmented(FileFragmentedHead),
     TransferFileFragmented(Vec<u8>),
@@ -103,6 +108,10 @@ resp_content!(FileFragmentedHead, PrepareFileFragmented);
 resp_content!(Vec<u8>, TransferFileFragmented);
 resp_content!(UploadFile, GetFile);
 resp_content!(ExtendedValue, Other);
+resp_content!(GuildInfoContent, GuildInfo);
+resp_content!(Vec<GuildInfoContent>, GuildList);
+resp_content!(ChannelInfoContent, ChannelInfo);
+resp_content!(Vec<ChannelInfoContent>, ChannelList);
 
 impl<T> Resp<T> {
     #[allow(dead_code)]
@@ -243,6 +252,9 @@ pub struct FileFragmentedHead {
     #[serde(flatten)]
     pub extra: ExtendedMap,
 }
+
+extra_struct!(GuildInfoContent, guild_id: String, guild_name: String);
+extra_struct!(ChannelInfoContent, channel_id: String, channel_name: String);
 
 pub struct RespError {
     pub code: u32,

@@ -1,4 +1,4 @@
-use crate::{message::MSVistor, ExtendedMap};
+use crate::{extra_struct, message::MSVistor, ExtendedMap};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 #[cfg(feature = "app")]
@@ -40,6 +40,17 @@ pub enum StandardAction {
     UnbanGroupMember(UnbanGroupMember),
     SetGroupAdmin(SetGroupAdmin),
     UnsetGroupAdmin(UnsetGroupAdmin),
+
+    // guild action
+    GetGuildInfo(GetGuildInfo),
+    GetGuildList(ExtendedMap),
+    GetChannelInfo(GetChannelInfo),
+    GetChannelList(GetChannelList),
+    GetGuildMemberInfo(GetGuildMemberInfo),
+    GetGuildMemberList(GetGuildMemberList),
+    SetGuildName(SetGuildName),
+    SetChannelName(SetChannelName),
+    LeaveGuild(LeaveGuild),
 
     // file
     UploadFile(UploadFile),
@@ -87,6 +98,8 @@ pub struct SendMessage {
     pub detail_type: String,
     pub group_id: Option<String>,
     pub user_id: Option<String>,
+    pub guild_id: Option<String>,
+    pub channel_id: Option<String>,
     #[serde(deserialize_with = "deserialize_message")]
     pub message: crate::Message,
     #[serde(flatten)]
@@ -135,32 +148,6 @@ where
     deserializer.deserialize_any(MessageVisitor)
 }
 
-/// 定义 action strcut
-///
-/// ```rust
-/// onebot_action!(DeleteMessage, message_id: String);
-/// ```
-/// generate code:
-/// ```rust
-/// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-/// pub struct DeleteMessage {
-///     pub message_id: String,
-///     #[serde(flatten)]
-///     pub extra: ExtendedMap,
-/// }
-/// ```
-#[macro_export]
-macro_rules! onebot_action {
-    ($action_name: ident, $($field_name: ident: $field_ty: ty),*) => {
-        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-        pub struct $action_name {
-            $(pub $field_name: $field_ty,)*
-            #[serde(flatten)]
-            pub extra: ExtendedMap,
-        }
-    };
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GetLatestEvents {
     #[serde(default)]
@@ -171,20 +158,32 @@ pub struct GetLatestEvents {
     pub extra: ExtendedMap,
 }
 // onebot_action!(GetLatestEvents, limit: i64, timeout: i64);
-onebot_action!(DeleteMessage, message_id: String);
-onebot_action!(GetMessage, message_id: String);
-onebot_action!(GetUserInfo, user_id: String);
-onebot_action!(GetGroupInfo, group_id: String);
-onebot_action!(GetGroupMemberList, group_id: String);
-onebot_action!(LeaveGroup, group_id: String);
-onebot_action!(GetGroupMemberInfo, group_id: String, user_id: String);
-onebot_action!(KickGroupMember, group_id: String, user_id: String);
-onebot_action!(BanGroupMember, group_id: String, user_id: String);
-onebot_action!(UnbanGroupMember, group_id: String, user_id: String);
-onebot_action!(SetGroupAdmin, group_id: String, user_id: String);
-onebot_action!(UnsetGroupAdmin, group_id: String, user_id: String);
-onebot_action!(SetGroupName, group_id: String, group_name: String);
-onebot_action!(
+extra_struct!(DeleteMessage, message_id: String);
+extra_struct!(GetMessage, message_id: String);
+extra_struct!(GetUserInfo, user_id: String);
+extra_struct!(GetGroupInfo, group_id: String);
+extra_struct!(GetGroupMemberList, group_id: String);
+extra_struct!(LeaveGroup, group_id: String);
+extra_struct!(GetGroupMemberInfo, group_id: String, user_id: String);
+extra_struct!(KickGroupMember, group_id: String, user_id: String);
+extra_struct!(BanGroupMember, group_id: String, user_id: String);
+extra_struct!(UnbanGroupMember, group_id: String, user_id: String);
+extra_struct!(SetGroupAdmin, group_id: String, user_id: String);
+extra_struct!(UnsetGroupAdmin, group_id: String, user_id: String);
+extra_struct!(SetGroupName, group_id: String, group_name: String);
+extra_struct!(GetChannelInfo, guild_id: String, channel_id: String);
+extra_struct!(GetChannelList, guild_id: String);
+extra_struct!(GetGuildMemberInfo, guild_id: String, user_id: String);
+extra_struct!(GetGuildMemberList, guild_id: String);
+extra_struct!(SetGuildName, guild_id: String, guild_name: String);
+extra_struct!(
+    SetChannelName,
+    guild_id: String,
+    channel_id: String,
+    channel_name: String
+);
+extra_struct!(LeaveGuild, guild_id: String);
+extra_struct!(
     UploadFile,
     r#type: String,
     name: String,
@@ -194,7 +193,8 @@ onebot_action!(
     data: Option<Vec<u8>>,
     sha256: Option<String>
 );
-onebot_action!(GetFile, file_id: String, r#type: String);
+extra_struct!(GetFile, file_id: String, r#type: String);
+extra_struct!(GetGuildInfo, guild_id: String);
 
 /// Action content for UploadFileFragmented
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -279,6 +279,15 @@ macro_rules! onebot_action_ext {
             UnbanGroupMember(walle_core::action::UnbanGroupMember),
             SetGroupAdmin(walle_core::action::SetGroupAdmin),
             UnsetGroupAdmin(walle_core::action::UnsetGroupAdmin),
+            GetGuildInfo(walle_core::action::GetGuildInfo),
+            GetGuildList(walle_core::ExtendedMap),
+            GetGuildMemberInfo(walle_core::action::GetGuildMemberInfo),
+            GetGuildMemberList(walle_core::action::GetGuildMemberList),
+            SetGuildName(walle_core::action::SetGuildName),
+            LeaveGuild(walle_core::action::LeaveGuild),
+            GetChannelInfo(walle_core::action::GetChannelInfo),
+            GetChannelList(walle_core::action::GetChannelList),
+            SetChannelName(walle_core::action::SetChannelName),
             UploadFile(walle_core::action::UploadFile),
             UploadFileFragmented(walle_core::action::UploadFileFragmented),
             GetFile(walle_core::action::GetFile),
@@ -310,6 +319,15 @@ macro_rules! onebot_action_ext {
                     walle_core::StandardAction::UnbanGroupMember(action) => $ext_name::UnbanGroupMember(action),
                     walle_core::StandardAction::SetGroupAdmin(action) => $ext_name::SetGroupAdmin(action),
                     walle_core::StandardAction::UnsetGroupAdmin(action) => $ext_name::UnsetGroupAdmin(action),
+                    walle_core::StandardAction::GetGuildInfo(action) => $ext_name::GetGuildInfo(action),
+                    walle_core::StandardAction::GetGuildList(action) => $ext_name::GetGuildList(action),
+                    walle_core::StandardAction::GetGuildMemberInfo(action) => $ext_name::GetGuildMemberInfo(action),
+                    walle_core::StandardAction::GetGuildMemberList(action) => $ext_name::GetGuildMemberList(action),
+                    walle_core::StandardAction::SetGuildName(action) => $ext_name::SetGuildName(action),
+                    walle_core::StandardAction::LeaveGuild(action) => $ext_name::LeaveGuild(action),
+                    walle_core::StandardAction::GetChannelInfo(action) => $ext_name::GetChannelInfo(action),
+                    walle_core::StandardAction::GetChannelList(action) => $ext_name::GetChannelList(action),
+                    walle_core::StandardAction::SetChannelName(action) => $ext_name::SetChannelName(action),
                     walle_core::StandardAction::UploadFile(action) => $ext_name::UploadFile(action),
                     walle_core::StandardAction::UploadFileFragmented(action) => $ext_name::UploadFileFragmented(action),
                     walle_core::StandardAction::GetFile(action) => $ext_name::GetFile(action),

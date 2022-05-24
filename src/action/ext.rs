@@ -112,6 +112,8 @@ pub trait BotActionExt<R>: Sync {
         detail_type: String,
         group_id: Option<String>,
         user_id: Option<String>,
+        guild_id: Option<String>,
+        channel_id: Option<String>,
         message: Message
     );
     exts!(
@@ -205,6 +207,64 @@ pub trait BotActionExt<R>: Sync {
         user_id: String
     );
     exts!(
+        get_guild_info_ex,
+        get_guild_info,
+        Resp<GuildInfoContent>,
+        guild_id: String
+    );
+    exts!(
+        get_guild_list_ex,
+        get_guild_list,
+        Resp<Vec<GuildInfoContent>>
+    );
+    exts!(
+        get_channel_info_ex,
+        get_channel_info,
+        Resp<ChannelInfoContent>,
+        guild_id: String,
+        channel_id: String
+    );
+    exts!(
+        get_channel_list_ex,
+        get_channel_list,
+        Resp<Vec<ChannelInfoContent>>,
+        guild_id: String
+    );
+    exts!(
+        get_guild_member_info_ex,
+        get_guild_member_info,
+        Resp<UserInfoContent>,
+        guild_id: String,
+        user_id: String
+    );
+    exts!(
+        get_guild_member_list_ex,
+        get_guild_member_list,
+        Resp<Vec<UserInfoContent>>,
+        guild_id: String
+    );
+    exts!(
+        set_guild_name_ex,
+        set_guild_name,
+        Resp<ExtendedValue>,
+        guild_id: String,
+        guild_name: String
+    );
+    exts!(
+        set_channel_name_ex,
+        set_channel_name,
+        Resp<ExtendedValue>,
+        guild_id: String,
+        channel_id: String,
+        channel_name: String
+    );
+    exts!(
+        leave_guild_ex,
+        leave_guild,
+        Resp<ExtendedValue>,
+        guild_id: String
+    );
+    exts!(
         upload_file_ex,
         upload_file,
         Resp<FileIdContent>,
@@ -234,7 +294,15 @@ pub trait BotActionExt<R>: Sync {
         Self: 'b,
         Resp<SendMessageRespContent>: TryFrom<R>,
     {
-        self.send_message_ex("private".to_string(), None, Some(user_id), message, extra)
+        self.send_message_ex(
+            "private".to_string(),
+            None,
+            Some(user_id),
+            None,
+            None,
+            message,
+            extra,
+        )
     }
     exts_noex!(
         send_private_msg_ex,
@@ -254,7 +322,15 @@ pub trait BotActionExt<R>: Sync {
         Self: 'b,
         Resp<SendMessageRespContent>: TryFrom<R>,
     {
-        self.send_message_ex("group".to_string(), Some(group_id), None, message, extra)
+        self.send_message_ex(
+            "group".to_string(),
+            Some(group_id),
+            None,
+            None,
+            None,
+            message,
+            extra,
+        )
     }
     exts_noex!(
         send_group_msg_ex,
