@@ -339,6 +339,36 @@ pub trait BotActionExt<R>: Sync {
         group_id: String,
         message: Message
     );
+    fn send_channel_msg_ex<'a, 'b>(
+        &'a self,
+        guild_id: String,
+        channel_id: String,
+        message: Message,
+        extra: ExtendedMap,
+    ) -> Pbfr<'b, Resp<SendMessageRespContent>>
+    where
+        'a: 'b,
+        Self: 'b,
+        Resp<SendMessageRespContent>: TryFrom<R>,
+    {
+        self.send_message_ex(
+            "channel".to_string(),
+            None,
+            None,
+            Some(guild_id),
+            Some(channel_id),
+            message,
+            extra,
+        )
+    }
+    exts_noex!(
+        send_channel_msg_ex,
+        send_channel_msg,
+        Resp<SendMessageRespContent>,
+        guild_id: String,
+        channel_id: String,
+        message: Message
+    );
     fn upload_file_by_url_ex<'a, 'b>(
         &'a self,
         name: String,
