@@ -1,5 +1,5 @@
 use crate::handle::ActionHandler;
-use crate::resp::resp_error_builder;
+use crate::resp::error_builder;
 use crate::{impls::CustomOneBot, Echo, WalleError, WalleResult};
 use crate::{ExtendedMap, ProtocolItem};
 use colored::*;
@@ -111,7 +111,7 @@ where
             if msg.starts_with("missing field") {
                 echo_s.pack(crate::Resps::empty_fail(10006, msg))
             } else {
-                echo_s.pack(resp_error_builder::unsupported_action().into())
+                echo_s.pack(error_builder::unsupported_action().into())
             }
         };
 

@@ -10,7 +10,7 @@ use tracing::info;
 
 use crate::handle::ActionHandler;
 use crate::impls::CustomOneBot;
-use crate::resp::resp_error_builder;
+use crate::resp::error_builder;
 use crate::utils::ContentType;
 use crate::utils::Echo;
 use crate::Resps;
@@ -107,7 +107,7 @@ where
                             if e.starts_with("missing field") {
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
-                                resp_error_builder::unsupported_action().into()
+                                error_builder::unsupported_action().into()
                             },
                             &content_type,
                         )),

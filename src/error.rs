@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::resp::RespError;
+
 pub type WalleResult<T> = Result<T, WalleError>;
 
 #[derive(Error, Debug)]
@@ -26,4 +28,6 @@ pub enum WalleError {
     /// Resp
     #[error("RespMissmatch")]
     RespMissmatch, //todo
+    #[error("{0:?}")]
+    RespError(RespError),
 }

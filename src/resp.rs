@@ -139,15 +139,24 @@ where
     pub fn empty_fail(retcode: u32, message: String) -> Self {
         Self::fail(T::from(ExtendedValue::empty_map()), retcode, message)
     }
+}
 
-    pub fn as_result(self) -> Result<Self, RespError<T>> {
+pub trait RespStatusExt {
+    type Error;
+    fn as_result(self) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}
+
+impl<T> RespStatusExt for Resp<T> {
+    type Error = RespError;
+    fn as_result(self) -> Result<Self, RespError> {
         if self.status == "ok" {
             Ok(self)
         } else {
             Err(RespError {
                 code: self.retcode,
                 message: self.message,
-                data: self.data,
             })
         }
     }
@@ -235,38 +244,35 @@ pub struct FileFragmentedHead {
     pub extra: ExtendedMap,
 }
 
-pub struct RespError<T> {
+pub struct RespError {
     pub code: u32,
     pub message: String,
-    pub data: T,
 }
 
-impl<T> std::fmt::Debug for RespError<T> {
+impl std::fmt::Debug for RespError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "RespError[{}]: {}", self.code, self.message)
     }
 }
 
-impl<T> From<RespError<T>> for Resp<T> {
-    fn from(err: RespError<T>) -> Self {
-        Resp::fail(err.data.into(), err.code, err.message)
+impl<T> From<RespError> for Resp<T>
+where
+    T: From<ExtendedValue>,
+{
+    fn from(err: RespError) -> Self {
+        Resp::fail(ExtendedValue::Null.into(), err.code, err.message)
     }
 }
 
-pub mod resp_error_builder {
+pub mod error_builder {
     use super::RespError;
-    use crate::ExtendedValue;
     #[macro_export]
     macro_rules! error_type {
         ($name: ident, $retcode: expr, $message: expr) => {
-            pub fn $name<T>() -> RespError<T>
-            where
-                T: From<ExtendedValue>,
-            {
+            pub fn $name() -> RespError {
                 RespError {
                     code: $retcode,
                     message: $message.to_owned(),
-                    data: ExtendedValue::Null.into(),
                 }
             }
         };
@@ -283,5 +289,9 @@ pub mod resp_error_builder {
     error_type!(bad_handler, 20001, "动作处理器实现错误");
     error_type!(internal_handler, 20002, "动作处理器运行时抛出异常");
 
+    error_type!(database_error, 31000, "数据库错误");
+    error_type!(filesystem_error, 32000, "文件系统错误");
+    error_type!(network_error, 33000, "网络错误");
+    error_type!(platform_error, 34000, "机器人平台错误");
     error_type!(tired, 36000, "I Am Tired!");
 }

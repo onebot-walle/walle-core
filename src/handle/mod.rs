@@ -5,7 +5,7 @@ use std::{fmt::Debug, sync::Arc};
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
 use crate::{
-    resp::{resp_error_builder, StandardResps},
+    resp::{error_builder, StandardResps},
     StandardAction, StandardEvent,
 };
 
@@ -90,7 +90,7 @@ impl<E, const V: u8>
 where
     E: Send,
 {
-    type Error = crate::resp::RespError<crate::resp::StandardRespContent>;
+    type Error = crate::resp::RespError;
     async fn handle(
         &self,
         action: crate::StandardAction,
@@ -111,7 +111,7 @@ where
             StandardAction::GetVersion(_) => {
                 Ok(Resp::success(RespContent::Version(get_version().await)))
             }
-            _ => Err(resp_error_builder::unsupported_action()),
+            _ => Err(error_builder::unsupported_action()),
         }
     }
 }
