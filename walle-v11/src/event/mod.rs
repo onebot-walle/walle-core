@@ -44,6 +44,10 @@ pub enum MessageSub {
         group_id: i64,
         sender: crate::utils::GroupSender,
     },
+    Guild {
+        guild_id: String,
+        channel_id: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -142,7 +146,7 @@ pub enum RequestContent {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "meta_event_type")]
 #[serde(rename_all = "snake_case")]
 pub enum MetaContent {

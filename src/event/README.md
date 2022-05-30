@@ -38,10 +38,10 @@ EventContent 为一个标准的（无扩展的） content 枚举。
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum EventContent {
-    Meta(Meta),
-    Message(Message),
-    Notice(Notice),
-    Request(Request),
+    Meta(MetaContent),
+    Message(MessageContent<MessageEventDetail>),
+    Notice(NoticeContent),
+    Request(RequestContent),
 }
 ```
 
@@ -51,7 +51,7 @@ EventContent 使用 type 字段区分不同的类型，因此符合 Onebot 的�
 > ```rust
 > /// OneBot 12 标准事件
 > pub type Event = BaseEvent<EventContent>;
-> pub type MessageEvent = BaseEvent<MessageContent>;
+> pub type MessageEvent = BaseEvent<MessageContent<MessageEventDetail>>;
 > pub type NoticeEvent = BaseEvent<NoticeContent>;
 > pub type RequestEvent = BaseEvent<RequestContent>;
 > pub type MetaEvent = BaseEvent<MetaContent>;
@@ -62,12 +62,19 @@ EventContent 使用 type 字段区分不同的类型，因此符合 Onebot 的�
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
-pub enum YourExtendedMeta<T> {
-    Standard(Meta),
-    Extended(T),
+pub enum ExtendedMeta {
+    Standard(MetaContent),
+    Extended(<YourMetaContent>),
+}
+
+// or
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum ExtendedEventContent {
+    Standard(EventContent),
+    Extended(<YourEventContent>),
 }
 ```
 
-其中 T 为你自己定义的扩展事件。
-
-当然，你也可以自由定义 Content 枚举( 并不建议怎么做 )。
+当然，你也可以自由定义 Content 枚举，甚至 BaseEvent ( 并不建议怎么做 )。

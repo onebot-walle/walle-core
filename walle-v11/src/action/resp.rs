@@ -6,7 +6,7 @@ use crate::message::Message;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Resp {
     pub status: String,
-    pub retcode: i64,
+    pub retcode: u32,
     pub data: RespContent,
 }
 
@@ -48,6 +48,6 @@ pub enum RespContent {
 
 impl RespContent {
     pub fn empty() -> Self {
-        Self::Other(ExtendedValue::empty())
+        Self::Other(ExtendedValue::Null)
     }
 }

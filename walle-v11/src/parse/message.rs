@@ -71,7 +71,7 @@ impl TryFrom<v11MsgSeg> for v12MsgSeg {
         match seg {
             v11MsgSeg::Text { text } => Ok(v12MsgSeg::Text {
                 text,
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::Face { file } => Ok(v12MsgSeg::Custom {
                 ty: "face".to_owned(),
@@ -80,15 +80,15 @@ impl TryFrom<v11MsgSeg> for v12MsgSeg {
             v11MsgSeg::Image { file } => Ok(image_11_to_12(file)),
             v11MsgSeg::Record { file } => Ok(v12MsgSeg::Voice {
                 file_id: file,
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::Video { file } => Ok(v12MsgSeg::Video {
                 file_id: file,
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::At { qq } => Ok(v12MsgSeg::Mention {
                 user_id: qq,
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::Rps { value } => Ok(v12MsgSeg::Custom {
                 ty: "rps".to_owned(),
@@ -132,7 +132,7 @@ impl TryFrom<v11MsgSeg> for v12MsgSeg {
                 longitude: lon.parse().unwrap(),
                 title: title.unwrap_or_default(),
                 content: content.unwrap_or_default(),
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::Music { ty, id } => Ok(v12MsgSeg::Custom {
                 ty: format!("music.{}", ty),
@@ -141,7 +141,7 @@ impl TryFrom<v11MsgSeg> for v12MsgSeg {
             v11MsgSeg::Reply { id } => Ok(v12MsgSeg::Reply {
                 message_id: id,
                 user_id: "".to_owned(),
-                extend: ExtendedMap::default(),
+                extra: ExtendedMap::default(),
             }),
             v11MsgSeg::Json { data } => Ok(v12MsgSeg::Custom {
                 ty: "json".to_owned(),
@@ -168,7 +168,7 @@ pub fn try_remove_from_extra_map<T>(
 where
     T: TryFrom<ExtendedValue, Error = ExtendedValue>,
 {
-    use walle_core::{ExtendedMapExt, WalleError};
+    use walle_core::WalleError;
     map.try_remove(key).map_err(|e| match e {
         WalleError::MapMissedKey(k) => WalleParseError::MsgSegMissedField(ty.to_string(), k),
         WalleError::MapValueTypeMismatch(e, g) => {
@@ -198,12 +198,12 @@ fn image_11_to_12(file_id: String) -> v12MsgSeg {
     {
         v12MsgSeg::Image {
             file_id: file_id.to_string(),
-            extend: [("url".to_string(), file_id.into())].into(),
+            extra: [("url".to_string(), file_id.into())].into(),
         }
     } else {
         v12MsgSeg::Image {
             file_id,
-            extend: ExtendedMap::default(),
+            extra: ExtendedMap::default(),
         }
     }
 }

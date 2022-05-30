@@ -8,8 +8,8 @@ use crate::{
 };
 use std::str::FromStr;
 use walle_core::{
-    EventContent as v12Content, ExtendedMap, MessageAlt, MessageEventType, MetaContent as v12Meta,
-    StandardEvent as v12Event,
+    EventContent as v12Content, ExtendedMap, MessageAlt, MessageEventDetail,
+    MetaContent as v12Meta, StandardEvent as v12Event,
 };
 
 use super::WalleParseError;
@@ -33,8 +33,8 @@ impl TryFrom<v12Event> for v11Event {
                         message,
                         font: 0,
                         sub_type: "".to_owned(),
-                        sub: match msg.ty {
-                            MessageEventType::Private => MessageSub::Private {
+                        sub: match msg.detail {
+                            MessageEventDetail::Private { .. } => MessageSub::Private {
                                 sender: {
                                     let mut sender = PrivateSender::default();
                                     sender.user_id = i64::from_str(&msg.user_id)
@@ -42,7 +42,7 @@ impl TryFrom<v12Event> for v11Event {
                                     sender
                                 },
                             },
-                            MessageEventType::Group { group_id } => MessageSub::Group {
+                            MessageEventDetail::Group { group_id, .. } => MessageSub::Group {
                                 group_id: i64::from_str(&group_id)
                                     .map_err(|e| WalleParseError::Id(e))?,
                                 sender: {
@@ -51,6 +51,14 @@ impl TryFrom<v12Event> for v11Event {
                                         .map_err(|e| WalleParseError::Id(e))?;
                                     sender
                                 },
+                            },
+                            MessageEventDetail::Channel {
+                                guild_id,
+                                channel_id,
+                                ..
+                            } => MessageSub::Guild {
+                                guild_id,
+                                channel_id,
                             },
                         },
                         extend_data: ExtendedMap::default(),

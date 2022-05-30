@@ -6,6 +6,7 @@ use walle_core::{
         SendMessage,
     },
     ExtendedMap, RespContent as V12RespContent, Resps as V12Resps, StandardAction as V12Action,
+    StandardEvent as V12Event,
 };
 
 impl TryFrom<V12Action> for V11Action {
@@ -31,6 +32,8 @@ impl TryFrom<V11Action> for V12Action {
                 detail_type: message_type,
                 user_id: user_id.map(|id| id.to_string()),
                 group_id: group_id.map(|id| id.to_string()),
+                guild_id: None,
+                channel_id: None,
                 message: message.try_parse()?,
                 extra: [].into(),
             }
@@ -41,6 +44,8 @@ impl TryFrom<V11Action> for V12Action {
                 detail_type: "private".to_string(),
                 user_id: Some(user_id.to_string()),
                 group_id: None,
+                guild_id: None,
+                channel_id: None,
                 message: message.try_parse()?,
                 extra: [].into(),
             }
@@ -51,6 +56,8 @@ impl TryFrom<V11Action> for V12Action {
                 detail_type: "group".to_string(),
                 user_id: None,
                 group_id: Some(group_id.to_string()),
+                guild_id: None,
+                channel_id: None,
                 message: message.try_parse()?,
                 extra: [].into(),
             }
@@ -91,8 +98,8 @@ impl TryFrom<V11Action> for V12Action {
     }
 }
 
-impl From<V12Resps> for V11Resp {
-    fn from(value: V12Resps) -> Self {
+impl From<V12Resps<V12Event>> for V11Resp {
+    fn from(value: V12Resps<V12Event>) -> Self {
         Self {
             status: value.status,
             retcode: value.retcode,
@@ -113,7 +120,7 @@ impl From<V12Resps> for V11Resp {
     }
 }
 
-impl From<V11Resp> for V12Resps {
+impl From<V11Resp> for V12Resps<V12Event> {
     fn from(_resp: V11Resp) -> Self {
         todo!();
     }
