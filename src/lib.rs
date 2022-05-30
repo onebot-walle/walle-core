@@ -43,6 +43,6 @@ pub use handle::{ActionHandler, DefaultHandler};
 pub use hooks::*;
 pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
 pub use resp::{Resp, RespContent, Resps, StandardResps};
-pub use utils::{ExtendedMap, ExtendedMapExt, ExtendedValue, SelfId};
+pub use utils::{ColoredAlt, ExtendedMap, ExtendedMapExt, ExtendedValue, SelfId};
 
 pub use async_trait::async_trait;
