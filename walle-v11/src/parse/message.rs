@@ -1,6 +1,6 @@
 use super::WalleParseError;
 use crate::message::MessageSegment as v11MsgSeg;
-use walle_core::{ExtendedMap, ExtendedValue, MessageSegment as v12MsgSeg};
+use walle_core::{ExtendedMap, ExtendedMapExt, ExtendedValue, MessageSegment as v12MsgSeg};
 
 impl TryFrom<v12MsgSeg> for v11MsgSeg {
     type Error = super::WalleParseError;
