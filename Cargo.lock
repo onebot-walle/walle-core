@@ -1143,28 +1143,6 @@ dependencies = [
 
 [[package]]
 name = "walle-core"
-version = "0.4.0-beta.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e50cf9fb5b199df747ad03f711190735a96aae191fad5983a2bb861329020d98"
-dependencies = [
- "async-trait",
- "colored",
- "futures-util",
- "hex",
- "hyper",
- "rmp-serde",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "walle-core"
 version = "0.4.0-beta.4"
 dependencies = [
  "async-trait",
@@ -1185,8 +1163,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "walle-core"
+version = "0.4.0-beta.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f28fde55c9a8efb6fffc137a9e7f27a7cc8f2ec287ffbe9a8697407778bcaf29"
+dependencies = [
+ "async-trait",
+ "colored",
+ "futures-util",
+ "hex",
+ "hyper",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "walle-v11"
-version = "0.4.0-beta.1"
+version = "0.4.0-beta.2"
 dependencies = [
  "async-trait",
  "colored",
@@ -1198,7 +1198,7 @@ dependencies = [
  "tokio-tungstenite",
  "tracing",
  "tracing-subscriber",
- "walle-core 0.4.0-beta.2",
+ "walle-core 0.4.0-beta.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

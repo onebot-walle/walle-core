@@ -51,3 +51,13 @@ impl RespContent {
         Self::Other(ExtendedValue::Null)
     }
 }
+
+impl From<walle_core::resp::RespError> for Resp {
+    fn from(e: walle_core::resp::RespError) -> Self {
+        Self {
+            status: "failed".to_string(),
+            retcode: e.code,
+            data: RespContent::Other(ExtendedValue::Str(e.message)),
+        }
+    }
+}

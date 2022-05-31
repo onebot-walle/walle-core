@@ -1,4 +1,4 @@
-use walle_core::{AppConfig, WebSocketClient};
+use walle_core::config::{AppConfig, WebSocketClient};
 use walle_v11::DefaultHandler;
 
 #[tokio::main]
