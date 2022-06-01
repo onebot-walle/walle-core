@@ -43,8 +43,9 @@ pub use handle::{ActionHandler, DefaultHandler};
 pub use hooks::*;
 pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
 pub use resp::{Resp, RespContent, Resps, StandardResps};
-pub use utils::{
-    timestamp_nano_f64, ColoredAlt, ExtendedMap, ExtendedMapExt, ExtendedValue, SelfId,
-};
+#[cfg(all(feature = "websocket", feature = "impl"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "websocket", feature = "impl"))))]
+pub use utils::timestamp_nano_f64;
+pub use utils::{ColoredAlt, ExtendedMap, ExtendedMapExt, ExtendedValue, SelfId};
 
 pub use async_trait::async_trait;

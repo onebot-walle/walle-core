@@ -8,6 +8,7 @@
 - Bot Api 变更为 BotActionExt trait 重新重构实现
 - 添加 RespError 和 RespStatusExt trait
 - rfc #154 添加两级群组支持
+- 添加 extended macros
 
 # 0.3.1
 

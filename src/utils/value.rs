@@ -49,6 +49,12 @@ impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
 impl_from!(Bytes, Vec<u8>);
 
+impl From<&[u8]> for ExtendedValue {
+    fn from(v: &[u8]) -> Self {
+        ExtendedValue::Bytes(v.to_vec())
+    }
+}
+
 impl From<&str> for ExtendedValue {
     fn from(v: &str) -> Self {
         ExtendedValue::Str(v.to_owned())
@@ -213,6 +219,10 @@ macro_rules! downcast_fn {
 
 #[allow(dead_code)]
 impl ExtendedValue {
+    pub fn from_value<T: Into<ExtendedValue>>(t: T) -> ExtendedValue {
+        t.into()
+    }
+
     pub fn empty_map() -> Self {
         Self::Map(ExtendedMap::default())
     }
@@ -327,4 +337,111 @@ impl ExtendedMapExt for ExtendedMap {
             WalleError::MapValueTypeMismatch(std::any::type_name::<T>().to_string(), msg)
         })
     }
+}
+
+#[macro_export]
+macro_rules! extended_value {
+    (null) => {
+        $crate::ExtendedValue::Null
+    };
+    ([$($tt:tt)*]) => {
+        $crate::ExtendedValue::List(extended_vec![$($tt)*])
+    };
+    ({$($tt:tt)*}) => {
+        $crate::ExtendedValue::Map(extended_map!{$($tt)*})
+    };
+    ($s:expr) => {
+        $crate::ExtendedValue::from_value($s.to_owned())
+    };
+}
+
+#[macro_export]
+macro_rules! extended_vec {
+    (@internal [$($elems:expr),*]) => {
+        vec![$($elems),*]
+    };
+    (@internal [$($elems: expr,)*] null $($rest:tt)*) => {
+        extended_vec![@internal [$($elems,)* ExtendedValue::Null] $($rest)*]
+    };
+    (@internal [$($elems: expr,)*] [$($vec: tt)*] $($rest:tt)*) => {
+        extended_vec![@internal [$($elems,)* extended_value!([$($vec)*])] $($rest)*]
+    };
+    (@internal [$($elems: expr,)*] {$($map: tt)*} $($rest:tt)*) => {
+        extended_vec![@internal [$($elems,)* extended_value!({$($map)*})] $($rest)*]
+    };
+    (@internal [$($elems: expr,)*] $t:expr, $($rest:tt)*) => {
+        extended_vec![@internal [$($elems,)* extended_value!($t),] $($rest)*]
+    };
+    (@internal [$($elems: expr,)*] $t:expr) => {
+        extended_vec![@internal [$($elems,)* extended_value!($t)]]
+    };
+    (@internal [$($elems:expr),*] , $($rest:tt)*) => {
+        extended_vec![@internal [$($elems,)*] $($rest)*]
+    };
+    [$($tt: tt)*] => {
+        extended_vec!(@internal [] $($tt)*)
+    };
+}
+
+#[macro_export]
+macro_rules! extended_map {
+    (@internal $map: ident {$key: expr} {$value: tt} ($($rest: tt)*)) => {
+        let _ = $map.insert($key.into(), extended_value!($value));
+        extended_map!(@internal $map () ($($rest)*));
+    };
+    (@internal $map: ident {$key: expr} {$value: tt}) => {
+        let _ = $map.insert($key.into(), extended_value!($value));
+    };
+    (@internal $map: ident {$key: expr} (: null $($rest:tt)*)) => {
+        extended_map!(@internal $map {$key} {null} ($($rest)*));
+    };
+    (@internal $map: ident {$key: expr} (: [$($vec: tt)*] $($rest:tt)*)) => {
+        extended_map!(@internal $map {$key} {[$($vec)*]} ($($rest)*));
+    };
+    (@internal $map: ident {$key: expr} (: {$($submap: tt)*} $($rest:tt)*)) => {
+        extended_map!(@internal $map {$key} {{$($submap)*}} ($($rest)*));
+    };
+    (@internal $map: ident {$key: expr} (: $value: expr , $($rest:tt)*)) => {
+        extended_map!(@internal $map {$key} {$value} ($($rest)*));
+    };
+    (@internal $map: ident {$key: expr} (: $value: expr)) => {
+        extended_map!(@internal $map {$key} {$value});
+    };
+    (@internal $map: ident () ($key: tt: $($rest:tt)*)) => {
+        extended_map!(@internal $map {$key} (: $($rest)*));
+    };
+    (@internal $map: ident () (, $($rest: tt)*)) => {
+        extended_map!(@internal $map () ($($rest)*));
+    };
+    (@internal $map: ident () ()) => {};
+    {$($tt:tt)*} => {
+        {
+            let mut map = $crate::ExtendedMap::default();
+            extended_map!(@internal map () ($($tt)*));
+            map
+        }
+    };
+}
+
+#[test]
+fn macro_test() {
+    println!("{:?}", extended_value!(null));
+    println!(
+        "{:?}",
+        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, ExtendedValue::Bytes(vec![1, 2, 3])]
+    );
+    let a = "a";
+    println!("{:?}", extended_value!([1, "c", 3.]));
+    println!(
+        "{:?}",
+        extended_map! {
+            "a": a,
+            "b": 2,
+            "c": {
+                "d": 3,
+                "e": b"a"[..],
+                "f": null
+            }
+        }
+    );
 }
