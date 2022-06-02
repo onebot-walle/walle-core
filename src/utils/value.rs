@@ -44,6 +44,9 @@ impl_from!(Int, i64);
 impl_from!(Int, i8, i64);
 impl_from!(Int, i16, i64);
 impl_from!(Int, i32, i64);
+// impl_from!(Int, u8, i64);
+impl_from!(Int, u16, i64);
+impl_from!(Int, u32, i64);
 impl_from!(F64, f64);
 impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
@@ -345,10 +348,10 @@ macro_rules! extended_value {
         $crate::ExtendedValue::Null
     };
     ([$($tt:tt)*]) => {
-        $crate::ExtendedValue::List(extended_vec![$($tt)*])
+        $crate::ExtendedValue::List($crate::extended_vec![$($tt)*])
     };
     ({$($tt:tt)*}) => {
-        $crate::ExtendedValue::Map(extended_map!{$($tt)*})
+        $crate::ExtendedValue::Map($crate::extended_map!{$($tt)*})
     };
     ($s:expr) => {
         $crate::ExtendedValue::from_value($s.to_owned())
@@ -364,16 +367,16 @@ macro_rules! extended_vec {
         extended_vec![@internal [$($elems,)* ExtendedValue::Null] $($rest)*]
     };
     (@internal [$($elems: expr,)*] [$($vec: tt)*] $($rest:tt)*) => {
-        extended_vec![@internal [$($elems,)* extended_value!([$($vec)*])] $($rest)*]
+        extended_vec![@internal [$($elems,)* $crate::extended_value!([$($vec)*])] $($rest)*]
     };
     (@internal [$($elems: expr,)*] {$($map: tt)*} $($rest:tt)*) => {
-        extended_vec![@internal [$($elems,)* extended_value!({$($map)*})] $($rest)*]
+        extended_vec![@internal [$($elems,)* $crate::extended_value!({$($map)*})] $($rest)*]
     };
     (@internal [$($elems: expr,)*] $t:expr, $($rest:tt)*) => {
-        extended_vec![@internal [$($elems,)* extended_value!($t),] $($rest)*]
+        extended_vec![@internal [$($elems,)* $crate::extended_value!($t),] $($rest)*]
     };
     (@internal [$($elems: expr,)*] $t:expr) => {
-        extended_vec![@internal [$($elems,)* extended_value!($t)]]
+        extended_vec![@internal [$($elems,)* $crate::extended_value!($t)]]
     };
     (@internal [$($elems:expr),*] , $($rest:tt)*) => {
         extended_vec![@internal [$($elems,)*] $($rest)*]
@@ -386,11 +389,11 @@ macro_rules! extended_vec {
 #[macro_export]
 macro_rules! extended_map {
     (@internal $map: ident {$key: expr} {$value: tt} ($($rest: tt)*)) => {
-        let _ = $map.insert($key.into(), extended_value!($value));
+        let _ = $map.insert($key.into(), $crate::extended_value!($value));
         extended_map!(@internal $map () ($($rest)*));
     };
     (@internal $map: ident {$key: expr} {$value: tt}) => {
-        let _ = $map.insert($key.into(), extended_value!($value));
+        let _ = $map.insert($key.into(), $crate::extended_value!($value));
     };
     (@internal $map: ident {$key: expr} (: null $($rest:tt)*)) => {
         extended_map!(@internal $map {$key} {null} ($($rest)*));
