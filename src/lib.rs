@@ -11,7 +11,6 @@ mod handle;
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 mod hooks;
-mod message;
 mod test;
 mod utils;
 
@@ -29,6 +28,7 @@ pub mod event;
 #[cfg_attr(docsrs, doc(cfg(feature = "impl")))]
 /// 实现端相关 api
 pub mod impls;
+pub mod message;
 /// Onebot ActionResp
 pub mod resp;
 
@@ -41,7 +41,7 @@ pub use handle::{ActionHandler, DefaultHandler};
 #[cfg(feature = "websocket")]
 #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
 pub use hooks::*;
-pub use message::{Message, MessageAlt, MessageBuild, MessageSegment};
+pub use message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
 pub use resp::{Resp, RespContent, Resps, StandardResps};
 #[cfg(all(feature = "websocket", feature = "impl"))]
 #[cfg_attr(docsrs, doc(cfg(all(feature = "websocket", feature = "impl"))))]
