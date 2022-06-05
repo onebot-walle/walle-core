@@ -149,6 +149,22 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
     {
         rmp_serde::from_read(r).map_err(|e| e.to_string())
     }
+    #[cfg(feature = "http")]
+    fn to_body(self, content_type: ContentType) -> hyper::Body {
+        match content_type {
+            ContentType::Json => hyper::Body::from(self.json_encode()),
+            ContentType::MsgPack => hyper::Body::from(self.rmp_encode()),
+        }
+    }
+    #[cfg(feature = "websocket")]
+    fn to_ws_msg(self, content_type: ContentType) -> tokio_tungstenite::tungstenite::Message {
+        match content_type {
+            ContentType::Json => tokio_tungstenite::tungstenite::Message::Text(self.json_encode()),
+            ContentType::MsgPack => {
+                tokio_tungstenite::tungstenite::Message::Binary(self.rmp_encode())
+            }
+        }
+    }
 }
 
 impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
@@ -156,6 +172,7 @@ impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
 /// Onebot 协议支持的数据编码格式
 ///
 /// Json or MessagePack
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContentType {
     Json,
     MsgPack,
@@ -168,6 +185,15 @@ impl ContentType {
             "application/json" => Some(Self::Json),
             "application/msgpack" => Some(Self::MsgPack),
             _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for ContentType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Json => write!(f, "application/json"),
+            Self::MsgPack => write!(f, "application/msgpack"),
         }
     }
 }

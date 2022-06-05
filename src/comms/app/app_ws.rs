@@ -10,6 +10,7 @@ use tokio_tungstenite::tungstenite::Message as WsMsg;
 use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
+use crate::action::ActionType;
 use crate::utils::ProtocolItem;
 use crate::utils::{Echo, EchoS};
 use crate::{
@@ -20,8 +21,8 @@ use crate::{
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
-    A: ProtocolItem + Clone + Send + 'static + Debug,
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug + Sync,
+    A: ProtocolItem + Clone + Send + 'static + Debug + ActionType + Sync,
     R: ProtocolItem + Clone + Send + 'static + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
@@ -77,9 +78,9 @@ where
                 return Ok(());
             }
         };
+        let content_type = action.content_type();
         let action = echo_s.pack(action);
-        let action = action.json_encode();
-        ws_stream.send(WsMsg::Text(action)).await
+        ws_stream.send(action.to_ws_msg(content_type)).await
     }
 
     async fn ws_recv(

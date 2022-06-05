@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use crate::utils::ProtocolItem;
+use crate::{action::ActionType, utils::ProtocolItem};
 use crate::{
     config::AppConfig, handle::EventHandler, Resps, SelfId, StandardAction, StandardEvent,
     WalleError, WalleResult,
@@ -44,6 +44,7 @@ pub struct OneBot<E, A, R, H, const V: u8> {
     pub(crate) event_handler: H,
 
     running: AtomicBool,
+    phantom: std::marker::PhantomData<E>,
 }
 
 /// Arc<Bot>
@@ -74,6 +75,7 @@ where
             #[cfg(feature = "websocket")]
             #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
             ws_hooks: crate::hooks::empty_ws_hooks(),
+            phantom: Default::default(),
         }
     }
 }
@@ -116,8 +118,8 @@ impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V> {
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
-    A: ProtocolItem + Clone + Send + 'static + Debug,
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug + Sync,
+    A: ProtocolItem + Clone + Send + 'static + Debug + ActionType + Sync,
     R: ProtocolItem + Clone + Send + 'static + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
@@ -156,6 +158,9 @@ where
 
         #[cfg(feature = "http")]
         self.http(&mut joins).await;
+
+        #[cfg(feature = "http")]
+        self.http_webhook(&mut joins).await?;
 
         #[cfg(feature = "websocket")]
         self.ws(&mut joins).await;

@@ -5,22 +5,26 @@ use hyper::server::conn::Http;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response};
 use tokio::net::TcpListener;
-use tracing::info;
+use tokio::task::JoinHandle;
+use tracing::{info, warn};
 
 use crate::utils::ProtocolItem;
 use crate::{app::OneBot, handle::EventHandler, SelfId, WalleError, WalleResult};
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Send + Clone + SelfId + 'static,
+    E: ProtocolItem + Send + Clone + SelfId + 'static + Sync,
     A: ProtocolItem + Send + 'static,
     R: ProtocolItem + Send + 'static,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
-    #[allow(dead_code)]
-    pub(crate) async fn http_webhook(self: &Arc<Self>) -> WalleResult<()> {
+    pub(crate) async fn http_webhook(
+        self: &Arc<Self>,
+        joins: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()> {
         for webhook in &self.config.http_webhook {
             let ob = self.clone();
+            let ob2 = self.clone();
             let access_token = webhook.access_token.clone();
             let addr = std::net::SocketAddr::new(webhook.host, webhook.port);
             info!(
@@ -30,6 +34,7 @@ where
             let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
             let serv = service_fn(move |req: Request<Body>| {
                 let access_token = access_token.clone();
+                let ob = ob.clone();
                 async move {
                     if let Some(token) = access_token.as_ref() {
                         if let Some(header_token) = req
@@ -50,12 +55,29 @@ where
                                 .unwrap());
                         }
                     }
-                    //todo
+                    let body = String::from_utf8(
+                        hyper::body::to_bytes(req.into_body())
+                            .await
+                            .unwrap()
+                            .to_vec(),
+                    )
+                    .unwrap();
+                    match E::json_decode(&body) {
+                        Ok(e) => match ob.get_bot(&e.self_id()).await {
+                            Some(bot) => ob.event_handler.handle(bot, e).await,
+                            None => warn!(
+                                target: crate::WALLE_CORE,
+                                "Received event from unknown bot: {}",
+                                e.self_id()
+                            ),
+                        },
+                        Err(s) => warn!(target: crate::WALLE_CORE, "Webhook json error: {}", s),
+                    }
                     Ok::<Response<Body>, Infallible>(Response::new("".into()))
                 }
             });
-            tokio::spawn(async move {
-                while ob.is_running() {
+            joins.push(tokio::spawn(async move {
+                while ob2.is_running() {
                     let (tcp_stream, _) = listener.accept().await.unwrap();
                     let service = serv.clone();
                     tokio::spawn(async move {
@@ -65,7 +87,7 @@ where
                             .unwrap();
                     });
                 }
-            });
+            }));
             self.set_running();
         }
         Ok(())

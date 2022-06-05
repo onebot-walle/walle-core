@@ -4,10 +4,11 @@ use std::{fmt::Debug, time::Duration};
 use hyper::body::Buf;
 use hyper::client::HttpConnector;
 use hyper::header::CONTENT_TYPE;
-use hyper::{Body, Client as HyperClient, Method, Request};
+use hyper::{Client as HyperClient, Method, Request};
 use tokio::task::JoinHandle;
 use tracing::warn;
 
+use crate::action::ActionType;
 use crate::config::HttpClient;
 use crate::utils::ProtocolItem;
 use crate::{
@@ -18,8 +19,8 @@ use crate::{
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug,
-    A: ProtocolItem + Clone + Send + 'static + Debug,
+    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug + Sync,
+    A: ProtocolItem + Clone + Send + 'static + Debug + ActionType + Sync,
     R: ProtocolItem + Clone + Send + 'static + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
@@ -54,13 +55,13 @@ where
     ) {
         use crate::comms::utils::AuthReqHeaderExt;
         if let Some(action_tx) = action_tx {
-            let data = action.json_encode();
+            let content_type = action.content_type();
             let req = Request::builder()
                 .method(Method::POST)
                 .uri(&http.url)
-                .header(CONTENT_TYPE, "application/json")
                 .header_auth_token(&http.access_token)
-                .body(Body::from(data))
+                .header(CONTENT_TYPE, content_type.to_string())
+                .body(action.to_body(content_type))
                 .unwrap();
             let resp =
                 match tokio::time::timeout(Duration::from_secs(http.timeout), cli.request(req))

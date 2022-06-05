@@ -153,9 +153,7 @@ where
             WsMsg::Ping(b) => {
                 resp_sender.send(WsMsg::Pong(b)).unwrap();
             }
-            WsMsg::Close(_) => {
-                return true;
-            }
+            WsMsg::Close(_) => return true,
             _ => {}
         }
         false
