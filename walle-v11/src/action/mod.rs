@@ -1,6 +1,6 @@
 use crate::message::Message;
 use serde::{Deserialize, Serialize};
-use walle_core::{ExtendedMap, WalleError};
+use walle_core::ExtendedMap;
 mod resp;
 
 pub use resp::*;
@@ -125,7 +125,7 @@ pub enum Action {
 }
 
 impl walle_core::action::ActionType for Action {
-    fn content_type(&self) -> walle_core::utils::ContentType {
-        walle_core::utils::ContentType::Json
+    fn content_type(&self) -> walle_core::ContentType {
+        walle_core::ContentType::Json
     }
 }
