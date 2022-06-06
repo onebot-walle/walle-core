@@ -118,7 +118,7 @@ pub trait SelfId: Sized {
 }
 
 #[doc(hidden)]
-pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
+pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static {
     fn json_encode(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
@@ -167,7 +167,7 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> {
     }
 }
 
-impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> {}
+impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static {}
 
 /// Onebot 协议支持的数据编码格式
 ///

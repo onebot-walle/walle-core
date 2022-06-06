@@ -13,9 +13,9 @@ use crate::{app::OneBot, handle::EventHandler, SelfId, WalleError, WalleResult};
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Send + Clone + SelfId + 'static + Sync,
-    A: ProtocolItem + Send + 'static,
-    R: ProtocolItem + Send + 'static,
+    E: ProtocolItem + Clone + SelfId,
+    A: ProtocolItem,
+    R: ProtocolItem,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     pub(crate) async fn http_webhook(

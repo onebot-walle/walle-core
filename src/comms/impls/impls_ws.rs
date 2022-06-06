@@ -14,9 +14,9 @@ use tracing::{debug, info, trace, warn};
 
 impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Clone + Send + 'static + Debug,
-    A: ProtocolItem + Send + 'static + Debug,
-    R: ProtocolItem + From<ER> + Send + 'static + Debug,
+    E: ProtocolItem + Clone + Debug,
+    A: ProtocolItem + Debug,
+    R: ProtocolItem + From<ER> + Debug,
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
     pub(crate) async fn ws_loop(self: &Arc<Self>, mut ws_stream: WebSocketStream<TcpStream>) {

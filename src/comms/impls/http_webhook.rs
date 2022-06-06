@@ -13,9 +13,9 @@ use crate::utils::ProtocolItem;
 
 impl<E, A, R, ER, H, const V: u8> crate::impls::CustomOneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Clone + Send + 'static,
-    A: ProtocolItem + Debug + Send + 'static,
-    R: ProtocolItem + From<ER> + Debug + Send + 'static,
+    E: ProtocolItem + Clone,
+    A: ProtocolItem + Debug,
+    R: ProtocolItem + From<ER> + Debug,
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
     pub(crate) async fn webhook(self: &Arc<Self>) {

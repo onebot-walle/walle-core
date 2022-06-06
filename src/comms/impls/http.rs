@@ -4,6 +4,7 @@ use hyper::service::service_fn;
 use hyper::Method;
 use hyper::{server::conn::Http, Body, Request, Response};
 use std::convert::Infallible;
+use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::info;
@@ -43,9 +44,9 @@ fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> Response<Bo
 
 impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Clone + Send + 'static,
-    A: ProtocolItem + std::fmt::Debug + Clone + Send + 'static,
-    R: ProtocolItem + From<ER> + std::fmt::Debug + Clone + Send + 'static,
+    E: ProtocolItem + Clone,
+    A: ProtocolItem + Debug + Clone,
+    R: ProtocolItem + From<ER> + Debug + Clone,
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
 {
     pub(crate) async fn http(self: &Arc<Self>) -> WalleResult<()> {

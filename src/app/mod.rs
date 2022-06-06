@@ -118,9 +118,9 @@ impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V> {
 
 impl<E, A, R, H, const V: u8> OneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + SelfId + Clone + Send + 'static + Debug + Sync,
-    A: ProtocolItem + Clone + Send + 'static + Debug + ActionType + Sync,
-    R: ProtocolItem + Clone + Send + 'static + Debug,
+    E: ProtocolItem + Clone + Debug + SelfId,
+    A: ProtocolItem + Clone + Debug + ActionType,
+    R: ProtocolItem + Clone + Debug,
     H: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     /// 添加 Bot 实例

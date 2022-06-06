@@ -98,9 +98,9 @@ impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
 
 impl<E, A, R, ER, H, const V: u8> CustomOneBot<E, A, R, H, V>
 where
-    E: ProtocolItem + Clone + Debug + Send + 'static,
-    A: ProtocolItem + Clone + Debug + Send + 'static,
-    R: ProtocolItem + From<ER> + Clone + Debug + Send + 'static,
+    E: ProtocolItem + Clone + Debug,
+    A: ProtocolItem + Clone + Debug,
+    R: ProtocolItem + From<ER> + Clone + Debug,
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
     ER: Into<R>,
 {
