@@ -5,14 +5,38 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait WsHooks<T>: Sync + Send {
     /// only available on server side
-    async fn before_server_start(&self, _: &Arc<T>) {}
+    async fn before_server_start(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
     /// only available on client side
-    async fn before_client_connect(&self, _: &Arc<T>) {}
+    async fn before_client_connect(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
     /// only available on client side
-    async fn before_client_reconnect(&self, _: &Arc<T>) {}
-    async fn on_connect(&self, _: &Arc<T>) {}
-    async fn on_disconnect(&self, _: &Arc<T>) {}
-    async fn on_shutdown(&self, _: &Arc<T>) {}
+    async fn before_client_reconnect(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
+    async fn on_connect(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
+    async fn on_disconnect(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
+    async fn on_shutdown(&self, _: &Arc<T>)
+    where
+        T: Send + Sync,
+    {
+    }
 }
 
 pub type BoxWsHooks<T> = Box<dyn WsHooks<T>>;

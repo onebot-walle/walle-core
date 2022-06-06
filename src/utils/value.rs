@@ -320,6 +320,7 @@ impl ExtendedValue {
     }
 }
 
+/// add try_remove for ExtendedMap
 pub trait ExtendedMapExt {
     fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
@@ -343,6 +344,7 @@ impl ExtendedMapExt for ExtendedMap {
 }
 
 #[macro_export]
+/// ExtendedValue 声明宏，类似于`serde_json::json!`
 macro_rules! extended_value {
     (null) => {
         $crate::ExtendedValue::Null
@@ -359,6 +361,7 @@ macro_rules! extended_value {
 }
 
 #[macro_export]
+/// Vec<ExtendedValue> 声明宏
 macro_rules! extended_vec {
     (@internal [$($elems:expr),*]) => {
         vec![$($elems),*]
@@ -387,6 +390,7 @@ macro_rules! extended_vec {
 }
 
 #[macro_export]
+/// ExtendedMap 声明宏
 macro_rules! extended_map {
     (@internal $map: ident {$key: expr} {$value: tt} ($($rest: tt)*)) => {
         let _ = $map.insert($key.into(), $crate::extended_value!($value));

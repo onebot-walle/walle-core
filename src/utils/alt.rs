@@ -3,8 +3,9 @@ use colored::*;
 use crate::event::{
     EventContent, MessageContent, MessageEventDetail, NoticeContent, RequestContent,
 };
-use crate::{BaseEvent, MessageAlt, StandardAction};
+use crate::{BaseEvent, EventType, MessageAlt, StandardAction};
 
+/// 命令行着色输出，可以用于 log
 pub trait ColoredAlt {
     fn colored_alt(&self) -> Option<String>;
 }

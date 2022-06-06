@@ -1,4 +1,10 @@
-# 0.4.0-beta.1 (unpublished)
+# 0.5.0
+
+- 添加 EventType trait
+- 修复了一些 feature 相关的 bug
+- app 端启用 Http Webhook 和 MsgPack 格式功能
+
+# 0.4.0 
 
 - MessageContent extra 扩展字段变更为由 MessageEventDetail 持有
 - MessageContent 增加 D 泛型，可支持更多 DetailType 模型

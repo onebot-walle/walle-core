@@ -4,6 +4,7 @@ use std::{fmt::Debug, sync::Arc};
 
 #[cfg(feature = "app")]
 use crate::app::ArcBot;
+use crate::event::EventType;
 
 mod fnt;
 
@@ -117,7 +118,11 @@ where
 
 #[cfg(feature = "app")]
 #[async_trait]
-impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler {
+impl<A, R> EventHandler<crate::StandardEvent, A, R> for DefaultHandler
+where
+    A: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
     async fn handle(&self, _: ArcBot<A, R>, event: crate::StandardEvent) {
         use crate::event::EventContent;
         use colored::*;

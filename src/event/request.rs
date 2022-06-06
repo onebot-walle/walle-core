@@ -12,8 +12,14 @@ pub struct RequestContent {
     extra: ExtendedMap,
 }
 
-impl RequestContent {
-    pub fn detail_type(&self) -> &str {
+impl super::EventType for RequestContent {
+    fn event_type(&self) -> &str {
+        "request"
+    }
+    fn detail_type(&self) -> &str {
         &self.detail_type
+    }
+    fn sub_type(&self) -> &str {
+        &self.sub_type
     }
 }

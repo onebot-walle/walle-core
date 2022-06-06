@@ -55,18 +55,22 @@ pub struct CustomOneBot<E, A, R, H, const V: u8> {
 }
 
 impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
+    /// 获取 Onebot SelfId
     pub async fn self_id(&self) -> String {
         self.self_id.read().await.clone()
     }
 
+    /// 获取 Onebot 协议版本号
     pub fn onebot_version() -> u8 {
         V
     }
 
+    /// 获取 Arc<Self>
     pub fn arc(self) -> Arc<Self> {
         Arc::new(self)
     }
 
+    /// 获取 Onebot Status
     pub fn get_status(&self) -> StatusContent {
         StatusContent {
             good: self.is_running(),
@@ -83,6 +87,7 @@ impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
         self.running.load(Ordering::SeqCst)
     }
 
+    /// 设置 Onebot Online 状态
     pub fn set_online(&self, online: bool) {
         self.online.store(online, Ordering::SeqCst);
     }
@@ -105,6 +110,7 @@ where
     H: ActionHandler<A, R, Self, Error = ER> + Send + Sync + 'static,
     ER: Into<R>,
 {
+    /// 创建 OneBot 实例
     pub fn new(
         r#impl: &str,
         platform: &str,
@@ -147,9 +153,9 @@ where
 
     /// 运行 OneBot 实例
     ///
-    /// 请注意该方法仅新建协程运行网络通讯协议，本身并不阻塞
+    /// 请注意该方法将在新的协程里运行，不会阻塞当前协程。
     ///
-    /// 当重复运行同一个实例，将会返回 Err
+    /// 当重复运行同一个实例，将会返回 `Err(WalleError::AlreadyRunning)`
     ///
     /// 请确保在弃用 bot 前调用 shutdown，否则无法 drop。
     pub async fn run(self: &Arc<Self>) -> WalleResult<()> {
@@ -185,6 +191,7 @@ where
         Ok(())
     }
 
+    /// 推送 Event
     pub fn send_event(&self, event: E) -> Result<usize, &str> {
         match self.broadcaster.send(event) {
             Ok(t) => Ok(t),
@@ -230,6 +237,7 @@ where
 }
 
 impl<E, A, R, H, const V: u8> CustomOneBot<BaseEvent<E>, A, R, H, V> {
+    /// 创建新的 Event
     pub async fn new_event(&self, content: E, time: f64) -> BaseEvent<E> {
         crate::event::BaseEvent {
             id: crate::utils::new_uuid(),

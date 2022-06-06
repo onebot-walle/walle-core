@@ -49,8 +49,9 @@ EventContent 使用 type 字段区分不同的类型，因此符合 Onebot 的�
 
 > 该类型可以直接使用类型别名（alias）: Event
 > ```rust
-> /// OneBot 12 标准事件
+> // OneBot 12 标准事件
 > pub type Event = BaseEvent<EventContent>;
+> // Notice: 请勿使用以下四个类型序列化，这将导致 type 字段丢失
 > pub type MessageEvent = BaseEvent<MessageContent<MessageEventDetail>>;
 > pub type NoticeEvent = BaseEvent<NoticeContent>;
 > pub type RequestEvent = BaseEvent<RequestContent>;
@@ -77,4 +78,4 @@ pub enum ExtendedEventContent {
 }
 ```
 
-当然，你也可以自由定义 Content 枚举，甚至 BaseEvent ( 并不建议怎么做 )。
+当然，你也可以自由定义 Content ，甚至 BaseEvent ( 并不建议怎么做 )。

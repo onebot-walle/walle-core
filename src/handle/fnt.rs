@@ -27,6 +27,8 @@ impl<E, F, A, R> super::EventHandler<E, A, R> for F
 where
     E: Clone + DeserializeOwned + std::fmt::Debug + Send + 'static,
     F: Fn(E) -> BoxFuture<'static, ()> + Sync + Send + 'static,
+    A: Send + Sync + 'static,
+    R: Send + Sync + 'static,
 {
     async fn handle(&self, _: ArcBot<A, R>, event: E) {
         self(event).await

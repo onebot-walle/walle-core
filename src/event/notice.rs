@@ -127,8 +127,11 @@ pub enum NoticeContent {
     },
 }
 
-impl NoticeContent {
-    pub fn detail_type(&self) -> &'static str {
+impl super::EventType for NoticeContent {
+    fn event_type(&self) -> &str {
+        "notice"
+    }
+    fn detail_type(&self) -> &str {
         match self {
             Self::GroupMemberIncrease { .. } => "group_member_increase",
             Self::GroupMemberDecrease { .. } => "group_member_decrease",
@@ -145,6 +148,25 @@ impl NoticeContent {
             Self::ChannelMessageDelete { .. } => "channel_message_delete",
             Self::ChannelCreate { .. } => "channel_create",
             Self::ChannelDelete { .. } => "channel_delete",
+        }
+    }
+    fn sub_type(&self) -> &str {
+        match self {
+            Self::GroupMemberIncrease { sub_type, .. } => sub_type,
+            Self::GroupMemberDecrease { sub_type, .. } => sub_type,
+            Self::GroupMemberBan { sub_type, .. } => sub_type,
+            Self::GroupMemberUnban { sub_type, .. } => sub_type,
+            Self::GroupAdminSet { sub_type, .. } => sub_type,
+            Self::GroupAdminUnset { sub_type, .. } => sub_type,
+            Self::GroupMessageDelete { sub_type, .. } => sub_type,
+            Self::FriendIncrease { sub_type, .. } => sub_type,
+            Self::FriendDecrease { sub_type, .. } => sub_type,
+            Self::PrivateMessageDelete { sub_type, .. } => sub_type,
+            Self::GuildMemberIncrease { sub_type, .. } => sub_type,
+            Self::GuildMemberDecrease { sub_type, .. } => sub_type,
+            Self::ChannelMessageDelete { sub_type, .. } => sub_type,
+            Self::ChannelCreate { sub_type, .. } => sub_type,
+            Self::ChannelDelete { sub_type, .. } => sub_type,
         }
     }
 }

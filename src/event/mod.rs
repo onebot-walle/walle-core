@@ -2,30 +2,41 @@
 use serde::{Deserialize, Serialize};
 
 mod message;
-pub use message::*;
-mod notice;
-pub use notice::*;
 mod meta;
-pub use meta::*;
+mod notice;
 mod request;
+
+pub use message::*;
+pub use meta::*;
+pub use notice::*;
 pub use request::*;
 
 use crate::ExtendedMap;
 
-/// OneBot 12 标准事件
+/// Onebot 12 标准事件
 pub type StandardEvent = BaseEvent<EventContent>;
+/// Onebot 12 标准消息事件
+///
+/// Notice: 请勿使用该类型序列化，这将导致 type 字段丢失
 pub type MessageEvent = BaseEvent<MessageContent<MessageEventDetail>>;
+/// Onebot 12 标准通知事件
+///
+/// Notice: 请勿使用该类型序列化，这将导致 type 字段丢失
 pub type NoticeEvent = BaseEvent<NoticeContent>;
+/// Onebot 12 标准请求事件
+///
+/// Notice: 请勿使用该类型序列化，这将导致 type 字段丢失
 pub type RequestEvent = BaseEvent<RequestContent>;
+/// Onebot 12 标准元事件
+///
+/// Notice: 请勿使用该类型序列化，这将导致 type 字段丢失
 pub type MetaEvent = BaseEvent<MetaContent>;
 
 /// ## OneBot Event 基类
 ///
 /// 持有所有 Event 共有字段，其余字段由 Content 定义
 ///
-/// **事件**是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
-///
-/// type 为 Onebot 规定的四种事件类型，扩展事件（Extended Event）未支持。
+/// *事件* 是由 OneBot 实现自发产生或从机器人平台获得，由 OneBot 实现向应用端推送的数据。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BaseEvent<T> {
     pub id: String,
@@ -107,4 +118,53 @@ pub struct DetailEventContent {
     pub detail_type: String,
     #[serde(flatten)]
     pub content: ExtendedMap,
+}
+
+pub trait EventType {
+    fn event_type(&self) -> &str;
+    fn detail_type(&self) -> &str;
+    fn sub_type(&self) -> &str;
+}
+
+impl<T: EventType> EventType for BaseEvent<T> {
+    fn event_type(&self) -> &str {
+        self.content.event_type()
+    }
+
+    fn detail_type(&self) -> &str {
+        self.content.detail_type()
+    }
+
+    fn sub_type(&self) -> &str {
+        self.content.sub_type()
+    }
+}
+
+impl EventType for EventContent {
+    fn event_type(&self) -> &str {
+        match self {
+            EventContent::Meta(_) => "meta",
+            EventContent::Message(_) => "message",
+            EventContent::Notice(_) => "notice",
+            EventContent::Request(_) => "request",
+        }
+    }
+
+    fn detail_type(&self) -> &str {
+        match self {
+            EventContent::Meta(c) => c.detail_type(),
+            EventContent::Message(c) => c.detail_type(),
+            EventContent::Notice(c) => c.detail_type(),
+            EventContent::Request(c) => c.detail_type(),
+        }
+    }
+
+    fn sub_type(&self) -> &str {
+        match self {
+            EventContent::Meta(c) => c.sub_type(),
+            EventContent::Message(c) => c.sub_type(),
+            EventContent::Notice(c) => c.sub_type(),
+            EventContent::Request(c) => c.sub_type(),
+        }
+    }
 }

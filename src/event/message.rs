@@ -133,3 +133,35 @@ impl BaseEvent<MessageContent<MessageEventDetail>> {
         }
     }
 }
+
+impl super::EventType for MessageEventDetail {
+    fn event_type(&self) -> &str {
+        "message"
+    }
+    fn detail_type(&self) -> &str {
+        match self {
+            MessageEventDetail::Private { .. } => "private",
+            MessageEventDetail::Group { .. } => "group",
+            MessageEventDetail::Channel { .. } => "channel",
+        }
+    }
+    fn sub_type(&self) -> &str {
+        match self {
+            MessageEventDetail::Private { ref sub_type, .. } => sub_type,
+            MessageEventDetail::Group { ref sub_type, .. } => sub_type,
+            MessageEventDetail::Channel { ref sub_type, .. } => sub_type,
+        }
+    }
+}
+
+impl<D: super::EventType> super::EventType for MessageContent<D> {
+    fn event_type(&self) -> &str {
+        "message"
+    }
+    fn detail_type(&self) -> &str {
+        self.detail.detail_type()
+    }
+    fn sub_type(&self) -> &str {
+        self.detail.sub_type()
+    }
+}
