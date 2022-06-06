@@ -51,6 +51,7 @@ pub struct CustomOneBot<E, A, R, H, const V: u8> {
 
     running: AtomicBool,
     online: AtomicBool,
+    phantom: std::marker::PhantomData<(A, R)>,
 }
 
 impl<E, A, R, H, const V: u8> CustomOneBot<E, A, R, H, V> {
@@ -140,6 +141,7 @@ where
             ws_connects: RwLock::default(),
             running: AtomicBool::default(),
             online: AtomicBool::default(),
+            phantom: std::marker::PhantomData::default(),
         }
     }
 
