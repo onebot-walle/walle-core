@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 /// 请求事件是聊天机器人收到其他用户发送的请求对应的一类事件，例如加好友请求等。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RequestContent {
-    detail_type: String,
-    sub_type: String,
+    pub detail_type: String,
+    pub sub_type: String,
     #[serde(flatten)]
-    extra: ExtendedMap,
+    pub extra: ExtendedMap,
 }
 
 impl super::EventType for RequestContent {
