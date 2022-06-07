@@ -279,7 +279,7 @@ impl Serialize for MessageSegment {
                 extra: extend,
             } => {
                 let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("type", "location")?;
+                map.serialize_entry("type", "reply")?;
                 map.serialize_entry("data", &{
                     let mut datamap = HashMap::new();
                     datamap.insert("message_id", ExtendedValue::Str(message_id.to_owned()));

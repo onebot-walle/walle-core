@@ -1,6 +1,7 @@
-# 0.5.1 (unreleased)
+# 0.5.1
 
 - impl IntoMessage for MessageSegment
+- fix MessageSegment::Reply Serialize bug
 
 # 0.5.0
 
