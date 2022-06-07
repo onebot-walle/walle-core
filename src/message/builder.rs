@@ -18,6 +18,12 @@ impl IntoMessage for &str {
     }
 }
 
+impl IntoMessage for MessageSegment {
+    fn into_message(self) -> Message {
+        vec![self]
+    }
+}
+
 impl IntoMessage for Message {
     fn into_message(self) -> Message {
         self
