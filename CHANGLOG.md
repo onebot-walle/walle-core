@@ -1,3 +1,7 @@
+# 0.5.1 (unreleased)
+
+- impl IntoMessage for MessageSegment
+
 # 0.5.0
 
 - 添加 EventType trait
