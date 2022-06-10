@@ -114,27 +114,19 @@ impl ColoredAlt for RequestContent {
 
 impl ColoredAlt for StandardAction {
     fn colored_alt(&self) -> Option<String> {
-        match self {
+        let head = format!("[{}]", self.action_type().bright_yellow());
+        let body = match self {
             StandardAction::SendMessage(c) => {
                 if let Some(group_id) = &c.group_id {
-                    Some(format!(
-                        "[{}] {} to {}",
-                        "SendMessage".bright_yellow(),
-                        c.message.alt(),
-                        group_id.bright_blue(),
-                    ))
+                    format!("{} to {}", c.message.alt(), group_id.bright_blue())
+                } else if let Some(user_id) = &c.user_id {
+                    format!("{} to {}", c.message.alt(), user_id.bright_green())
                 } else {
-                    c.user_id.as_ref().map(|user_id| {
-                        format!(
-                            "[{}] {} to {}",
-                            "SendMessage".bright_yellow(),
-                            c.message.alt(),
-                            user_id.bright_green()
-                        )
-                    })
+                    format!("{:?}", self)
                 }
             }
-            _ => None, //todo
-        }
+            a => format!("{a:?}"), //todo
+        };
+        Some(format!("{head} {body}"))
     }
 }

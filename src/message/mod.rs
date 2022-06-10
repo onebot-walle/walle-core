@@ -145,35 +145,13 @@ impl MessageAlt for MessageSegment {
             Self::Mention { user_id, .. } => format!("[Mention={user_id}]"),
             Self::MentionAll { .. } => "[MentionAll]".to_owned(),
             Self::Image { file_id, .. } => format!("[Image,file_id={file_id}]"),
-            Self::Voice {
-                file_id: _,
-                extra: _,
-            } => "[Voice]".to_owned(),
-            Self::Audio {
-                file_id: _,
-                extra: _,
-            } => "[Audio]".to_owned(),
-            Self::Video {
-                file_id: _,
-                extra: _,
-            } => "[Video]".to_owned(),
-            Self::File {
-                file_id: _,
-                extra: _,
-            } => "[File]".to_owned(),
-            Self::Location {
-                latitude: _,
-                longitude: _,
-                title: _,
-                content: _,
-                extra: _,
-            } => "[Location]".to_owned(),
-            Self::Reply {
-                message_id: _,
-                user_id,
-                extra: _,
-            } => format!("[Reply={}]", user_id),
-            Self::Custom { ty, data: _ } => format!("[{}]", ty),
+            Self::Voice { .. } => "[Voice]".to_owned(),
+            Self::Audio { .. } => "[Audio]".to_owned(),
+            Self::Video { .. } => "[Video]".to_owned(),
+            Self::File { .. } => "[File]".to_owned(),
+            Self::Location { .. } => "[Location]".to_owned(),
+            Self::Reply { user_id, .. } => format!("[Reply={}]", user_id),
+            Self::Custom { ty, .. } => format!("[{}]", ty),
         }
     }
 }
