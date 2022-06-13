@@ -128,12 +128,6 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> + Send + Sync + 's
     {
         serde_json::from_str(s).map_err(|e| e.to_string())
     }
-    fn json_from_reader<R: std::io::Read>(r: R) -> Result<Self, String>
-    where
-        Self: Sized,
-    {
-        serde_json::from_reader(r).map_err(|e| e.to_string())
-    }
     fn rmp_encode(&self) -> Vec<u8> {
         rmp_serde::to_vec(self).unwrap()
     }
@@ -142,12 +136,6 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> + Send + Sync + 's
         Self: Sized,
     {
         rmp_serde::from_slice(v).map_err(|e| e.to_string())
-    }
-    fn rmp_from_reader<R: std::io::Read>(r: R) -> Result<Self, String>
-    where
-        Self: Sized,
-    {
-        rmp_serde::from_read(r).map_err(|e| e.to_string())
     }
     #[cfg(feature = "http")]
     fn to_body(self, content_type: ContentType) -> hyper::Body {

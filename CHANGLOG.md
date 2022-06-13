@@ -1,3 +1,7 @@
+# 0.5.4
+
+- http 反序列化错误（serde_json from_reader 潜在bug？）
+
 # 0.5.3
 
 - bug fix

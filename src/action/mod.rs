@@ -400,3 +400,25 @@ impl ActionType for StandardAction {
         }
     }
 }
+
+#[test]
+fn send_test() {
+    let send_json = r#"{
+        "action": "send_message",
+        "params": {
+            "detail_type": "private",
+            "user_id": "user_id",
+            "group_id": "group_id",
+            "message": [
+                {
+                    "type": "text",
+                    "data": {
+                        "text": "test"
+                    }
+                }
+            ]
+        }
+    }"#;
+    let action: StandardAction = serde_json::from_str(send_json).unwrap();
+    println!("{:?}", action);
+}

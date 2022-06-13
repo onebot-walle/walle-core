@@ -1,4 +1,3 @@
-use hyper::body::Buf;
 use hyper::header::{AUTHORIZATION, CONTENT_TYPE};
 use hyper::service::service_fn;
 use hyper::Method;
@@ -7,7 +6,7 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, trace, warn};
 
 use crate::handle::ActionHandler;
 use crate::impls::CustomOneBot;
@@ -91,10 +90,12 @@ where
                             return Ok(error_response(403, "Missing Authorization Header"));
                         }
                     }
-                    let data = hyper::body::aggregate(req).await.unwrap();
+                    let data = hyper::body::to_bytes(req).await.unwrap();
                     let action: Result<Echo<A>, _> = match content_type {
-                        ContentType::Json => ProtocolItem::json_from_reader(data.reader()),
-                        ContentType::MsgPack => ProtocolItem::rmp_from_reader(data.reader()),
+                        ContentType::Json => {
+                            ProtocolItem::json_decode(&String::from_utf8(data.to_vec()).unwrap())
+                        }
+                        ContentType::MsgPack => ProtocolItem::rmp_decode(&data),
                     };
                     match action {
                         Ok(action) => {
@@ -107,8 +108,13 @@ where
                         }
                         Err(e) => Ok(encode2resp(
                             if e.starts_with("missing field") {
+                                trace!(
+                                    target: crate::WALLE_CORE,
+                                    "Http call action miss field: {e}",
+                                );
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
+                                warn!(target: crate::WALLE_CORE, "Http call action ser error: {e}",);
                                 error_builder::unsupported_action().into()
                             },
                             &content_type,
