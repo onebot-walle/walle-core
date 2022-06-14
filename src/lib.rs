@@ -49,3 +49,5 @@ pub use utils::timestamp_nano_f64;
 pub use utils::{ColoredAlt, ContentType, ExtendedMap, ExtendedMapExt, ExtendedValue, SelfId};
 
 pub use async_trait::async_trait;
+
+pub mod next;

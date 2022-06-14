@@ -26,17 +26,17 @@ pub fn new_uuid() -> String {
 use serde::{de::Visitor, Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub(crate) struct Echo<I> {
+pub struct Echo<I> {
     #[serde(flatten)]
     pub inner: I,
     pub echo: Option<EchoInner>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct EchoS(Option<EchoInner>);
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
+pub struct EchoS(pub Option<EchoInner>);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum EchoInner {
+pub enum EchoInner {
     S(String),
     Map(String),
 }
@@ -94,20 +94,24 @@ impl<'de> Deserialize<'de> for EchoInner {
 }
 
 impl<I> Echo<I> {
-    pub(crate) fn unpack(self) -> (I, EchoS) {
+    pub fn unpack(self) -> (I, EchoS) {
         (self.inner, EchoS(self.echo))
+    }
+
+    pub fn get_echo(&self) -> EchoS {
+        EchoS(self.echo.clone())
     }
 }
 
 impl EchoS {
-    pub(crate) fn pack<I>(&self, i: I) -> Echo<I> {
+    pub fn pack<I>(&self, i: I) -> Echo<I> {
         Echo {
             inner: i,
             echo: self.0.clone(),
         }
     }
 
-    pub(crate) fn new(tag: &str) -> Self {
+    pub fn new(tag: &str) -> Self {
         return Self(Some(EchoInner::S(format!("{}-{}", tag, timestamp_nano()))));
     }
 }

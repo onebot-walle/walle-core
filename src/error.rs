@@ -19,6 +19,8 @@ pub enum WalleError {
     /// Running Time Error
     #[error("OneBot is already running")]
     AlreadyRunning,
+    #[error("OneBot is not running")]
+    NotRunning,
 
     // ExtendedMap
     #[error("ExtendedMap missed key: {0}")]
