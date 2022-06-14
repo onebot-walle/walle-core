@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task::JoinHandle;
 
-use crate::{utils::Echo, WalleError, WalleResult};
+use crate::{WalleError, WalleResult};
 
 pub mod obc;
 
-type ActionContext<A, R> = (String, Echo<A>, mpsc::UnboundedSender<Echo<R>>);
+type ActionContext<A, R> = (String, A, mpsc::UnboundedSender<R>);
 pub trait Static: Sync + Send + 'static {}
 impl<T: Sync + Send + 'static> Static for T {}
 

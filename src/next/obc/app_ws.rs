@@ -1,4 +1,4 @@
-use super::{AppOBC, EchoMap};
+use super::{AppOBC, BotMap, EchoMap};
 use crate::{
     action::ActionType,
     config::WebSocketClient,
@@ -22,7 +22,8 @@ use tracing::warn;
 
 #[async_trait]
 impl<E, A, R, EHAC, const V: u8>
-    ECAHtrait<E, A, R, OneBot<E, A, R, Self, EHAC, V>, Vec<WebSocketClient>> for AppOBC<A, R>
+    ECAHtrait<E, Echo<A>, Echo<R>, OneBot<E, A, R, Self, EHAC, V>, Vec<WebSocketClient>>
+    for AppOBC<A, R>
 where
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
@@ -38,7 +39,7 @@ where
     }
     async fn handle(
         &self,
-        action_context: ActionContext<A, R>,
+        action_context: ActionContext<Echo<A>, Echo<R>>,
         ob: &OneBot<E, A, R, Self, EHAC, V>,
     ) {
         match self.bots.read().await.get(&action_context.0) {
@@ -66,6 +67,7 @@ async fn ws_loop<E, A, R>(
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
+    // let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
@@ -82,7 +84,7 @@ async fn ws_loop<E, A, R>(
                         msg,
                         &mut ws_stream,
                         &echo_map,
-                        &event_tx
+                        &event_tx,
                     ).await {
                         break;
                     },
@@ -103,7 +105,7 @@ async fn ws_recv<E, R>(
     event_tx: &broadcast::Sender<E>,
 ) -> bool
 where
-    E: ProtocolItem + Clone,
+    E: ProtocolItem + Clone + SelfId,
     R: ProtocolItem,
 {
     #[derive(Debug, Deserialize, Serialize)]

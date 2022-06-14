@@ -288,8 +288,8 @@ pub(crate) async fn ws_recv<E, A, R>(
     id: &str,
     ws_stream: &mut WebSocketStream<TcpStream>,
     action_tx: &mut mpsc::UnboundedSender<ActionContext<A, R>>,
-    json_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,
-    rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,
+    json_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
+    rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
 ) -> bool
 where
     E: ProtocolItem,
