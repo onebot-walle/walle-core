@@ -13,9 +13,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
 use tokio::{net::TcpListener, sync::mpsc};
-use tokio::{net::TcpStream, sync::oneshot};
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::tungstenite::Message as WsMsg;
 use tokio_tungstenite::WebSocketStream;
@@ -77,32 +77,7 @@ where
         Ok(tasks)
     }
     async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
-        match self.bots.get(id) {
-            Some(action_tx) => {
-                let (tx, rx) = oneshot::channel();
-                let seq = self.next_seg();
-                self.echos.insert(seq.clone(), tx);
-                action_tx.send(seq.pack(action)).map_err(|e| {
-                    warn!("send action error: {}", e);
-                    WalleError::Other(e.to_string())
-                })?;
-                match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
-                    Ok(Ok(res)) => Ok(res),
-                    Ok(Err(e)) => {
-                        warn!("resp recv error: {:?}", e);
-                        Err(WalleError::Other(e.to_string()))
-                    }
-                    Err(_) => {
-                        warn!("resp timeout");
-                        Err(WalleError::Other("resp timeout".to_string()))
-                    }
-                }
-            }
-            None => {
-                warn!("bot not found");
-                return Err(WalleError::BotNotExist);
-            }
-        }
+        self._handle_action(id, action).await
     }
 }
 
@@ -160,32 +135,7 @@ where
         Ok(tasks)
     }
     async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
-        match self.bots.get(id) {
-            Some(action_tx) => {
-                let (tx, rx) = oneshot::channel();
-                let seq = self.next_seg();
-                self.echos.insert(seq.clone(), tx);
-                action_tx.send(seq.pack(action)).map_err(|e| {
-                    warn!(target: super::OBC, "send action error: {}", e);
-                    WalleError::Other(e.to_string())
-                })?;
-                match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
-                    Ok(Ok(res)) => Ok(res),
-                    Ok(Err(e)) => {
-                        warn!(target: super::OBC, "resp recv error: {:?}", e);
-                        Err(WalleError::Other(e.to_string()))
-                    }
-                    Err(_) => {
-                        warn!(target: super::OBC, "resp timeout");
-                        Err(WalleError::Other("resp timeout".to_string()))
-                    }
-                }
-            }
-            None => {
-                warn!(target: super::OBC, "bot not found");
-                return Err(WalleError::BotNotExist);
-            }
-        }
+        self._handle_action(id, action).await
     }
 }
 

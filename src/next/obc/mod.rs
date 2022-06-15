@@ -1,12 +1,16 @@
 use super::{ECAHtrait, EHACtrait, OneBotExt, Static};
+use crate::action::ActionType;
+use crate::error::{WalleError, WalleResult};
+use crate::utils::ProtocolItem;
 use crate::utils::{Echo, EchoInner, EchoS};
-use crate::{error::WalleResult, utils::ProtocolItem};
+use crate::SelfId;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+use tracing::warn;
 
 const OBC: &str = "Walle-OBC";
 
@@ -27,9 +31,9 @@ pub struct ImplOBC<E> {
 #[async_trait]
 impl<E, A, R, OB> EHACtrait<E, A, R, OB, crate::config::ImplConfig> for ImplOBC<E>
 where
-    E: ProtocolItem + Static + Clone,
-    A: ProtocolItem + Static,
-    R: ProtocolItem + Static + Debug,
+    E: ProtocolItem + Clone,
+    A: ProtocolItem,
+    R: ProtocolItem + Debug,
     OB: Static,
 {
     async fn ehac_start<C0>(
@@ -115,6 +119,35 @@ impl<A, R> AppOBC<A, R> {
                 .to_string(),
         )))
     }
+
+    pub async fn _handle_action(&self, id: &str, action: A) -> WalleResult<R> {
+        match self.bots.get(id) {
+            Some(action_tx) => {
+                let (tx, rx) = oneshot::channel();
+                let seq = self.next_seg();
+                self.echos.insert(seq.clone(), tx);
+                action_tx.send(seq.pack(action)).map_err(|e| {
+                    warn!(target: OBC, "send action error: {}", e);
+                    WalleError::Other(e.to_string())
+                })?;
+                match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
+                    Ok(Ok(res)) => Ok(res),
+                    Ok(Err(e)) => {
+                        warn!(target: OBC, "resp recv error: {:?}", e);
+                        Err(WalleError::Other(e.to_string()))
+                    }
+                    Err(_) => {
+                        warn!(target: OBC, "resp timeout");
+                        Err(WalleError::Other("resp timeout".to_string()))
+                    }
+                }
+            }
+            None => {
+                warn!(target: OBC, "bot not found");
+                Err(WalleError::BotNotExist)
+            }
+        }
+    }
 }
 
 impl<A, R> Default for AppOBC<A, R> {
@@ -124,5 +157,34 @@ impl<A, R> Default for AppOBC<A, R> {
             bots: Arc::new(DashMap::new()),
             seq: AtomicU64::new(0),
         }
+    }
+}
+
+#[async_trait]
+impl<E, A, R, OB> ECAHtrait<E, A, R, OB, crate::config::AppConfig> for AppOBC<A, R>
+where
+    E: ProtocolItem + Clone + SelfId,
+    A: ProtocolItem + ActionType,
+    R: ProtocolItem + Debug,
+    OB: Static,
+{
+    async fn ecah_start<C0>(
+        &self,
+        ob: &Arc<OB>,
+        config: crate::config::AppConfig,
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        OB: EHACtrait<E, A, R, OB, C0> + OneBotExt,
+    {
+        let mut tasks = vec![];
+        #[cfg(feature = "websocket")]
+        {
+            tasks.extend(self.ecah_start(ob, config.websocket_rev).await?.into_iter());
+            tasks.extend(self.ecah_start(ob, config.websocket).await?.into_iter());
+        }
+        Ok(tasks)
+    }
+    async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
+        self._handle_action(id, action).await
     }
 }

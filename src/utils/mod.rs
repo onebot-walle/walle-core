@@ -112,7 +112,7 @@ impl EchoS {
     }
 
     pub fn new(tag: &str) -> Self {
-        return Self(Some(EchoInner::S(format!("{}-{}", tag, timestamp_nano()))));
+        Self(Some(EchoInner::S(format!("{}-{}", tag, timestamp_nano()))))
     }
 }
 

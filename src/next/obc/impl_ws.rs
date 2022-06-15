@@ -22,9 +22,9 @@ use tracing::{info, trace, warn};
 #[async_trait]
 impl<E, A, R, OB> EHACtrait<E, A, R, OB, Vec<crate::config::WebSocketServer>> for ImplOBC<E>
 where
-    E: ProtocolItem + Static + Clone,
-    A: ProtocolItem + Static,
-    R: ProtocolItem + Static + Debug,
+    E: ProtocolItem + Clone,
+    A: ProtocolItem,
+    R: ProtocolItem + Debug,
     OB: Static,
 {
     async fn ehac_start<C0>(
@@ -84,9 +84,9 @@ where
 #[async_trait]
 impl<E, A, R, OB> EHACtrait<E, A, R, OB, Vec<crate::config::WebSocketClient>> for ImplOBC<E>
 where
-    E: ProtocolItem + Static + Clone,
-    A: ProtocolItem + Static,
-    R: ProtocolItem + Static + Debug,
+    E: ProtocolItem + Clone,
+    A: ProtocolItem,
+    R: ProtocolItem + Debug,
     OB: Static,
 {
     async fn ehac_start<C0>(
@@ -165,7 +165,6 @@ async fn ws_loop<E, A, R, OB, C>(
     A: ProtocolItem,
     R: ProtocolItem + Debug,
 {
-    // action response channel
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut signal_rx = ob.get_signal_rx().await.unwrap(); //todo
@@ -244,7 +243,6 @@ pub(crate) async fn ws_recv<E, A, R, OB, C>(
     id: String,
     ob: &Arc<OB>,
     ws_stream: &mut WebSocketStream<TcpStream>,
-    // action_tx: &mut mpsc::UnboundedSender<ActionContext<A, R>>,
     json_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
     rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
 ) -> bool
