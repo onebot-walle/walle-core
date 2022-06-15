@@ -33,4 +33,11 @@ pub enum WalleError {
     RespMissmatch, //todo
     #[error("{0:?}")]
     RespError(RespError),
+
+    /// OBC
+    #[error("Bot not exist")]
+    BotNotExist,
+
+    #[error("{0}")]
+    Other(String),
 }
