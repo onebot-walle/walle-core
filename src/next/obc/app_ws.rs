@@ -32,7 +32,7 @@ where
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
+        EHAC: EHACtrait<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wsc in config {
@@ -76,7 +76,7 @@ where
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
+        EHAC: EHACtrait<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -126,7 +126,7 @@ async fn ws_loop<E, A, R, EHAC, const V: u8>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    EHAC: EHACtrait<E, A, R, OneBot<AppOBC<A, R>, EHAC, V>> + Static,
+    EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().await.unwrap(); //todo
@@ -166,9 +166,9 @@ async fn ws_loop<E, A, R, EHAC, const V: u8>(
     }
 }
 
-async fn ws_recv<E, A, R, OB>(
+async fn ws_recv<E, A, R, EHAC, const V: u8>(
     msg: WsMsg,
-    ob: &Arc<OB>,
+    ob: &Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
@@ -177,8 +177,9 @@ async fn ws_recv<E, A, R, OB>(
 ) -> bool
 where
     E: ProtocolItem + Clone + SelfId,
+    A: ProtocolItem,
     R: ProtocolItem,
-    OB: EHACtrait<E, A, R, OB> + Static,
+    EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
@@ -196,7 +197,7 @@ where
                     bot_map.insert(self_id, action_tx.clone());
                 }
                 let ob = ob.clone();
-                tokio::spawn(async move { ob.handle_event(event, &ob).await });
+                tokio::spawn(async move { ob.handle_event(event).await });
             }
             Ok(ReceiveItem::Resp(resp)) => {
                 let (r, echos) = resp.unpack();

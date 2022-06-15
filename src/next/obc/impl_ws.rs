@@ -31,7 +31,7 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        ECAH: ECAHtrait<E, A, R, OneBot<ECAH, Self, V>> + Static,
+        ECAH: ECAHtrait<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -82,7 +82,7 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        ECAH: ECAHtrait<E, A, R, OneBot<ECAH, Self, V>> + Static,
+        ECAH: ECAHtrait<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wsr in config {
@@ -137,7 +137,7 @@ async fn ws_loop<E, A, R, ECAH, const V: u8>(
     mut hb_rx: broadcast::Receiver<StandardEvent>,
     mut ws_stream: WebSocketStream<TcpStream>,
 ) where
-    ECAH: ECAHtrait<E, A, R, OneBot<ECAH, ImplOBC<E>, V>> + Static,
+    ECAH: ECAHtrait<E, A, R, ImplOBC<E>, V> + Static,
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
@@ -222,7 +222,7 @@ pub(crate) async fn ws_recv<E, A, R, ECAH, const V: u8>(
     rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
 ) -> bool
 where
-    ECAH: ECAHtrait<E, A, R, OneBot<ECAH, ImplOBC<E>, V>> + Static,
+    ECAH: ECAHtrait<E, A, R, ImplOBC<E>, V> + Static,
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,
@@ -244,7 +244,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.handle_action(action, &ob).await {
+                        match ob.handle_action(action).await {
                             Ok(r) => {
                                 tx.send(r).ok();
                             }
@@ -277,7 +277,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.handle_action(action, &ob).await {
+                        match ob.handle_action(action).await {
                             Ok(r) => {
                                 tx.send(r).ok();
                             }

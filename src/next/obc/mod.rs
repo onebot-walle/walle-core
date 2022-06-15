@@ -30,12 +30,12 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R, ECAH, const V: u8> EHACtrait<E, A, R, OneBot<ECAH, Self, V>> for ImplOBC<E>
+impl<E, A, R, ECAH, const V: u8> EHACtrait<E, A, R, ECAH, V> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
-    ECAH: ECAHtrait<E, A, R, OneBot<ECAH, Self, V>> + Static,
+    ECAH: ECAHtrait<E, A, R, Self, V> + Static,
 {
     type Config = crate::config::ImplConfig;
     async fn ehac_start(
@@ -165,12 +165,12 @@ impl<A, R> Default for AppOBC<A, R> {
 }
 
 #[async_trait]
-impl<E, A, R, EHAC, const V: u8> ECAHtrait<E, A, R, OneBot<Self, EHAC, V>> for AppOBC<A, R>
+impl<E, A, R, EHAC, const V: u8> ECAHtrait<E, A, R, EHAC, V> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem + SelfId + ActionType,
     R: ProtocolItem + Debug,
-    EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
+    EHAC: EHACtrait<E, A, R, Self, V> + Static,
 {
     type Config = crate::config::AppConfig;
     async fn ecah_start(

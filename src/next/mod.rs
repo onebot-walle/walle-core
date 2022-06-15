@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use core::future::Future;
 use tokio::sync::{broadcast, Mutex};
 use tokio::task::JoinHandle;
 
@@ -22,111 +23,29 @@ pub struct OneBot<ECAH, EHAC, const V: u8> {
 }
 
 #[async_trait]
-pub trait ECAHtrait<E, A, R, OB> {
+pub trait ECAHtrait<E, A, R, EHAC, const V: u8>: Sized {
     type Config;
     async fn ecah_start(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<Self, EHAC, V>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
-    where
-        OB: EHACtrait<E, A, R, OB>;
-    async fn handle_action(&self, action: A, ob: &OB) -> WalleResult<R>;
+    ) -> WalleResult<Vec<JoinHandle<()>>>;
+    async fn handle_action(&self, action: A, ob: &OneBot<Self, EHAC, V>) -> WalleResult<R>;
 }
 
 #[async_trait]
-pub trait EHACtrait<E, A, R, OB> {
+pub trait EHACtrait<E, A, R, ECAH, const V: u8>: Sized {
     type Config;
     async fn ehac_start(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<ECAH, Self, V>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
-    where
-        OB: ECAHtrait<E, A, R, OB>;
-    async fn handle_event(&self, event: E, ob: &OB);
+    ) -> WalleResult<Vec<JoinHandle<()>>>;
+    async fn handle_event(&self, event: E, ob: &OneBot<ECAH, Self, V>);
 }
 
 pub type ImplOneBot<E, ECAH, const V: u8> = OneBot<ECAH, obc::ImplOBC<E>, V>;
 pub type AppOneBot<A, R, EHAC, const V: u8> = OneBot<obc::AppOBC<A, R>, EHAC, V>;
-
-impl<E, A, R, ECAH, EHAC, const V: u8> ECAHtrait<E, A, R, Self> for OneBot<ECAH, EHAC, V>
-where
-    ECAH: ECAHtrait<E, A, R, Self>,
-{
-    type Config = ECAH::Config;
-    fn ecah_start<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        ob: &'life1 Arc<Self>,
-        config: Self::Config,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = WalleResult<Vec<JoinHandle<()>>>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: EHACtrait<E, A, R, Self> + 'async_trait,
-    {
-        self.ecah.ecah_start(ob, config)
-    }
-    fn handle_action<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        action: A,
-        ob: &'life1 Self,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = WalleResult<R>> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.ecah.handle_action(action, ob)
-    }
-}
-
-impl<E, A, R, ECAH, EHAC, const V: u8> EHACtrait<E, A, R, Self> for OneBot<ECAH, EHAC, V>
-where
-    EHAC: EHACtrait<E, A, R, Self>,
-{
-    type Config = EHAC::Config;
-    fn ehac_start<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        ob: &'life1 Arc<Self>,
-        config: Self::Config,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = WalleResult<Vec<JoinHandle<()>>>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: ECAHtrait<E, A, R, Self> + 'async_trait,
-    {
-        self.ehac.ehac_start(ob, config)
-    }
-    fn handle_event<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        event: E,
-        ob: &'life1 Self,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = ()> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.ehac.handle_event(event, ob)
-    }
-}
 
 impl<ECAH, EHAC, const V: u8> OneBot<ECAH, EHAC, V> {
     pub async fn start<E, A, R>(
@@ -138,8 +57,8 @@ impl<ECAH, EHAC, const V: u8> OneBot<ECAH, EHAC, V> {
         E: Static,
         A: Static,
         R: Static,
-        ECAH: ECAHtrait<E, A, R, Self> + Static,
-        EHAC: EHACtrait<E, A, R, Self> + Static,
+        ECAH: ECAHtrait<E, A, R, EHAC, V> + Static,
+        EHAC: EHACtrait<E, A, R, ECAH, V> + Static,
     {
         let mut signal = self.signal.lock().await;
         if signal.is_none() {
@@ -152,6 +71,22 @@ impl<ECAH, EHAC, const V: u8> OneBot<ECAH, EHAC, V> {
         tasks.extend(self.ecah.ecah_start(self, ecah_config).await?.into_iter());
         tasks.extend(self.ehac.ehac_start(self, ehac_config).await?.into_iter());
         Ok(tasks)
+    }
+    pub fn handle_event<'a, E, A, R>(&'a self, event: E) -> impl Future<Output = ()> + 'a
+    where
+        EHAC: EHACtrait<E, A, R, ECAH, V> + Static,
+    {
+        self.ehac.handle_event(event, self)
+    }
+    pub fn handle_action<'a, E, A, R>(
+        &'a self,
+        action: A,
+    ) -> impl Future<Output = WalleResult<R>> + 'a
+    where
+        R: Static,
+        ECAH: ECAHtrait<E, A, R, EHAC, V> + Static,
+    {
+        self.ecah.handle_action(action, self)
     }
     pub async fn shutdown(&self) -> WalleResult<()> {
         let tx = self

@@ -3,7 +3,7 @@ use std::{convert::Infallible, sync::Arc};
 use crate::{
     action::ActionType,
     config::HttpServer,
-    next::{EHACtrait, Static},
+    next::{EHACtrait, OneBot, Static},
     utils::ProtocolItem,
     SelfId, WalleError, WalleResult,
 };
@@ -20,14 +20,14 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    async fn http_webhook<E, OB>(
+    async fn http_webhook<E, EHAC, const V: u8>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
         config: Vec<HttpServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        OB: EHACtrait<E, A, R, OB> + Static,
+        EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
     {
         let mut tasks = vec![];
         for webhook in config {
@@ -76,7 +76,7 @@ where
                             if bot_map.get(&event.self_id()).is_none() {
                                 todo!()
                             }
-                            ob.handle_event(event, &ob).await
+                            ob.handle_event(event).await
                         }
                         Err(s) => warn!(target: crate::WALLE_CORE, "Webhook json error: {}", s),
                     }
