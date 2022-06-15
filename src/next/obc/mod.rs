@@ -1,4 +1,4 @@
-use super::{ECAHtrait, EHACtrait, OneBotExt, Static};
+use super::{ECAHtrait, EHACtrait, OneBot, Static};
 use crate::action::ActionType;
 use crate::error::{WalleError, WalleResult};
 use crate::utils::ProtocolItem;
@@ -14,6 +14,8 @@ use tracing::warn;
 
 const OBC: &str = "Walle-OBC";
 
+#[cfg(feature = "http")]
+mod app_http;
 #[cfg(feature = "websocket")]
 mod app_ws;
 #[cfg(feature = "websocket")]
@@ -21,7 +23,6 @@ mod impl_ws;
 
 #[derive(Clone)]
 pub struct ImplOBC<E> {
-    pub self_id: Arc<tokio::sync::RwLock<String>>,
     pub platform: String,
     pub r#impl: String,
     pub(crate) event_tx: tokio::sync::broadcast::Sender<E>,
@@ -29,69 +30,67 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R, OB> EHACtrait<E, A, R, OB, crate::config::ImplConfig> for ImplOBC<E>
+impl<E, A, R, ECAH, const V: u8> EHACtrait<E, A, R, OneBot<ECAH, Self, V>> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
-    OB: Static,
+    ECAH: ECAHtrait<E, A, R, OneBot<ECAH, Self, V>> + Static,
 {
-    async fn ehac_start<C0>(
+    type Config = crate::config::ImplConfig;
+    async fn ehac_start(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<ECAH, Self, V>>,
         config: crate::config::ImplConfig,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
-    where
-        OB: ECAHtrait<E, A, R, OB, C0> + OneBotExt,
-    {
+    ) -> WalleResult<Vec<JoinHandle<()>>> {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
-            tasks.extend(self.ehac_start(ob, config.websocket).await?.into_iter());
-            tasks.extend(self.ehac_start(ob, config.websocket_rev).await?.into_iter());
+            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
+            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
         }
         Ok(tasks)
     }
-    async fn handle_event(&self, event: E, _ob: &OB) {
+    async fn handle_event(&self, event: E, _ob: &OneBot<ECAH, Self, V>) {
         self.event_tx.send(event).ok();
     }
 }
 
 impl<E> ImplOBC<E> {
-    pub fn new(r#impl: String, platform: String, self_id: String) -> Self
+    pub fn new(r#impl: String, platform: String) -> Self
     where
         E: Clone,
     {
         let (event_tx, _) = tokio::sync::broadcast::channel(1024); //todo
         let (hb_tx, _) = tokio::sync::broadcast::channel(1024);
         Self {
-            self_id: Arc::new(tokio::sync::RwLock::new(self_id)),
             platform,
             r#impl,
             event_tx,
             hb_tx,
         }
     }
-
-    pub async fn set_self_id(&self, self_id: String) {
-        *self.self_id.write().await = self_id;
-    }
 }
 
 impl<C> ImplOBC<crate::BaseEvent<C>> {
-    pub async fn new_event_with_time(&self, time: f64, content: C) -> crate::BaseEvent<C> {
+    pub async fn new_event_with_time(
+        &self,
+        time: f64,
+        content: C,
+        self_id: String,
+    ) -> crate::BaseEvent<C> {
         crate::BaseEvent {
             id: crate::utils::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
-            self_id: self.self_id.read().await.clone(),
+            self_id,
             time,
             content,
         }
     }
 
-    pub async fn new_event(&self, content: C) -> crate::BaseEvent<C> {
-        self.new_event_with_time(crate::utils::timestamp_nano_f64(), content)
+    pub async fn new_event(&self, content: C, self_id: String) -> crate::BaseEvent<C> {
+        self.new_event_with_time(crate::utils::timestamp_nano_f64(), content, self_id)
             .await
     }
 }
@@ -119,9 +118,14 @@ impl<A, R> AppOBC<A, R> {
                 .to_string(),
         )))
     }
+}
 
-    pub async fn _handle_action(&self, id: &str, action: A) -> WalleResult<R> {
-        match self.bots.get(id) {
+impl<A, R> AppOBC<A, R>
+where
+    A: SelfId,
+{
+    pub async fn _handle_action(&self, action: A) -> WalleResult<R> {
+        match self.bots.get(&action.self_id()) {
             Some(action_tx) => {
                 let (tx, rx) = oneshot::channel();
                 let seq = self.next_seg();
@@ -161,30 +165,28 @@ impl<A, R> Default for AppOBC<A, R> {
 }
 
 #[async_trait]
-impl<E, A, R, OB> ECAHtrait<E, A, R, OB, crate::config::AppConfig> for AppOBC<A, R>
+impl<E, A, R, EHAC, const V: u8> ECAHtrait<E, A, R, OneBot<Self, EHAC, V>> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
-    A: ProtocolItem + ActionType,
+    A: ProtocolItem + SelfId + ActionType,
     R: ProtocolItem + Debug,
-    OB: Static,
+    EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
 {
-    async fn ecah_start<C0>(
+    type Config = crate::config::AppConfig;
+    async fn ecah_start(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<Self, EHAC, V>>,
         config: crate::config::AppConfig,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
-    where
-        OB: EHACtrait<E, A, R, OB, C0> + OneBotExt,
-    {
+    ) -> WalleResult<Vec<JoinHandle<()>>> {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
-            tasks.extend(self.ecah_start(ob, config.websocket_rev).await?.into_iter());
-            tasks.extend(self.ecah_start(ob, config.websocket).await?.into_iter());
+            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
+            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
         }
         Ok(tasks)
     }
-    async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
-        self._handle_action(id, action).await
+    async fn handle_action(&self, action: A, _ob: &OneBot<Self, EHAC, V>) -> WalleResult<R> {
+        self._handle_action(action).await
     }
 }

@@ -3,14 +3,13 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
-    next::{ECAHtrait, EHACtrait, OneBotExt, Static},
+    next::{EHACtrait, OneBot, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
@@ -21,21 +20,19 @@ use tokio_tungstenite::tungstenite::Message as WsMsg;
 use tokio_tungstenite::WebSocketStream;
 use tracing::{info, warn};
 
-#[async_trait]
-impl<E, A, R, OB> ECAHtrait<E, A, R, OB, Vec<WebSocketClient>> for AppOBC<A, R>
+impl<A, R> AppOBC<A, R>
 where
-    E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    OB: Static,
 {
-    async fn ecah_start<C0>(
+    pub(crate) async fn ws<E, EHAC, const V: u8>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<Self, EHAC, V>>,
         config: Vec<WebSocketClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
-        OB: EHACtrait<E, A, R, OB, C0> + OneBotExt,
+        E: ProtocolItem + SelfId + Clone,
+        EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
     {
         let mut tasks = vec![];
         for wsc in config {
@@ -52,11 +49,7 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!(
-                                "OneBot/{} Walle-App/{}",
-                                ob.get_onebot_version(),
-                                crate::VERSION
-                            ),
+                            format!("OneBot/{} Walle-App/{}", V, crate::VERSION),
                         )
                         .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
@@ -76,26 +69,14 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
-        self._handle_action(id, action).await
-    }
-}
-
-#[async_trait]
-impl<E, A, R, OB> ECAHtrait<E, A, R, OB, Vec<WebSocketServer>> for AppOBC<A, R>
-where
-    E: ProtocolItem + SelfId + Clone,
-    A: ProtocolItem + ActionType,
-    R: ProtocolItem,
-    OB: Static,
-{
-    async fn ecah_start<C0>(
+    pub(crate) async fn wsr<E, EHAC, const V: u8>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<Self, EHAC, V>>,
         config: Vec<WebSocketServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
-        OB: EHACtrait<E, A, R, OB, C0> + OneBotExt,
+        E: ProtocolItem + SelfId + Clone,
+        EHAC: EHACtrait<E, A, R, OneBot<Self, EHAC, V>> + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -134,13 +115,10 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_action(&self, id: &str, action: A, _ob: &OB) -> WalleResult<R> {
-        self._handle_action(id, action).await
-    }
 }
 
-async fn ws_loop<E, A, R, OB, C>(
-    ob: Arc<OB>,
+async fn ws_loop<E, A, R, EHAC, const V: u8>(
+    ob: Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
@@ -148,10 +126,11 @@ async fn ws_loop<E, A, R, OB, C>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    OB: EHACtrait<E, A, R, OB, C> + OneBotExt + Static,
+    EHAC: EHACtrait<E, A, R, OneBot<AppOBC<A, R>, EHAC, V>> + Static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().await.unwrap(); //todo
+    let mut bot_list = vec![];
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
@@ -169,7 +148,8 @@ async fn ws_loop<E, A, R, OB, C>(
                         &mut ws_stream,
                         &echo_map,
                         &bot_map,
-                        &action_tx
+                        &action_tx,
+                        &mut bot_list,
                     ).await {
                         break;
                     },
@@ -181,20 +161,24 @@ async fn ws_loop<E, A, R, OB, C>(
         }
     }
     ws_stream.send(WsMsg::Close(None)).await.ok();
+    for bot in bot_list {
+        bot_map.remove(&bot);
+    }
 }
 
-async fn ws_recv<E, A, R, OB, C>(
+async fn ws_recv<E, A, R, OB>(
     msg: WsMsg,
     ob: &Arc<OB>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
     action_tx: &mpsc::UnboundedSender<Echo<A>>,
+    bot_list: &mut Vec<String>,
 ) -> bool
 where
     E: ProtocolItem + Clone + SelfId,
     R: ProtocolItem,
-    OB: EHACtrait<E, A, R, OB, C> + Static,
+    OB: EHACtrait<E, A, R, OB> + Static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
@@ -208,6 +192,7 @@ where
             Ok(ReceiveItem::Event(event)) => {
                 let self_id = event.self_id();
                 if bot_map.get(&self_id).is_none() {
+                    bot_list.push(self_id.clone());
                     bot_map.insert(self_id, action_tx.clone());
                 }
                 let ob = ob.clone();
