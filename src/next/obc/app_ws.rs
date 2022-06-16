@@ -3,12 +3,12 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
-    next::{EHACtrait, OneBot, Static},
+    next::{EventHandler, OneBot, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
 
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -25,14 +25,14 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn ws<E, EHAC, const V: u8>(
+    pub(crate) async fn ws<E, EH, const V: u8>(
         &self,
-        ob: &Arc<OneBot<Self, EHAC, V>>,
+        ob: &Arc<OneBot<Self, EH, V>>,
         config: Vec<WebSocketClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EHAC: EHACtrait<E, A, R, Self, V> + Static,
+        EH: EventHandler<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wsc in config {
@@ -40,7 +40,7 @@ where
             let ob = ob.clone();
             let echo_map = self.echos.clone();
             let bot_map = self.bots.clone();
-            let mut signal_rx = ob.get_signal_rx().await?;
+            let mut signal_rx = ob.get_signal_rx()?;
             tasks.push(tokio::spawn(async move {
                 while signal_rx.try_recv().is_err() {
                     let ob = ob.clone();
@@ -69,14 +69,14 @@ where
         }
         Ok(tasks)
     }
-    pub(crate) async fn wsr<E, EHAC, const V: u8>(
+    pub(crate) async fn wsr<E, EH, const V: u8>(
         &self,
-        ob: &Arc<OneBot<Self, EHAC, V>>,
+        ob: &Arc<OneBot<Self, EH, V>>,
         config: Vec<WebSocketServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EHAC: EHACtrait<E, A, R, Self, V> + Static,
+        EH: EventHandler<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -87,14 +87,11 @@ where
                 "Websocket server listening on ws://{}", addr
             );
             let ob = ob.clone();
-            let mut signal_rx = ob.get_signal_rx().await?;
+            let mut signal_rx = ob.get_signal_rx()?;
             let echo_map = self.echos.clone();
             let bot_map = self.bots.clone();
             tasks.push(tokio::spawn(async move {
                 loop {
-                    let ob = ob.clone();
-                    let echo_map = echo_map.clone();
-                    let bot_map = bot_map.clone();
                     tokio::select! {
                         _ = signal_rx.recv() => {
                             info!(target: super::OBC, "Stop listening on ws://{}", addr);
@@ -106,7 +103,7 @@ where
                                     .await
                             {
                                 let ob = ob.clone();
-                                tokio::spawn(async move { ws_loop(ob, ws_stream, echo_map, bot_map).await });
+                                tokio::spawn(ws_loop(ob.clone(), ws_stream, echo_map.clone(), bot_map.clone()));
                             }
                         }
                     }
@@ -117,8 +114,8 @@ where
     }
 }
 
-async fn ws_loop<E, A, R, EHAC, const V: u8>(
-    ob: Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
+async fn ws_loop<E, A, R, EH, const V: u8>(
+    ob: Arc<OneBot<AppOBC<A, R>, EH, V>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
@@ -126,17 +123,16 @@ async fn ws_loop<E, A, R, EHAC, const V: u8>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
+    EH: EventHandler<E, A, R, AppOBC<A, R>, V> + Static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
-    let mut signal_rx = ob.get_signal_rx().await.unwrap(); //todo
-    let mut bot_list = vec![];
+    let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
+    let mut bot_set = HashSet::default();
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
             Some(action) = action_rx.recv() => {
-                let content_type = action.inner.content_type();
-                if ws_stream.send(action.to_ws_msg(content_type)).await.is_err() {
+                if ws_stream.send(action.to_ws_msg()).await.is_err() {
                     break;
                 }
             },
@@ -149,7 +145,7 @@ async fn ws_loop<E, A, R, EHAC, const V: u8>(
                         &echo_map,
                         &bot_map,
                         &action_tx,
-                        &mut bot_list,
+                        &mut bot_set,
                     ).await {
                         break;
                     },
@@ -161,25 +157,25 @@ async fn ws_loop<E, A, R, EHAC, const V: u8>(
         }
     }
     ws_stream.send(WsMsg::Close(None)).await.ok();
-    for bot in bot_list {
-        bot_map.remove(&bot);
+    for bot in bot_set {
+        bot_map.remove_bot(&bot, &action_tx);
     }
 }
 
-async fn ws_recv<E, A, R, EHAC, const V: u8>(
+async fn ws_recv<E, A, R, EH, const V: u8>(
     msg: WsMsg,
-    ob: &Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
+    ob: &Arc<OneBot<AppOBC<A, R>, EH, V>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
     action_tx: &mpsc::UnboundedSender<Echo<A>>,
-    bot_list: &mut Vec<String>,
+    bot_set: &mut HashSet<String>,
 ) -> bool
 where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem,
     R: ProtocolItem,
-    EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
+    EH: EventHandler<E, A, R, AppOBC<A, R>, V> + Static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
@@ -192,10 +188,8 @@ where
         match item {
             Ok(ReceiveItem::Event(event)) => {
                 let self_id = event.self_id();
-                if bot_map.get(&self_id).is_none() {
-                    bot_list.push(self_id.clone());
-                    bot_map.insert(self_id, action_tx.clone());
-                }
+                bot_map.ensure_tx(&self_id, &action_tx);
+                bot_set.insert(self_id);
                 let ob = ob.clone();
                 tokio::spawn(async move { ob.handle_event(event).await });
             }

@@ -4,7 +4,7 @@ use crate::{
     comms::ws_utils::upgrade_websocket,
     error::{WalleError, WalleResult},
     next::OneBot,
-    next::{ECAHtrait, Static},
+    next::{ActionHandler, Static},
     resp::error_builder,
     utils::{Echo, ExtendedMap, ProtocolItem},
     Resps, StandardEvent,
@@ -23,15 +23,15 @@ impl<E> ImplOBC<E>
 where
     E: ProtocolItem + Clone,
 {
-    pub(crate) async fn ws<A, R, ECAH, const V: u8>(
+    pub(crate) async fn ws<A, R, AH, const V: u8>(
         &self,
-        ob: &Arc<OneBot<ECAH, Self, V>>,
+        ob: &Arc<OneBot<AH, Self, V>>,
         config: Vec<crate::config::WebSocketServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        ECAH: ECAHtrait<E, A, R, Self, V> + Static,
+        AH: ActionHandler<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -44,26 +44,21 @@ where
                 "Websocket server listening on ws://{}", addr
             );
             let access_token = wss.access_token.clone();
-            let mut signal_rx = ob.get_signal_rx().await.unwrap();
+            let mut signal_rx = ob.get_signal_rx()?;
             let obc = self.clone();
             let ob = ob.clone();
             tasks.push(tokio::spawn(async move {
                 loop {
-                    let access_token = access_token.clone();
-                    let obc = obc.clone();
-                    let ob = ob.clone();
                     tokio::select! {
                         Ok((stream, addr)) = tcp_listener.accept() => {
                             if let Some(ws_stream) = upgrade_websocket(&access_token, stream).await {
                                 info!(target: super::OBC, "New websocket connection from {}", addr);
-                                tokio::spawn(async move {
-                                    ws_loop(
-                                        ob,
-                                        obc.event_tx.subscribe(),
-                                        obc.hb_tx.subscribe(),
-                                        ws_stream,
-                                    ).await;
-                                });
+                                tokio::spawn(ws_loop(
+                                    ob.clone(),
+                                    obc.event_tx.subscribe(),
+                                    obc.hb_tx.subscribe(),
+                                    ws_stream,
+                                ));
                             }
                         }
                         _ = signal_rx.recv() => break,
@@ -74,20 +69,20 @@ where
         Ok(tasks)
     }
 
-    pub(crate) async fn wsr<A, R, ECAH, const V: u8>(
+    pub(crate) async fn wsr<A, R, AH, const V: u8>(
         &self,
-        ob: &Arc<OneBot<ECAH, Self, V>>,
+        ob: &Arc<OneBot<AH, Self, V>>,
         config: Vec<crate::config::WebSocketClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        ECAH: ECAHtrait<E, A, R, Self, V> + Static,
+        AH: ActionHandler<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for wsr in config {
             let obc = self.clone();
-            let mut signal_rx = ob.get_signal_rx().await.unwrap();
+            let mut signal_rx = ob.get_signal_rx()?;
             let ob = ob.clone();
             tasks.push(tokio::spawn(async move {
                 info!(
@@ -131,20 +126,20 @@ where
     }
 }
 
-async fn ws_loop<E, A, R, ECAH, const V: u8>(
-    ob: Arc<OneBot<ECAH, ImplOBC<E>, V>>,
+async fn ws_loop<E, A, R, AH, const V: u8>(
+    ob: Arc<OneBot<AH, ImplOBC<E>, V>>,
     mut event_rx: broadcast::Receiver<E>,
     mut hb_rx: broadcast::Receiver<StandardEvent>,
     mut ws_stream: WebSocketStream<TcpStream>,
 ) where
-    ECAH: ECAHtrait<E, A, R, ImplOBC<E>, V> + Static,
+    AH: ActionHandler<E, A, R, ImplOBC<E>, V> + Static,
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
 {
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut signal_rx = ob.get_signal_rx().await.unwrap(); //todo
+    let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
@@ -214,15 +209,15 @@ async fn ws_loop<E, A, R, ECAH, const V: u8>(
     ws_stream.send(WsMsg::Close(None)).await.ok();
 }
 
-pub(crate) async fn ws_recv<E, A, R, ECAH, const V: u8>(
+pub(crate) async fn ws_recv<E, A, R, AH, const V: u8>(
     ws_msg: WsMsg,
-    ob: &Arc<OneBot<ECAH, ImplOBC<E>, V>>,
+    ob: &Arc<OneBot<AH, ImplOBC<E>, V>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     json_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
     rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
 ) -> bool
 where
-    ECAH: ECAHtrait<E, A, R, ImplOBC<E>, V> + Static,
+    AH: ActionHandler<E, A, R, ImplOBC<E>, V> + Static,
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,

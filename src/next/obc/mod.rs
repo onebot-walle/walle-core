@@ -1,4 +1,4 @@
-use super::{ECAHtrait, EHACtrait, OneBot, Static};
+use super::{ActionHandler, EventHandler, OneBot, Static};
 use crate::action::ActionType;
 use crate::error::{WalleError, WalleResult};
 use crate::utils::ProtocolItem;
@@ -30,17 +30,17 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R, ECAH, const V: u8> EHACtrait<E, A, R, ECAH, V> for ImplOBC<E>
+impl<E, A, R, AH, const V: u8> EventHandler<E, A, R, AH, V> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
-    ECAH: ECAHtrait<E, A, R, Self, V> + Static,
+    AH: ActionHandler<E, A, R, Self, V> + Static,
 {
     type Config = crate::config::ImplConfig;
     async fn ehac_start(
         &self,
-        ob: &Arc<OneBot<ECAH, Self, V>>,
+        ob: &Arc<OneBot<AH, Self, V>>,
         config: crate::config::ImplConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>> {
         let mut tasks = vec![];
@@ -51,7 +51,7 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_event(&self, event: E, _ob: &OneBot<ECAH, Self, V>) {
+    async fn handle_event(&self, event: E, _ob: &OneBot<AH, Self, V>) {
         self.event_tx.send(event).ok();
     }
 }
@@ -73,7 +73,7 @@ impl<E> ImplOBC<E> {
 }
 
 impl<C> ImplOBC<crate::BaseEvent<C>> {
-    pub async fn new_event_with_time(
+    pub fn new_event_with_time(
         &self,
         time: f64,
         content: C,
@@ -89,51 +89,108 @@ impl<C> ImplOBC<crate::BaseEvent<C>> {
         }
     }
 
-    pub async fn new_event(&self, content: C, self_id: String) -> crate::BaseEvent<C> {
+    pub fn new_event(&self, content: C, self_id: String) -> crate::BaseEvent<C> {
         self.new_event_with_time(crate::utils::timestamp_nano_f64(), content, self_id)
-            .await
     }
 }
 
 use dashmap::DashMap;
 
 type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
-type BotMap<A> = Arc<DashMap<String, mpsc::UnboundedSender<Echo<A>>>>;
+type BotMap<A> = Arc<BotMapInner<A>>;
 
 pub struct AppOBC<A, R> {
     pub echos: EchoMap<R>,
     pub bots: BotMap<A>,
-    seq: AtomicU64,
 }
 
 impl<A, R> AppOBC<A, R> {
     pub fn new() -> Self {
         Default::default()
     }
+}
 
+impl<A, R> Default for AppOBC<A, R> {
+    fn default() -> Self {
+        Self {
+            echos: Arc::new(DashMap::new()),
+            bots: Arc::new(Default::default()),
+        }
+    }
+}
+
+#[async_trait]
+impl<E, A, R, EH, const V: u8> ActionHandler<E, A, R, EH, V> for AppOBC<A, R>
+where
+    E: ProtocolItem + Clone + SelfId,
+    A: ProtocolItem + SelfId + ActionType,
+    R: ProtocolItem + Debug,
+    EH: EventHandler<E, A, R, Self, V> + Static,
+{
+    type Config = crate::config::AppConfig;
+    async fn ecah_start(
+        &self,
+        ob: &Arc<OneBot<Self, EH, V>>,
+        config: crate::config::AppConfig,
+    ) -> WalleResult<Vec<JoinHandle<()>>> {
+        let mut tasks = vec![];
+        #[cfg(feature = "websocket")]
+        {
+            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
+            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
+        }
+        #[cfg(feature = "http")]
+        {
+            tasks.extend(
+                self.http_webhook(ob, config.http_webhook)
+                    .await?
+                    .into_iter(),
+            );
+            tasks.extend(self.http(ob, config.http).await?.into_iter());
+        }
+        Ok(tasks)
+    }
+    async fn handle_action(&self, action: A, _ob: &OneBot<Self, EH, V>) -> WalleResult<R> {
+        self.bots.handle_action(action, &self.echos).await
+    }
+}
+
+pub struct BotMapInner<A>(
+    DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>>,
+    AtomicU64,
+);
+
+impl<A> Default for BotMapInner<A> {
+    fn default() -> Self {
+        Self(DashMap::new(), AtomicU64::new(0))
+    }
+}
+
+impl<A> BotMapInner<A> {
     pub fn next_seg(&self) -> EchoS {
         EchoS(Some(EchoInner::S(
-            self.seq
+            self.1
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
                 .to_string(),
         )))
     }
-}
-
-impl<A, R> AppOBC<A, R>
-where
-    A: SelfId,
-{
-    pub async fn _handle_action(&self, action: A) -> WalleResult<R> {
-        match self.bots.get(&action.self_id()) {
-            Some(action_tx) => {
+    pub async fn handle_action<R>(&self, action: A, echo_map: &EchoMap<R>) -> WalleResult<R>
+    where
+        A: SelfId,
+    {
+        match self.0.get_mut(&action.self_id()) {
+            Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();
                 let seq = self.next_seg();
-                self.echos.insert(seq.clone(), tx);
-                action_tx.send(seq.pack(action)).map_err(|e| {
-                    warn!(target: OBC, "send action error: {}", e);
-                    WalleError::Other(e.to_string())
-                })?;
+                echo_map.insert(seq.clone(), tx);
+                action_txs
+                    .first()
+                    .unwrap() //todo
+                    .send(seq.pack(action))
+                    .map_err(|e| {
+                        warn!(target: OBC, "send action error: {}", e);
+                        WalleError::Other(e.to_string())
+                    })?;
                 match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
                     Ok(Ok(res)) => Ok(res),
                     Ok(Err(e)) => {
@@ -152,41 +209,19 @@ where
             }
         }
     }
-}
-
-impl<A, R> Default for AppOBC<A, R> {
-    fn default() -> Self {
-        Self {
-            echos: Arc::new(DashMap::new()),
-            bots: Arc::new(DashMap::new()),
-            seq: AtomicU64::new(0),
-        }
+    pub fn ensure_tx(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        self.0
+            .entry(bot_id.to_string())
+            .or_default()
+            .push(tx.clone());
     }
-}
-
-#[async_trait]
-impl<E, A, R, EHAC, const V: u8> ECAHtrait<E, A, R, EHAC, V> for AppOBC<A, R>
-where
-    E: ProtocolItem + Clone + SelfId,
-    A: ProtocolItem + SelfId + ActionType,
-    R: ProtocolItem + Debug,
-    EHAC: EHACtrait<E, A, R, Self, V> + Static,
-{
-    type Config = crate::config::AppConfig;
-    async fn ecah_start(
-        &self,
-        ob: &Arc<OneBot<Self, EHAC, V>>,
-        config: crate::config::AppConfig,
-    ) -> WalleResult<Vec<JoinHandle<()>>> {
-        let mut tasks = vec![];
-        #[cfg(feature = "websocket")]
-        {
-            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
-            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
-        }
-        Ok(tasks)
-    }
-    async fn handle_action(&self, action: A, _ob: &OneBot<Self, EHAC, V>) -> WalleResult<R> {
-        self._handle_action(action).await
+    pub fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        if let Some(mut txs) = self.0.get_mut(bot_id) {
+            for i in 0..txs.len() {
+                if tx.same_channel(&txs[i]) {
+                    txs.remove(i);
+                }
+            }
+        };
     }
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use core::future::Future;
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 use crate::{WalleError, WalleResult};
@@ -14,69 +14,80 @@ impl<T: Sync + Send + 'static> Static for T {}
 
 /// ECAH: EventConstructor + ActionHandler
 /// EHAC: EventHandler + ActionConstructor
-pub struct OneBot<ECAH, EHAC, const V: u8> {
-    pub ecah: ECAH,
-    pub ehac: EHAC,
+pub struct OneBot<AH, EH, const V: u8> {
+    pub action_handler: AH,
+    pub event_handler: EH,
 
     // Some for running, None for stopped
-    signal: Mutex<Option<broadcast::Sender<()>>>,
+    signal: std::sync::Mutex<Option<broadcast::Sender<()>>>,
 }
 
 #[async_trait]
-pub trait ECAHtrait<E, A, R, EHAC, const V: u8>: Sized {
+pub trait ActionHandler<E, A, R, EH, const V: u8>: Sized {
     type Config;
     async fn ecah_start(
         &self,
-        ob: &Arc<OneBot<Self, EHAC, V>>,
+        ob: &Arc<OneBot<Self, EH, V>>,
         config: Self::Config,
     ) -> WalleResult<Vec<JoinHandle<()>>>;
-    async fn handle_action(&self, action: A, ob: &OneBot<Self, EHAC, V>) -> WalleResult<R>;
+    async fn handle_action(&self, action: A, ob: &OneBot<Self, EH, V>) -> WalleResult<R>;
 }
 
 #[async_trait]
-pub trait EHACtrait<E, A, R, ECAH, const V: u8>: Sized {
+pub trait EventHandler<E, A, R, AH, const V: u8>: Sized {
     type Config;
     async fn ehac_start(
         &self,
-        ob: &Arc<OneBot<ECAH, Self, V>>,
+        ob: &Arc<OneBot<AH, Self, V>>,
         config: Self::Config,
     ) -> WalleResult<Vec<JoinHandle<()>>>;
-    async fn handle_event(&self, event: E, ob: &OneBot<ECAH, Self, V>);
+    async fn handle_event(&self, event: E, ob: &OneBot<AH, Self, V>);
 }
 
-pub type ImplOneBot<E, ECAH, const V: u8> = OneBot<ECAH, obc::ImplOBC<E>, V>;
-pub type AppOneBot<A, R, EHAC, const V: u8> = OneBot<obc::AppOBC<A, R>, EHAC, V>;
+pub type ImplOneBot<E, AH, const V: u8> = OneBot<AH, obc::ImplOBC<E>, V>;
+pub type AppOneBot<A, R, EH, const V: u8> = OneBot<obc::AppOBC<A, R>, EH, V>;
 
-impl<ECAH, EHAC, const V: u8> OneBot<ECAH, EHAC, V> {
+impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
     pub async fn start<E, A, R>(
         self: &Arc<Self>,
-        ecah_config: ECAH::Config,
-        ehac_config: EHAC::Config,
+        ah_config: AH::Config,
+        eh_config: EH::Config,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: Static,
         A: Static,
         R: Static,
-        ECAH: ECAHtrait<E, A, R, EHAC, V> + Static,
-        EHAC: EHACtrait<E, A, R, ECAH, V> + Static,
+        AH: ActionHandler<E, A, R, EH, V> + Static,
+        EH: EventHandler<E, A, R, AH, V> + Static,
     {
-        let mut signal = self.signal.lock().await;
+        let mut signal = self.signal.lock().unwrap();
         if signal.is_none() {
             let (tx, _) = tokio::sync::broadcast::channel(1);
             *signal = Some(tx);
         } else {
             return Err(WalleError::AlreadyRunning);
         }
+        drop(signal);
         let mut tasks = vec![];
-        tasks.extend(self.ecah.ecah_start(self, ecah_config).await?.into_iter());
-        tasks.extend(self.ehac.ehac_start(self, ehac_config).await?.into_iter());
+        tasks.extend(
+            self.action_handler
+                .ecah_start(self, ah_config)
+                .await?
+                .into_iter(),
+        );
+        tasks.extend(
+            self.event_handler
+                .ehac_start(self, eh_config)
+                .await?
+                .into_iter(),
+        );
         Ok(tasks)
     }
     pub fn handle_event<'a, E, A, R>(&'a self, event: E) -> impl Future<Output = ()> + 'a
     where
-        EHAC: EHACtrait<E, A, R, ECAH, V> + Static,
+        EH: EventHandler<E, A, R, AH, V> + Static,
     {
-        self.ehac.handle_event(event, self)
+        self.event_handler.handle_event(event, self)
     }
     pub fn handle_action<'a, E, A, R>(
         &'a self,
@@ -84,25 +95,25 @@ impl<ECAH, EHAC, const V: u8> OneBot<ECAH, EHAC, V> {
     ) -> impl Future<Output = WalleResult<R>> + 'a
     where
         R: Static,
-        ECAH: ECAHtrait<E, A, R, EHAC, V> + Static,
+        AH: ActionHandler<E, A, R, EH, V> + Static,
     {
-        self.ecah.handle_action(action, self)
+        self.action_handler.handle_action(action, self)
     }
-    pub async fn shutdown(&self) -> WalleResult<()> {
+    pub fn shutdown(&self) -> WalleResult<()> {
         let tx = self
             .signal
             .lock()
-            .await
+            .unwrap()
             .take()
             .ok_or(WalleError::NotRunning)?;
         tx.send(()).ok();
         Ok(())
     }
-    pub async fn get_signal_rx(&self) -> WalleResult<tokio::sync::broadcast::Receiver<()>> {
+    pub fn get_signal_rx(&self) -> WalleResult<tokio::sync::broadcast::Receiver<()>> {
         Ok(self
             .signal
             .lock()
-            .await
+            .unwrap()
             .as_ref()
             .ok_or(WalleError::NotRunning)?
             .subscribe())

@@ -78,9 +78,8 @@ where
                 return Ok(());
             }
         };
-        let content_type = action.content_type();
         let action = echo_s.pack(action);
-        ws_stream.send(action.to_ws_msg(content_type)).await
+        ws_stream.send(action.to_ws_msg()).await
     }
 
     async fn ws_recv(

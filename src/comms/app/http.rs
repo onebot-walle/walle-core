@@ -61,7 +61,7 @@ where
                 .uri(&http.url)
                 .header_auth_token(&http.access_token)
                 .header(CONTENT_TYPE, content_type.to_string())
-                .body(action.to_body(content_type))
+                .body(action.to_body())
                 .unwrap();
             let resp =
                 match tokio::time::timeout(Duration::from_secs(http.timeout), cli.request(req))

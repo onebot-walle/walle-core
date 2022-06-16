@@ -1,38 +1,46 @@
-use std::{convert::Infallible, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 
 use crate::{
     action::ActionType,
-    config::HttpServer,
-    next::{EHACtrait, OneBot, Static},
-    utils::ProtocolItem,
+    comms::utils::AuthReqHeaderExt,
+    config::{HttpClient, HttpServer},
+    next::{EventHandler, OneBot, Static},
+    utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
 use hyper::{
-    header::AUTHORIZATION, server::conn::Http, service::service_fn, Body, Request, Response,
+    body::Buf,
+    client::HttpConnector,
+    header::{AUTHORIZATION, CONTENT_TYPE},
+    server::conn::Http,
+    service::service_fn,
+    Body, Client as HyperClient, Method, Request, Response,
 };
-use tokio::{net::TcpListener, task::JoinHandle};
+use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
 
-use super::AppOBC;
+use super::{AppOBC, EchoMap};
 
 impl<A, R> AppOBC<A, R>
 where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    async fn http_webhook<E, EHAC, const V: u8>(
+    pub(crate) async fn http_webhook<E, EH, const V: u8>(
         &self,
-        ob: &Arc<OneBot<AppOBC<A, R>, EHAC, V>>,
+        ob: &Arc<OneBot<Self, EH, V>>,
         config: Vec<HttpServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EHAC: EHACtrait<E, A, R, AppOBC<A, R>, V> + Static,
+        EH: EventHandler<E, A, R, Self, V> + Static,
     {
         let mut tasks = vec![];
         for webhook in config {
             let bot_map = self.bots.clone();
+            let echo_map = self.echos.clone();
             let access_token = webhook.access_token.clone();
+            let mut signal_rx = ob.get_signal_rx()?;
             let ob = ob.clone();
             let addr = std::net::SocketAddr::new(webhook.host, webhook.port);
             info!(
@@ -44,6 +52,7 @@ where
                 let access_token = access_token.clone();
                 let ob = ob.clone();
                 let bot_map = bot_map.clone();
+                let echo_map = echo_map.clone();
                 async move {
                     if let Some(token) = access_token.as_ref() {
                         if let Some(header_token) = req
@@ -73,10 +82,21 @@ where
                     .unwrap();
                     match E::json_decode(&body) {
                         Ok(event) => {
-                            if bot_map.get(&event.self_id()).is_none() {
-                                todo!()
+                            let (action_tx, mut action_rx) = mpsc::unbounded_channel();
+                            let self_id = event.self_id();
+                            bot_map.ensure_tx(&self_id, &action_tx);
+                            ob.handle_event(event).await;
+                            if let Ok(Some(a)) = tokio::time::timeout(
+                                std::time::Duration::from_secs(8),
+                                action_rx.recv(),
+                            )
+                            .await
+                            {
+                                let echo_s = a.get_echo();
+                                echo_map.remove(&echo_s);
+                                bot_map.remove_bot(&self_id, &action_tx);
+                                return Ok(Response::new(a.json_encode().into()));
                             }
-                            ob.handle_event(event).await
                         }
                         Err(s) => warn!(target: crate::WALLE_CORE, "Webhook json error: {}", s),
                     }
@@ -85,17 +105,92 @@ where
             });
             tasks.push(tokio::spawn(async move {
                 loop {
-                    let (tcp_stream, _) = listener.accept().await.unwrap();
                     let service = serv.clone();
-                    tokio::spawn(async move {
-                        Http::new()
-                            .serve_connection(tcp_stream, service)
-                            .await
-                            .unwrap();
-                    });
+                    tokio::select! {
+                        _ = signal_rx.recv() => break,
+                        Ok((tcp_stream, _)) = listener.accept() => {
+                            tokio::spawn(async move {
+                                Http::new()
+                                    .serve_connection(tcp_stream, service)
+                                    .await
+                                    .unwrap();
+                            });
+                        }
+                    }
                 }
             }));
         }
         Ok(tasks)
+    }
+
+    pub(crate) async fn http<E, EH, const V: u8>(
+        &self,
+        ob: &Arc<OneBot<Self, EH, V>>,
+        config: HashMap<String, HttpClient>,
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        E: ProtocolItem + SelfId + Clone,
+        EH: EventHandler<E, A, R, Self, V> + Static,
+    {
+        let mut tasks = vec![];
+        let client = Arc::new(HyperClient::new());
+        for (bot_id, http) in config {
+            let (tx, mut rx) = mpsc::unbounded_channel();
+            self.bots.ensure_tx(&bot_id, &tx);
+            let ob = ob.clone();
+            let cli = client.clone();
+            let echo_map = self.echos.clone();
+            let mut signal_rx = ob.get_signal_rx()?;
+            tasks.push(tokio::spawn(async move {
+                loop {
+                    tokio::select! {
+                        _ = signal_rx.recv() => break,
+                        Some(action) = rx.recv() => {
+                            tokio::spawn(http_push(
+                                action,
+                                cli.clone(),
+                                http.clone(),
+                                echo_map.clone(),
+                            ));
+                        }
+                    }
+                }
+            }));
+        }
+        Ok(tasks)
+    }
+}
+
+async fn http_push<A, R>(
+    action: Echo<A>,
+    client: Arc<HyperClient<HttpConnector, Body>>,
+    http: HttpClient,
+    echo_map: EchoMap<R>,
+) where
+    A: ProtocolItem + ActionType,
+    R: ProtocolItem,
+{
+    let (action, echo_s) = action.unpack();
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri(&http.url)
+        .header_auth_token(&http.access_token)
+        .header(CONTENT_TYPE, action.content_type().to_string())
+        .body(action.to_body())
+        .unwrap();
+    match tokio::time::timeout(Duration::from_secs(http.timeout), client.request(req)).await {
+        Ok(Ok(resp)) => {
+            let body = hyper::body::aggregate(resp).await.unwrap(); //todo
+            let r: R = serde_json::from_reader(body.reader()).unwrap();
+            if let Some((_, r_tx)) = echo_map.remove(&echo_s) {
+                r_tx.send(r).ok();
+            }
+        }
+        Ok(Err(e)) => {
+            warn!(target: crate::WALLE_CORE, "HTTP push error: {}", e);
+        }
+        Err(e) => {
+            warn!(target: crate::WALLE_CORE, "HTTP push timeout: {}", e);
+        }
     }
 }
