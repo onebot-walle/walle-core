@@ -1,4 +1,4 @@
-use super::{ActionHandler, EventHandler, OneBot, Static};
+use super::{ActionHandler, EventHandler, OneBotExt, Static};
 use crate::action::ActionType;
 use crate::error::{WalleError, WalleResult};
 use crate::utils::ProtocolItem;
@@ -18,6 +18,8 @@ const OBC: &str = "Walle-OBC";
 mod app_http;
 #[cfg(feature = "websocket")]
 mod app_ws;
+#[cfg(feature = "http")]
+mod impl_http;
 #[cfg(feature = "websocket")]
 mod impl_ws;
 
@@ -30,17 +32,17 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R, AH, const V: u8> EventHandler<E, A, R, AH, V> for ImplOBC<E>
+impl<E, A, R, OB> EventHandler<E, A, R, OB> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
-    AH: ActionHandler<E, A, R, Self, V> + Static,
+    OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::ImplConfig;
     async fn ehac_start(
         &self,
-        ob: &Arc<OneBot<AH, Self, V>>,
+        ob: &Arc<OB>,
         config: crate::config::ImplConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>> {
         let mut tasks = vec![];
@@ -51,7 +53,7 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_event(&self, event: E, _ob: &OneBot<AH, Self, V>) {
+    async fn handle_event(&self, event: E, _ob: &OB) {
         self.event_tx.send(event).ok();
     }
 }
@@ -120,17 +122,17 @@ impl<A, R> Default for AppOBC<A, R> {
 }
 
 #[async_trait]
-impl<E, A, R, EH, const V: u8> ActionHandler<E, A, R, EH, V> for AppOBC<A, R>
+impl<E, A, R, OB> ActionHandler<E, A, R, OB> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem + SelfId + ActionType,
     R: ProtocolItem + Debug,
-    EH: EventHandler<E, A, R, Self, V> + Static,
+    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::AppConfig;
     async fn ecah_start(
         &self,
-        ob: &Arc<OneBot<Self, EH, V>>,
+        ob: &Arc<OB>,
         config: crate::config::AppConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>> {
         let mut tasks = vec![];
@@ -150,7 +152,7 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_action(&self, action: A, _ob: &OneBot<Self, EH, V>) -> WalleResult<R> {
+    async fn handle_action(&self, action: A, _ob: &OB) -> WalleResult<R> {
         self.bots.handle_action(action, &self.echos).await
     }
 }

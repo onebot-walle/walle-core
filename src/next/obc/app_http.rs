@@ -4,7 +4,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
-    next::{EventHandler, OneBot, Static},
+    next::{EventHandler, OneBotExt, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
@@ -26,14 +26,14 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn http_webhook<E, EH, const V: u8>(
+    pub(crate) async fn http_webhook<E, OB>(
         &self,
-        ob: &Arc<OneBot<Self, EH, V>>,
+        ob: &Arc<OB>,
         config: Vec<HttpServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EH: EventHandler<E, A, R, Self, V> + Static,
+        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         for webhook in config {
@@ -85,7 +85,7 @@ where
                             let (action_tx, mut action_rx) = mpsc::unbounded_channel();
                             let self_id = event.self_id();
                             bot_map.ensure_tx(&self_id, &action_tx);
-                            ob.handle_event(event).await;
+                            ob.handle_event(event, &ob).await;
                             if let Ok(Some(a)) = tokio::time::timeout(
                                 std::time::Duration::from_secs(8),
                                 action_rx.recv(),
@@ -123,14 +123,14 @@ where
         Ok(tasks)
     }
 
-    pub(crate) async fn http<E, EH, const V: u8>(
+    pub(crate) async fn http<E, OB>(
         &self,
-        ob: &Arc<OneBot<Self, EH, V>>,
+        ob: &Arc<OB>,
         config: HashMap<String, HttpClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EH: EventHandler<E, A, R, Self, V> + Static,
+        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         let client = Arc::new(HyperClient::new());

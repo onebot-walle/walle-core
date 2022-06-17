@@ -3,7 +3,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
-    next::{EventHandler, OneBot, Static},
+    next::{EventHandler, OneBotExt, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
@@ -25,14 +25,14 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn ws<E, EH, const V: u8>(
+    pub(crate) async fn ws<E, OB>(
         &self,
-        ob: &Arc<OneBot<Self, EH, V>>,
+        ob: &Arc<OB>,
         config: Vec<WebSocketClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EH: EventHandler<E, A, R, Self, V> + Static,
+        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         for wsc in config {
@@ -49,7 +49,11 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!("OneBot/{} Walle-App/{}", V, crate::VERSION),
+                            format!(
+                                "OneBot/{} Walle-App/{}",
+                                ob.get_onebot_version(),
+                                crate::VERSION
+                            ),
                         )
                         .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
@@ -69,14 +73,14 @@ where
         }
         Ok(tasks)
     }
-    pub(crate) async fn wsr<E, EH, const V: u8>(
+    pub(crate) async fn wsr<E, OB>(
         &self,
-        ob: &Arc<OneBot<Self, EH, V>>,
+        ob: &Arc<OB>,
         config: Vec<WebSocketServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: ProtocolItem + SelfId + Clone,
-        EH: EventHandler<E, A, R, Self, V> + Static,
+        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -114,8 +118,8 @@ where
     }
 }
 
-async fn ws_loop<E, A, R, EH, const V: u8>(
-    ob: Arc<OneBot<AppOBC<A, R>, EH, V>>,
+async fn ws_loop<E, A, R, OB>(
+    ob: Arc<OB>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
@@ -123,7 +127,7 @@ async fn ws_loop<E, A, R, EH, const V: u8>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    EH: EventHandler<E, A, R, AppOBC<A, R>, V> + Static,
+    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
@@ -162,9 +166,9 @@ async fn ws_loop<E, A, R, EH, const V: u8>(
     }
 }
 
-async fn ws_recv<E, A, R, EH, const V: u8>(
+async fn ws_recv<E, A, R, OB>(
     msg: WsMsg,
-    ob: &Arc<OneBot<AppOBC<A, R>, EH, V>>,
+    ob: &Arc<OB>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
@@ -175,7 +179,7 @@ where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem,
     R: ProtocolItem,
-    EH: EventHandler<E, A, R, AppOBC<A, R>, V> + Static,
+    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
@@ -191,7 +195,7 @@ where
                 bot_map.ensure_tx(&self_id, &action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();
-                tokio::spawn(async move { ob.handle_event(event).await });
+                tokio::spawn(async move { ob.handle_event(event, &ob).await });
             }
             Ok(ReceiveItem::Resp(resp)) => {
                 let (r, echos) = resp.unpack();

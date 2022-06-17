@@ -3,8 +3,7 @@ use crate::{
     comms::utils::AuthReqHeaderExt,
     comms::ws_utils::upgrade_websocket,
     error::{WalleError, WalleResult},
-    next::OneBot,
-    next::{ActionHandler, Static},
+    next::{ActionHandler, OneBotExt, Static},
     resp::error_builder,
     utils::{Echo, ExtendedMap, ProtocolItem},
     Resps, StandardEvent,
@@ -23,15 +22,15 @@ impl<E> ImplOBC<E>
 where
     E: ProtocolItem + Clone,
 {
-    pub(crate) async fn ws<A, R, AH, const V: u8>(
+    pub(crate) async fn ws<A, R, OB>(
         &self,
-        ob: &Arc<OneBot<AH, Self, V>>,
+        ob: &Arc<OB>,
         config: Vec<crate::config::WebSocketServer>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        AH: ActionHandler<E, A, R, Self, V> + Static,
+        OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         for wss in config {
@@ -69,15 +68,15 @@ where
         Ok(tasks)
     }
 
-    pub(crate) async fn wsr<A, R, AH, const V: u8>(
+    pub(crate) async fn wsr<A, R, OB>(
         &self,
-        ob: &Arc<OneBot<AH, Self, V>>,
+        ob: &Arc<OB>,
         config: Vec<crate::config::WebSocketClient>,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
-        AH: ActionHandler<E, A, R, Self, V> + Static,
+        OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
         let mut tasks = vec![];
         for wsr in config {
@@ -93,9 +92,14 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!("OneBot/{} ({}) Walle/{}", V, obc.platform, crate::VERSION),
+                            format!(
+                                "OneBot/{} ({}) Walle/{}",
+                                ob.get_onebot_version(),
+                                obc.platform,
+                                crate::VERSION
+                            ),
                         )
-                        .header("X-OneBot-Version", V.to_string())
+                        .header("X-OneBot-Version", ob.get_onebot_version().to_string())
                         .header("X-Platform", obc.platform.clone())
                         .header("X-Impl", obc.r#impl.clone())
                         // .header("X-Self-ID", obc.self_id.read().await.as_str()) todo
@@ -126,13 +130,13 @@ where
     }
 }
 
-async fn ws_loop<E, A, R, AH, const V: u8>(
-    ob: Arc<OneBot<AH, ImplOBC<E>, V>>,
+async fn ws_loop<E, A, R, OB>(
+    ob: Arc<OB>,
     mut event_rx: broadcast::Receiver<E>,
     mut hb_rx: broadcast::Receiver<StandardEvent>,
     mut ws_stream: WebSocketStream<TcpStream>,
 ) where
-    AH: ActionHandler<E, A, R, ImplOBC<E>, V> + Static,
+    OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem + Debug,
@@ -209,15 +213,15 @@ async fn ws_loop<E, A, R, AH, const V: u8>(
     ws_stream.send(WsMsg::Close(None)).await.ok();
 }
 
-pub(crate) async fn ws_recv<E, A, R, AH, const V: u8>(
+pub(crate) async fn ws_recv<E, A, R, OB>(
     ws_msg: WsMsg,
-    ob: &Arc<OneBot<AH, ImplOBC<E>, V>>,
+    ob: &Arc<OB>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     json_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
     rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
 ) -> bool
 where
-    AH: ActionHandler<E, A, R, ImplOBC<E>, V> + Static,
+    OB: ActionHandler<E, A, R, OB> + Static,
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,
@@ -239,7 +243,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.handle_action(action).await {
+                        match ob.handle_action(action, &ob).await {
                             Ok(r) => {
                                 tx.send(r).ok();
                             }
@@ -272,7 +276,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.handle_action(action).await {
+                        match ob.handle_action(action, &ob).await {
                             Ok(r) => {
                                 tx.send(r).ok();
                             }
