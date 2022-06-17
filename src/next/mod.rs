@@ -23,7 +23,7 @@ pub struct OneBot<AH, EH, const V: u8> {
 }
 
 #[async_trait]
-pub trait ActionHandler<E, A, R, OB>: Sized {
+pub trait ActionHandler<E, A, R, OB> {
     type Config;
     async fn ecah_start(
         &self,
@@ -34,7 +34,7 @@ pub trait ActionHandler<E, A, R, OB>: Sized {
 }
 
 #[async_trait]
-pub trait EventHandler<E, A, R, OB>: Sized {
+pub trait EventHandler<E, A, R, OB> {
     type Config;
     async fn ehac_start(
         &self,
