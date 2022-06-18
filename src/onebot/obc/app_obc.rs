@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use crate::action::ActionType;
-use crate::next::{ActionHandler, EventHandler, OneBotExt, Static};
+use crate::onebot::{ActionHandler, EventHandler, OneBotExt, Static};
 use crate::utils::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
 use crate::{WalleError, WalleResult};
 

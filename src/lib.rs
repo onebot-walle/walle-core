@@ -50,4 +50,4 @@ pub use utils::{ColoredAlt, ContentType, ExtendedMap, ExtendedMapExt, ExtendedVa
 
 pub use async_trait::async_trait;
 
-pub mod next;
+pub mod onebot;

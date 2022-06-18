@@ -14,7 +14,7 @@ use tracing::{info, trace, warn};
 use crate::{
     comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
-    next::{ActionHandler, OneBotExt, Static},
+    onebot::{ActionHandler, OneBotExt, Static},
     resp::error_builder,
     utils::{Echo, ProtocolItem},
     ContentType, Resps, WalleError, WalleResult,

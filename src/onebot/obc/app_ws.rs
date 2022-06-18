@@ -3,7 +3,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
-    next::{EventHandler, OneBotExt, Static},
+    onebot::{EventHandler, OneBotExt, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };

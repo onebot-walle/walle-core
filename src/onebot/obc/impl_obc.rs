@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::next::{ActionHandler, EventHandler, OneBotExt, Static};
+use crate::onebot::{ActionHandler, EventHandler, OneBotExt, Static};
 use crate::utils::ProtocolItem;
 use crate::WalleResult;
 use async_trait::async_trait;

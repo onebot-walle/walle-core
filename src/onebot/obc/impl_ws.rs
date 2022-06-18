@@ -3,7 +3,7 @@ use crate::{
     comms::utils::AuthReqHeaderExt,
     comms::ws_utils::upgrade_websocket,
     error::{WalleError, WalleResult},
-    next::{ActionHandler, OneBotExt, Static},
+    onebot::{ActionHandler, OneBotExt, Static},
     resp::error_builder,
     utils::{Echo, ExtendedMap, ProtocolItem},
     Resps, StandardEvent,

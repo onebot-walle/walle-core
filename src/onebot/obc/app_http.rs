@@ -4,7 +4,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
-    next::{EventHandler, OneBotExt, Static},
+    onebot::{EventHandler, OneBotExt, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
