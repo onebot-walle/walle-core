@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use core::future::Future;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
@@ -146,6 +145,13 @@ impl<AH, EH, const V: u8> OneBotExt for OneBot<AH, EH, V> {
 }
 
 impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
+    pub fn new(action_handler: AH, event_handler: EH) -> Self {
+        Self {
+            action_handler,
+            event_handler,
+            signal: std::sync::Mutex::new(None),
+        }
+    }
     pub async fn start<E, A, R>(
         self: &Arc<Self>,
         ah_config: AH::Config,
@@ -181,21 +187,8 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         );
         Ok(tasks)
     }
-    pub fn handle_event<'a, E, A, R>(&'a self, event: E) -> impl Future<Output = ()> + 'a
-    where
-        EH: EventHandler<E, A, R, Self> + Static,
-    {
-        self.event_handler.handle_event(event, self)
-    }
-    pub fn handle_action<'a, E, A, R>(
-        &'a self,
-        action: A,
-    ) -> impl Future<Output = WalleResult<R>> + 'a
-    where
-        R: Static,
-        AH: ActionHandler<E, A, R, Self> + Static,
-    {
-        self.action_handler.handle_action(action, self)
+    pub fn started(&self) -> bool {
+        self.signal.lock().unwrap().is_some()
     }
     pub fn shutdown(&self) -> WalleResult<()> {
         let tx = self

@@ -9,7 +9,7 @@ use crate::{
     Resps, StandardEvent,
 };
 use futures_util::{SinkExt, StreamExt};
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::net::TcpStream;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -30,7 +30,7 @@ where
     ) -> WalleResult<()>
     where
         A: ProtocolItem,
-        R: ProtocolItem + Debug,
+        R: ProtocolItem,
         OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
         for wss in config {
@@ -75,7 +75,7 @@ where
     ) -> WalleResult<()>
     where
         A: ProtocolItem,
-        R: ProtocolItem + Debug,
+        R: ProtocolItem,
         OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
         for wsr in config {
@@ -139,7 +139,7 @@ async fn ws_loop<E, A, R, OB>(
     OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     E: ProtocolItem + Clone,
     A: ProtocolItem,
-    R: ProtocolItem + Debug,
+    R: ProtocolItem,
 {
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();

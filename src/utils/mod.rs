@@ -1,4 +1,6 @@
 mod value;
+use std::fmt::Debug;
+
 pub use value::*;
 mod alt;
 pub use alt::*;
@@ -133,7 +135,9 @@ pub trait SelfId: Sized {
 }
 
 #[doc(hidden)]
-pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static {
+pub trait ProtocolItem:
+    Serialize + for<'de> Deserialize<'de> + Debug + Send + Sync + 'static
+{
     fn json_encode(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
@@ -176,7 +180,10 @@ pub trait ProtocolItem: Serialize + for<'de> Deserialize<'de> + Send + Sync + 's
     }
 }
 
-impl<T> ProtocolItem for T where T: Serialize + for<'de> Deserialize<'de> + Send + Sync + 'static {}
+impl<T> ProtocolItem for T where
+    T: Serialize + for<'de> Deserialize<'de> + Debug + Send + Sync + 'static
+{
+}
 
 /// Onebot 协议支持的数据编码格式
 ///
