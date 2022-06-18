@@ -29,12 +29,12 @@ where
         &self,
         ob: &Arc<OB>,
         config: Vec<WebSocketClient>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
         OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for wsc in config {
             info!(target: super::OBC, "Start try connect to {}", wsc.url);
             let ob = ob.clone();
@@ -71,18 +71,18 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
     pub(crate) async fn wsr<E, OB>(
         &self,
         ob: &Arc<OB>,
         config: Vec<WebSocketServer>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
         OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = TcpListener::bind(&addr).await.map_err(WalleError::IO)?;
@@ -114,7 +114,7 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
 }
 

@@ -113,7 +113,7 @@ where
             if msg.starts_with("missing field") {
                 echo_s.pack(crate::Resps::empty_fail(10006, msg))
             } else {
-                echo_s.pack(error_builder::unsupported_action().into())
+                echo_s.pack(error_builder::unsupported_action(msg).into())
             }
         };
 

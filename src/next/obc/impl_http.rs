@@ -1,16 +1,19 @@
-use std::{convert::Infallible, sync::Arc};
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use hyper::{
+    body::Buf,
+    client::HttpConnector,
     header::{AUTHORIZATION, CONTENT_TYPE},
     server::conn::Http,
     service::service_fn,
-    Body, Method, Request, Response,
+    Body, Client as HyperClient, Method, Request, Response, StatusCode,
 };
 use tokio::{net::TcpListener, task::JoinHandle};
 use tracing::{info, trace, warn};
 
 use crate::{
-    config::HttpServer,
+    comms::utils::AuthReqHeaderExt,
+    config::{HttpClient, HttpServer},
     next::{ActionHandler, OneBotExt, Static},
     resp::error_builder,
     utils::{Echo, ProtocolItem},
@@ -51,15 +54,15 @@ where
         &self,
         ob: &Arc<OB>,
         config: Vec<HttpServer>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         A: ProtocolItem,
         R: ProtocolItem,
         OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for http in config {
-            let ob = ob.clone();
+            let ob_ = ob.clone();
             let addr = std::net::SocketAddr::new(http.host, http.port);
             info!(
                 target: crate::WALLE_CORE,
@@ -68,7 +71,7 @@ where
             let access_token = http.access_token.clone();
             let serv = service_fn(move |req: Request<Body>| {
                 let access_token = access_token.clone();
-                let ob = ob.clone();
+                let ob = ob_.clone();
                 async move {
                     if req.method() != Method::POST {
                         return Ok::<Response<Body>, Infallible>(empty_error_response(405));
@@ -109,8 +112,16 @@ where
                     match action {
                         Ok(action) => {
                             let (action, echo) = action.unpack();
-                            let action_resp = ob.handle_action(action, &ob).await;
-                            Ok(encode2resp(echo.pack(action_resp), &content_type))
+                            match ob.handle_action(action, &ob).await {
+                                Ok(r) => Ok(encode2resp(echo.pack(r), &content_type)),
+                                Err(e) => {
+                                    warn!(target: super::OBC, "handle action error: {}", e);
+                                    Ok(encode2resp::<Resps<E>>(
+                                        error_builder::bad_handler(e).into(),
+                                        &content_type,
+                                    ))
+                                }
+                            }
                         }
                         Err(e) => Ok(encode2resp(
                             if e.starts_with("missing field") {
@@ -121,7 +132,7 @@ where
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
                                 warn!(target: crate::WALLE_CORE, "Http call action ser error: {e}",);
-                                error_builder::unsupported_action().into()
+                                error_builder::unsupported_action(e).into()
                             },
                             &content_type,
                         )),
@@ -148,6 +159,107 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
+    }
+
+    pub(crate) async fn webhook<A, R, OB>(
+        &self,
+        ob: &Arc<OB>,
+        config: Vec<HttpClient>,
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
+    where
+        E: ProtocolItem + Clone,
+        A: ProtocolItem,
+        OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
+    {
+        let client = Arc::new(HyperClient::new());
+        let ob = ob.clone();
+        let mut event_rx = self.event_tx.subscribe();
+        let mut signal_rx = ob.get_signal_rx()?;
+        let self_id = self.get_self_id();
+        let r#impl = self.r#impl.clone();
+        let platform = self.platform.clone();
+        tasks.push(tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = signal_rx.recv() => break,
+                    Ok(event) = event_rx.recv() => webhook_push(
+                        &ob,
+                        event,
+                        &self_id,
+                        &r#impl,
+                        &platform,
+                        &config,
+                        &client
+                    ).await
+                }
+            }
+        }));
+        Ok(())
+    }
+}
+
+async fn webhook_push<E, A, R, OB>(
+    ob: &Arc<OB>,
+    event: E,
+    self_id: &str,
+    r#impl: &str,
+    platform: &str,
+    config: &Vec<HttpClient>,
+    client: &Arc<HyperClient<HttpConnector, Body>>,
+) where
+    E: ProtocolItem,
+    A: ProtocolItem,
+    OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
+{
+    let date = event.json_encode();
+    for webhook in config {
+        let req = Request::builder()
+            .method(Method::POST)
+            .uri(&webhook.url)
+            .header(CONTENT_TYPE, "application/json")
+            .header("X-OneBot-Version", ob.get_onebot_version().to_string())
+            .header("X-Impl", r#impl.clone())
+            .header("X-Platform", platform.clone())
+            .header("X-Self-ID", self_id.clone())
+            .header_auth_token(&webhook.access_token)
+            .body(date.clone().into())
+            .unwrap();
+        let ob = ob.clone();
+        let client = client.clone();
+        let timeout = webhook.timeout;
+        tokio::spawn(async move {
+            let resp = match tokio::time::timeout(Duration::from_secs(timeout), client.request(req))
+                .await
+            {
+                Ok(Ok(r)) => r,
+                Ok(Err(e)) => {
+                    warn!(target: crate::WALLE_CORE, "{}", e);
+                    return;
+                }
+                Err(_) => {
+                    warn!(target: crate::WALLE_CORE, "push event timeout");
+                    return;
+                }
+            };
+            match resp.status() {
+                StatusCode::NO_CONTENT => (),
+                StatusCode::OK => {
+                    let body = hyper::body::aggregate(resp).await.unwrap();
+                    let actions: Vec<A> = match serde_json::from_reader(body.reader()) {
+                        Ok(e) => e,
+                        Err(_) => {
+                            panic!()
+                            // handle error here
+                        }
+                    };
+                    for a in actions {
+                        let _ = ob.handle_action(a, &ob).await;
+                    }
+                }
+                x => info!("unhandle webhook push status: {}", x),
+            }
+        });
     }
 }

@@ -115,7 +115,7 @@ where
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
                                 warn!(target: crate::WALLE_CORE, "Http call action ser error: {e}",);
-                                error_builder::unsupported_action().into()
+                                error_builder::unsupported_action(e).into()
                             },
                             &content_type,
                         )),

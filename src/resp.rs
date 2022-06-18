@@ -276,6 +276,15 @@ where
     }
 }
 
+impl<T0, T1> From<(RespError, T0)> for Resp<T1>
+where
+    T1: From<T0>,
+{
+    fn from(err: (RespError, T0)) -> Self {
+        Resp::fail(T1::from(err.1), err.0.code, err.0.message)
+    }
+}
+
 pub mod error_builder {
     use super::RespError;
     /// RespError 构造函数声明
@@ -294,10 +303,10 @@ pub mod error_builder {
     #[macro_export]
     macro_rules! error_type {
         ($name: ident, $retcode: expr, $message: expr) => {
-            pub fn $name() -> RespError {
+            pub fn $name<T: std::fmt::Display>(msg: T) -> RespError {
                 RespError {
                     code: $retcode,
-                    message: $message.to_owned(),
+                    message: format!("{}:{}", $message, msg),
                 }
             }
         };

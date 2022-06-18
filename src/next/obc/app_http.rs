@@ -26,16 +26,16 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn http_webhook<E, OB>(
+    pub(crate) async fn webhook<E, OB>(
         &self,
         ob: &Arc<OB>,
         config: Vec<HttpServer>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
         OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for webhook in config {
             let bot_map = self.bots.clone();
             let echo_map = self.echos.clone();
@@ -120,19 +120,19 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
 
     pub(crate) async fn http<E, OB>(
         &self,
         ob: &Arc<OB>,
         config: HashMap<String, HttpClient>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
         OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
             let (tx, mut rx) = mpsc::unbounded_channel();
@@ -157,7 +157,7 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
 }
 

@@ -23,8 +23,8 @@ mod impl_http;
 #[cfg(feature = "websocket")]
 mod impl_ws;
 
-#[derive(Clone)]
 pub struct ImplOBC<E> {
+    pub self_id: std::sync::RwLock<String>,
     pub platform: String,
     pub r#impl: String,
     pub(crate) event_tx: tokio::sync::broadcast::Sender<E>,
@@ -48,8 +48,13 @@ where
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
-            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
-            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
+            self.ws(ob, config.websocket, &mut tasks).await?;
+            self.wsr(ob, config.websocket_rev, &mut tasks).await?;
+        }
+        #[cfg(feature = "http")]
+        {
+            self.http(ob, config.http, &mut tasks).await?;
+            self.webhook(ob, config.http_webhook, &mut tasks).await?;
         }
         Ok(tasks)
     }
@@ -59,18 +64,25 @@ where
 }
 
 impl<E> ImplOBC<E> {
-    pub fn new(r#impl: String, platform: String) -> Self
+    pub fn new(self_id: String, r#impl: String, platform: String) -> Self
     where
         E: Clone,
     {
         let (event_tx, _) = tokio::sync::broadcast::channel(1024); //todo
         let (hb_tx, _) = tokio::sync::broadcast::channel(1024);
         Self {
+            self_id: std::sync::RwLock::new(self_id),
             platform,
             r#impl,
             event_tx,
             hb_tx,
         }
+    }
+    pub fn get_self_id(&self) -> String {
+        self.self_id.read().unwrap().clone()
+    }
+    pub fn set_self_id(&self, self_id: &str) {
+        *self.self_id.write().unwrap() = self_id.to_string();
     }
 }
 
@@ -138,17 +150,13 @@ where
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
-            tasks.extend(self.wsr(ob, config.websocket_rev).await?.into_iter());
-            tasks.extend(self.ws(ob, config.websocket).await?.into_iter());
+            self.wsr(ob, config.websocket_rev, &mut tasks).await?;
+            self.ws(ob, config.websocket, &mut tasks).await?;
         }
         #[cfg(feature = "http")]
         {
-            tasks.extend(
-                self.http_webhook(ob, config.http_webhook)
-                    .await?
-                    .into_iter(),
-            );
-            tasks.extend(self.http(ob, config.http).await?.into_iter());
+            self.webhook(ob, config.http_webhook, &mut tasks).await?;
+            self.http(ob, config.http, &mut tasks).await?;
         }
         Ok(tasks)
     }

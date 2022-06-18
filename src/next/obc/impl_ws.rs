@@ -26,13 +26,13 @@ where
         &self,
         ob: &Arc<OB>,
         config: Vec<crate::config::WebSocketServer>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
         OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
@@ -44,50 +44,50 @@ where
             );
             let access_token = wss.access_token.clone();
             let mut signal_rx = ob.get_signal_rx()?;
-            let obc = self.clone();
+            let event_rx = self.event_tx.subscribe();
+            let hb_rx = self.hb_tx.subscribe();
             let ob = ob.clone();
             tasks.push(tokio::spawn(async move {
-                loop {
-                    tokio::select! {
-                        Ok((stream, addr)) = tcp_listener.accept() => {
-                            if let Some(ws_stream) = upgrade_websocket(&access_token, stream).await {
-                                info!(target: super::OBC, "New websocket connection from {}", addr);
-                                tokio::spawn(ws_loop(
-                                    ob.clone(),
-                                    obc.event_tx.subscribe(),
-                                    obc.hb_tx.subscribe(),
-                                    ws_stream,
-                                ));
-                            }
+            loop { tokio::select! {
+                    Ok((stream, addr)) = tcp_listener.accept() => {
+                        if let Some(ws_stream) = upgrade_websocket(&access_token, stream).await {
+                            info!(target: super::OBC, "New websocket connection from {}", addr);
+                            tokio::spawn(ws_loop(
+                                ob.clone(),
+                                event_rx.resubscribe(),
+                                hb_rx.resubscribe(),
+                                ws_stream,
+                            ));
                         }
-                        _ = signal_rx.recv() => break,
                     }
-                }
+                    _ = signal_rx.recv() => break,
+                }}
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
 
     pub(crate) async fn wsr<A, R, OB>(
         &self,
         ob: &Arc<OB>,
         config: Vec<crate::config::WebSocketClient>,
-    ) -> WalleResult<Vec<JoinHandle<()>>>
+        tasks: &mut Vec<JoinHandle<()>>,
+    ) -> WalleResult<()>
     where
         A: ProtocolItem,
         R: ProtocolItem + Debug,
         OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
     {
-        let mut tasks = vec![];
         for wsr in config {
-            let obc = self.clone();
+            let platform = self.platform.clone();
+            let r#impl = self.r#impl.clone();
+            let self_id = self.get_self_id();
+            let event_rx = self.event_tx.subscribe();
+            let hb_rx = self.hb_tx.subscribe();
             let mut signal_rx = ob.get_signal_rx()?;
             let ob = ob.clone();
             tasks.push(tokio::spawn(async move {
-                info!(
-                    target: crate::WALLE_CORE,
-                    "Start try connect to {}", wsr.url
-                );
+                info!(target: super::OBC, "Start try connect to {}", wsr.url);
                 while signal_rx.try_recv().is_err() {
                     let req = Request::builder()
                         .header(
@@ -95,26 +95,26 @@ where
                             format!(
                                 "OneBot/{} ({}) Walle/{}",
                                 ob.get_onebot_version(),
-                                obc.platform,
+                                platform,
                                 crate::VERSION
                             ),
                         )
                         .header("X-OneBot-Version", ob.get_onebot_version().to_string())
-                        .header("X-Platform", obc.platform.clone())
-                        .header("X-Impl", obc.r#impl.clone())
-                        // .header("X-Self-ID", obc.self_id.read().await.as_str()) todo
+                        .header("X-Platform", platform.clone())
+                        .header("X-Impl", r#impl.clone())
+                        .header("X-Self-ID", self_id.clone())
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token);
                     match crate::comms::ws_utils::try_connect(&wsr, req).await {
                         Some(ws_stream) => {
                             ws_loop(
                                 ob.clone(),
-                                obc.event_tx.subscribe(),
-                                obc.hb_tx.subscribe(),
+                                event_rx.resubscribe(),
+                                hb_rx.resubscribe(),
                                 ws_stream,
                             )
                             .await;
-                            warn!(target: crate::WALLE_CORE, "Disconnected from {}", wsr.url);
+                            warn!(target: super::OBC, "Disconnected from {}", wsr.url);
                         }
                         None => {
                             tokio::time::sleep(std::time::Duration::from_secs(
@@ -126,7 +126,7 @@ where
                 }
             }));
         }
-        Ok(tasks)
+        Ok(())
     }
 }
 
@@ -232,7 +232,7 @@ where
         if msg.starts_with("missing field") {
             echo_s.pack(crate::Resps::empty_fail(10006, msg))
         } else {
-            echo_s.pack(error_builder::unsupported_action().into())
+            echo_s.pack(error_builder::unsupported_action(msg).into())
         }
     };
 

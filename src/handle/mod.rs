@@ -111,7 +111,7 @@ where
             StandardAction::GetVersion(_) => {
                 Ok(Resp::success(RespContent::Version(get_version().await)))
             }
-            _ => Err(error_builder::unsupported_action()),
+            e => Err(error_builder::unsupported_action(e.action_type())),
         }
     }
 }
