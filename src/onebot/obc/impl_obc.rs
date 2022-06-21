@@ -28,7 +28,7 @@ where
     OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::ImplConfig;
-    async fn ehac_start(
+    async fn eh_start(
         &self,
         ob: &Arc<OB>,
         config: crate::config::ImplConfig,

@@ -24,7 +24,7 @@ pub struct OneBot<AH, EH, const V: u8> {
 #[async_trait]
 pub trait ActionHandler<E, A, R, OB> {
     type Config;
-    async fn ecah_start(
+    async fn ah_start(
         &self,
         ob: &Arc<OB>,
         config: Self::Config,
@@ -35,7 +35,7 @@ pub trait ActionHandler<E, A, R, OB> {
 #[async_trait]
 pub trait EventHandler<E, A, R, OB> {
     type Config;
-    async fn ehac_start(
+    async fn eh_start(
         &self,
         ob: &Arc<OB>,
         config: Self::Config,
@@ -51,7 +51,7 @@ where
     EH: EventHandler<E, A, R, Self> + Static,
 {
     type Config = EH::Config;
-    fn ehac_start<'life0, 'life1, 'async_trait>(
+    fn eh_start<'life0, 'life1, 'async_trait>(
         &'life0 self,
         ob: &'life1 Arc<Self>,
         config: Self::Config,
@@ -67,7 +67,7 @@ where
         'life1: 'async_trait,
         Self: 'async_trait,
     {
-        self.event_handler.ehac_start(ob, config)
+        self.event_handler.eh_start(ob, config)
     }
     fn handle_event<'life0, 'life1, 'async_trait>(
         &'life0 self,
@@ -90,7 +90,7 @@ where
     AH: ActionHandler<E, A, R, Self> + Static,
 {
     type Config = AH::Config;
-    fn ecah_start<'life0, 'life1, 'async_trait>(
+    fn ah_start<'life0, 'life1, 'async_trait>(
         &'life0 self,
         ob: &'life1 Arc<Self>,
         config: Self::Config,
@@ -106,7 +106,7 @@ where
         'life1: 'async_trait,
         Self: 'async_trait,
     {
-        self.action_handler.ecah_start(ob, config)
+        self.action_handler.ah_start(ob, config)
     }
     fn handle_action<'life0, 'life1, 'async_trait>(
         &'life0 self,
@@ -156,6 +156,7 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         self: &Arc<Self>,
         ah_config: AH::Config,
         eh_config: EH::Config,
+        ah_first: bool,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
         E: Static,
@@ -173,18 +174,33 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         }
         drop(signal);
         let mut tasks = vec![];
-        tasks.extend(
-            self.action_handler
-                .ecah_start(self, ah_config)
-                .await?
-                .into_iter(),
-        );
-        tasks.extend(
-            self.event_handler
-                .ehac_start(self, eh_config)
-                .await?
-                .into_iter(),
-        );
+        if ah_first {
+            tasks.extend(
+                self.action_handler
+                    .ah_start(self, ah_config)
+                    .await?
+                    .into_iter(),
+            );
+            tasks.extend(
+                self.event_handler
+                    .eh_start(self, eh_config)
+                    .await?
+                    .into_iter(),
+            );
+        } else {
+            tasks.extend(
+                self.event_handler
+                    .eh_start(self, eh_config)
+                    .await?
+                    .into_iter(),
+            );
+            tasks.extend(
+                self.action_handler
+                    .ah_start(self, ah_config)
+                    .await?
+                    .into_iter(),
+            );
+        }
         Ok(tasks)
     }
     pub fn started(&self) -> bool {

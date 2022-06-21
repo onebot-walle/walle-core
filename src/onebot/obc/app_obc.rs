@@ -49,7 +49,7 @@ where
     OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::AppConfig;
-    async fn ecah_start(
+    async fn ah_start(
         &self,
         ob: &Arc<OB>,
         config: crate::config::AppConfig,
