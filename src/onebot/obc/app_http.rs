@@ -4,7 +4,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
-    onebot::{EventHandler, OneBotExt, Static},
+    onebot::{ActionHandler, EventHandler, OneBot, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
@@ -26,15 +26,16 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn webhook<E, OB>(
+    pub(crate) async fn webhook<E, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: Vec<HttpServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         for webhook in config {
             let bot_map = self.bots.clone();
@@ -85,7 +86,7 @@ where
                             let (action_tx, mut action_rx) = mpsc::unbounded_channel();
                             let self_id = event.self_id();
                             bot_map.ensure_tx(&self_id, &action_tx);
-                            ob.handle_event(event, &ob).await;
+                            ob.event_handler.call(event, &ob).await;
                             if let Ok(Some(a)) = tokio::time::timeout(
                                 std::time::Duration::from_secs(8),
                                 action_rx.recv(),
@@ -123,15 +124,16 @@ where
         Ok(())
     }
 
-    pub(crate) async fn http<E, OB>(
+    pub(crate) async fn http<E, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: HashMap<String, HttpClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {

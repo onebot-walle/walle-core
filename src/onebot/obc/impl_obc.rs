@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::onebot::{ActionHandler, EventHandler, OneBotExt, Static};
+use crate::onebot::{ActionHandler, EventHandler, OneBot};
 use crate::utils::ProtocolItem;
 use crate::WalleResult;
 use async_trait::async_trait;
@@ -20,19 +20,22 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R, OB> EventHandler<E, A, R, OB> for ImplOBC<E>
+impl<E, A, R> EventHandler<E, A, R, 12> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem,
-    OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::ImplConfig;
-    async fn eh_start(
+    async fn start<AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: crate::config::ImplConfig,
-    ) -> WalleResult<Vec<JoinHandle<()>>> {
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
@@ -46,7 +49,11 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_event(&self, event: E, _ob: &OB) {
+    async fn call<AH, EH>(&self, event: E, _ob: &OneBot<AH, EH, 12>)
+    where
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    {
         self.event_tx.send(event).ok();
     }
 }

@@ -3,7 +3,7 @@ use crate::{
     action::ActionType,
     comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
-    onebot::{EventHandler, OneBotExt, Static},
+    onebot::{ActionHandler, EventHandler, OneBot, Static},
     utils::{Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
@@ -25,15 +25,16 @@ where
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
 {
-    pub(crate) async fn ws<E, OB>(
+    pub(crate) async fn ws<E, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: Vec<WebSocketClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         for wsc in config {
             info!(target: super::OBC, "Start try connect to {}", wsc.url);
@@ -73,15 +74,16 @@ where
         }
         Ok(())
     }
-    pub(crate) async fn wsr<E, OB>(
+    pub(crate) async fn wsr<E, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: Vec<WebSocketServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -118,8 +120,8 @@ where
     }
 }
 
-async fn ws_loop<E, A, R, OB>(
-    ob: Arc<OB>,
+async fn ws_loop<E, A, R, AH, EH>(
+    ob: Arc<OneBot<AH, EH, 12>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
@@ -127,7 +129,8 @@ async fn ws_loop<E, A, R, OB>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+    AH: ActionHandler<E, A, R, 12> + Static,
+    EH: EventHandler<E, A, R, 12> + Static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
@@ -166,9 +169,9 @@ async fn ws_loop<E, A, R, OB>(
     }
 }
 
-async fn ws_recv<E, A, R, OB>(
+async fn ws_recv<E, A, R, AH, EH>(
     msg: WsMsg,
-    ob: &Arc<OB>,
+    ob: &Arc<OneBot<AH, EH, 12>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
@@ -179,7 +182,8 @@ where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem,
     R: ProtocolItem,
-    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
+    AH: ActionHandler<E, A, R, 12> + Static,
+    EH: EventHandler<E, A, R, 12> + Static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
@@ -195,7 +199,7 @@ where
                 bot_map.ensure_tx(&self_id, &action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();
-                tokio::spawn(async move { ob.handle_event(event, &ob).await });
+                tokio::spawn(async move { ob.event_handler.call(event, &ob).await });
             }
             Ok(ReceiveItem::Resp(resp)) => {
                 let (r, echos) = resp.unpack();

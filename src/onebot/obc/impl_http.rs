@@ -14,7 +14,7 @@ use tracing::{info, trace, warn};
 use crate::{
     comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
-    onebot::{ActionHandler, OneBotExt, Static},
+    onebot::{ActionHandler, EventHandler, OneBot, Static},
     resp::error_builder,
     utils::{Echo, ProtocolItem},
     ContentType, Resps, WalleError, WalleResult,
@@ -50,16 +50,17 @@ impl<E> ImplOBC<E>
 where
     E: ProtocolItem + Clone,
 {
-    pub(crate) async fn http<A, R, OB>(
+    pub(crate) async fn http<A, R, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: Vec<HttpServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         for http in config {
             let ob_ = ob.clone();
@@ -112,7 +113,7 @@ where
                     match action {
                         Ok(action) => {
                             let (action, echo) = action.unpack();
-                            match ob.handle_action(action, &ob).await {
+                            match ob.action_handler.call(action, &ob).await {
                                 Ok(r) => Ok(encode2resp(echo.pack(r), &content_type)),
                                 Err(e) => {
                                     warn!(target: super::OBC, "handle action error: {}", e);
@@ -162,16 +163,17 @@ where
         Ok(())
     }
 
-    pub(crate) async fn webhook<A, R, OB>(
+    pub(crate) async fn webhook<A, R, AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: Vec<HttpClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
         E: ProtocolItem + Clone,
         A: ProtocolItem,
-        OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
+        AH: ActionHandler<E, A, R, 12> + Static,
+        EH: EventHandler<E, A, R, 12> + Static,
     {
         let client = Arc::new(HyperClient::new());
         let ob = ob.clone();
@@ -200,8 +202,8 @@ where
     }
 }
 
-async fn webhook_push<E, A, R, OB>(
-    ob: &Arc<OB>,
+async fn webhook_push<E, A, R, AH, EH>(
+    ob: &Arc<OneBot<AH, EH, 12>>,
     event: E,
     self_id: &str,
     r#impl: &str,
@@ -211,7 +213,8 @@ async fn webhook_push<E, A, R, OB>(
 ) where
     E: ProtocolItem,
     A: ProtocolItem,
-    OB: ActionHandler<E, A, R, OB> + OneBotExt + Static,
+    AH: ActionHandler<E, A, R, 12> + Static,
+    EH: EventHandler<E, A, R, 12> + Static,
 {
     let date = event.json_encode();
     for webhook in config {
@@ -255,7 +258,7 @@ async fn webhook_push<E, A, R, OB>(
                         }
                     };
                     for a in actions {
-                        let _ = ob.handle_action(a, &ob).await;
+                        let _ = ob.action_handler.call(a, &ob).await;
                     }
                 }
                 x => info!("unhandle webhook push status: {}", x),

@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use crate::action::ActionType;
-use crate::onebot::{ActionHandler, EventHandler, OneBotExt, Static};
+use crate::onebot::{ActionHandler, EventHandler, OneBot};
 use crate::utils::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
 use crate::{WalleError, WalleResult};
 
@@ -41,19 +41,22 @@ impl<A, R> Default for AppOBC<A, R> {
 }
 
 #[async_trait]
-impl<E, A, R, OB> ActionHandler<E, A, R, OB> for AppOBC<A, R>
+impl<E, A, R> ActionHandler<E, A, R, 12> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem + SelfId + ActionType,
     R: ProtocolItem,
-    OB: EventHandler<E, A, R, OB> + OneBotExt + Static,
 {
     type Config = crate::config::AppConfig;
-    async fn ah_start(
+    async fn start<AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, 12>>,
         config: crate::config::AppConfig,
-    ) -> WalleResult<Vec<JoinHandle<()>>> {
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]
         {
@@ -67,7 +70,11 @@ where
         }
         Ok(tasks)
     }
-    async fn handle_action(&self, action: A, _ob: &OB) -> WalleResult<R> {
+    async fn call<AH, EH>(&self, action: A, _ob: &OneBot<AH, EH, 12>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    {
         self.bots.handle_action(action, &self.echos).await
     }
 }

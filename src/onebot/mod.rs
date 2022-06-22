@@ -22,127 +22,41 @@ pub struct OneBot<AH, EH, const V: u8> {
 }
 
 #[async_trait]
-pub trait ActionHandler<E, A, R, OB> {
+pub trait ActionHandler<E, A, R, const V: u8> {
     type Config;
-    async fn ah_start(
+    async fn start<AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, V>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<JoinHandle<()>>>;
-    async fn handle_action(&self, action: A, ob: &OB) -> WalleResult<R>;
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+    async fn call<AH, EH>(&self, action: A, ob: &OneBot<AH, EH, V>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
 }
 
 #[async_trait]
-pub trait EventHandler<E, A, R, OB> {
+pub trait EventHandler<E, A, R, const V: u8> {
     type Config;
-    async fn eh_start(
+    async fn start<AH, EH>(
         &self,
-        ob: &Arc<OB>,
+        ob: &Arc<OneBot<AH, EH, V>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<JoinHandle<()>>>;
-    async fn handle_event(&self, event: E, ob: &OB);
+    ) -> WalleResult<Vec<JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+    async fn call<AH, EH>(&self, event: E, ob: &OneBot<AH, EH, V>)
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
 }
 
 pub type ImplOneBot<E, AH, const V: u8> = OneBot<AH, obc::ImplOBC<E>, V>;
 pub type AppOneBot<A, R, EH, const V: u8> = OneBot<obc::AppOBC<A, R>, EH, V>;
-
-impl<E, A, R, AH, EH, const V: u8> EventHandler<E, A, R, Self> for OneBot<AH, EH, V>
-where
-    EH: EventHandler<E, A, R, Self> + Static,
-{
-    type Config = EH::Config;
-    fn eh_start<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        ob: &'life1 Arc<Self>,
-        config: Self::Config,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = WalleResult<Vec<JoinHandle<()>>>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.event_handler.eh_start(ob, config)
-    }
-    fn handle_event<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        event: E,
-        ob: &'life1 Self,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = ()> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.event_handler.handle_event(event, ob)
-    }
-}
-
-impl<E, A, R, AH, EH, const V: u8> ActionHandler<E, A, R, Self> for OneBot<AH, EH, V>
-where
-    AH: ActionHandler<E, A, R, Self> + Static,
-{
-    type Config = AH::Config;
-    fn ah_start<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        ob: &'life1 Arc<Self>,
-        config: Self::Config,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = WalleResult<Vec<JoinHandle<()>>>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.action_handler.ah_start(ob, config)
-    }
-    fn handle_action<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        action: A,
-        ob: &'life1 Self,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = WalleResult<R>> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.action_handler.handle_action(action, ob)
-    }
-}
-
-pub trait OneBotExt {
-    fn get_signal_rx(&self) -> WalleResult<broadcast::Receiver<()>>;
-    fn get_onebot_version(&self) -> u8;
-}
-
-impl<AH, EH, const V: u8> OneBotExt for OneBot<AH, EH, V> {
-    fn get_signal_rx(&self) -> WalleResult<broadcast::Receiver<()>> {
-        Ok(self
-            .signal
-            .lock()
-            .unwrap()
-            .as_ref()
-            .ok_or(WalleError::NotRunning)?
-            .subscribe())
-    }
-    fn get_onebot_version(&self) -> u8 {
-        V
-    }
-}
 
 impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
     pub fn new(action_handler: AH, event_handler: EH) -> Self {
@@ -162,8 +76,8 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         E: Static,
         A: Static,
         R: Static,
-        AH: ActionHandler<E, A, R, Self> + Static,
-        EH: EventHandler<E, A, R, Self> + Static,
+        AH: ActionHandler<E, A, R, V> + Static,
+        EH: EventHandler<E, A, R, V> + Static,
     {
         let mut signal = self.signal.lock().unwrap();
         if signal.is_none() {
@@ -177,26 +91,16 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         if ah_first {
             tasks.extend(
                 self.action_handler
-                    .ah_start(self, ah_config)
+                    .start(self, ah_config)
                     .await?
                     .into_iter(),
             );
-            tasks.extend(
-                self.event_handler
-                    .eh_start(self, eh_config)
-                    .await?
-                    .into_iter(),
-            );
+            tasks.extend(self.event_handler.start(self, eh_config).await?.into_iter());
         } else {
-            tasks.extend(
-                self.event_handler
-                    .eh_start(self, eh_config)
-                    .await?
-                    .into_iter(),
-            );
+            tasks.extend(self.event_handler.start(self, eh_config).await?.into_iter());
             tasks.extend(
                 self.action_handler
-                    .ah_start(self, ah_config)
+                    .start(self, ah_config)
                     .await?
                     .into_iter(),
             );
@@ -205,6 +109,18 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
     }
     pub fn started(&self) -> bool {
         self.signal.lock().unwrap().is_some()
+    }
+    fn get_signal_rx(&self) -> WalleResult<broadcast::Receiver<()>> {
+        Ok(self
+            .signal
+            .lock()
+            .unwrap()
+            .as_ref()
+            .ok_or(WalleError::NotRunning)?
+            .subscribe())
+    }
+    fn get_onebot_version(&self) -> u8 {
+        V
     }
     pub fn shutdown(&self) -> WalleResult<()> {
         let tx = self
@@ -215,14 +131,5 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             .ok_or(WalleError::NotRunning)?;
         tx.send(()).ok();
         Ok(())
-    }
-    pub fn get_signal_rx(&self) -> WalleResult<tokio::sync::broadcast::Receiver<()>> {
-        Ok(self
-            .signal
-            .lock()
-            .unwrap()
-            .as_ref()
-            .ok_or(WalleError::NotRunning)?
-            .subscribe())
     }
 }
