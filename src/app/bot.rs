@@ -297,6 +297,7 @@ where
                 StandardAction::UploadFileFragmented(UploadFileFragmented::Prepare {
                     name,
                     total_size: total_size as i64,
+                    extra: ExtendedMap::default(),
                 })
                 .into(),
             )
@@ -317,6 +318,7 @@ where
                     offset: t * CHUNK_SIZE as i64,
                     size: cache.len() as i64,
                     data: cache.clone(),
+                    extra: ExtendedMap::default(),
                 })
                 .into(),
             )
@@ -328,8 +330,12 @@ where
         }
         let sha256 = hex::encode(&hasher.finalize());
         self.call_action(
-            StandardAction::UploadFileFragmented(UploadFileFragmented::Finish { file_id, sha256 })
-                .into(),
+            StandardAction::UploadFileFragmented(UploadFileFragmented::Finish {
+                file_id,
+                sha256,
+                extra: ExtendedMap::default(),
+            })
+            .into(),
         )
         .await?
         .to_result()

@@ -1,4 +1,4 @@
-use crate::{extra_struct, message::MSVistor, ExtendedMap};
+use crate::{extra_struct, message::MSVistor, ExtendedMap, ExtendedMapExt, SelfId};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 #[cfg(feature = "app")]
@@ -238,36 +238,46 @@ extra_struct!(GetFile, file_id: String, r#type: String);
 extra_struct!(GetGuildInfo, guild_id: String);
 
 /// Action content for UploadFileFragmented
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "stage", rename_all = "snake_case")]
 pub enum UploadFileFragmented {
     Prepare {
         name: String,
         total_size: i64,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     Transfer {
         file_id: String,
         offset: i64,
         size: i64,
         data: Vec<u8>,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     Finish {
         file_id: String,
         sha256: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
 }
 
 /// Action content for GetFileFragmented
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "stage", rename_all = "snake_case")]
 pub enum GetFileFragmented {
     Prepare {
         file_id: String,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
     Transfer {
         file_id: String,
         offset: i64,
         size: i64,
+        #[serde(flatten)]
+        extra: ExtendedMap,
     },
 }
 
@@ -397,6 +407,71 @@ impl ActionType for StandardAction {
             | Self::GetFile(_)
             | Self::GetFileFragmented(_) => crate::utils::ContentType::MsgPack,
             _ => crate::utils::ContentType::Json,
+        }
+    }
+}
+
+impl SelfId for StandardAction {
+    fn self_id(&self) -> String {
+        match self {
+            StandardAction::GetLatestEvents(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetSupportedActions(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetStatus(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetVersion(g) => g.try_get("self_id").unwrap_or_default(),
+
+            StandardAction::SendMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::DeleteMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
+
+            StandardAction::GetSelfInfo(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetUserInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+
+            StandardAction::GetGroupInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGroupList(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGroupMemberInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGroupMemberList(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::SetGroupName(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::LeaveGroup(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::KickGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::BanGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::UnbanGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::SetGroupAdmin(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::UnsetGroupAdmin(g) => g.extra.try_get("self_id").unwrap_or_default(),
+
+            StandardAction::GetGuildInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGuildList(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetChannelInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetChannelList(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGuildMemberInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGuildMemberList(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::SetGuildName(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::SetChannelName(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::LeaveGuild(g) => g.extra.try_get("self_id").unwrap_or_default(),
+
+            StandardAction::UploadFile(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::UploadFileFragmented(g) => g.self_id(),
+            StandardAction::GetFile(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetFileFragmented(g) => g.self_id(),
+            StandardAction::GetFriendList(g) => g.try_get("self_id").unwrap_or_default(),
+        }
+    }
+}
+
+impl SelfId for UploadFileFragmented {
+    fn self_id(&self) -> String {
+        match self {
+            Self::Prepare { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+            Self::Transfer { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+            Self::Finish { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+        }
+    }
+}
+
+impl SelfId for GetFileFragmented {
+    fn self_id(&self) -> String {
+        match self {
+            Self::Prepare { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+            Self::Transfer { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
         }
     }
 }

@@ -325,6 +325,9 @@ pub trait ExtendedMapExt {
     fn try_remove<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<ExtendedValue, Error = ExtendedValue>;
+    fn try_get<T>(&self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = ExtendedValue>;
 }
 
 impl ExtendedMapExt for ExtendedMap {
@@ -339,6 +342,21 @@ impl ExtendedMapExt for ExtendedMap {
             let msg = format!("{:?}", v);
             self.insert(key.to_owned(), v);
             WalleError::MapValueTypeMismatch(std::any::type_name::<T>().to_string(), msg)
+        })
+    }
+    fn try_get<T>(&self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = ExtendedValue>,
+    {
+        let value = self
+            .get(key)
+            .ok_or_else(|| WalleError::MapMissedKey(key.to_owned()))?
+            .clone();
+        T::try_from(value).map_err(|v| {
+            WalleError::MapValueTypeMismatch(
+                std::any::type_name::<T>().to_string(),
+                format!("{:?}", v),
+            )
         })
     }
 }
