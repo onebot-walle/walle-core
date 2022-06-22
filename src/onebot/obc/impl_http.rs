@@ -222,7 +222,7 @@ async fn webhook_push<E, A, R, AH, EH>(
             .method(Method::POST)
             .uri(&webhook.url)
             .header(CONTENT_TYPE, "application/json")
-            .header("X-OneBot-Version", ob.get_onebot_version().to_string())
+            .header("X-OneBot-Version", 12.to_string())
             .header("X-Impl", r#impl.clone())
             .header("X-Platform", platform.clone())
             .header("X-Self-ID", self_id.clone())

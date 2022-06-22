@@ -119,9 +119,6 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             .ok_or(WalleError::NotRunning)?
             .subscribe())
     }
-    fn get_onebot_version(&self) -> u8 {
-        V
-    }
     pub fn shutdown(&self) -> WalleResult<()> {
         let tx = self
             .signal

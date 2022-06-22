@@ -94,14 +94,9 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!(
-                                "OneBot/{} ({}) Walle/{}",
-                                ob.get_onebot_version(),
-                                platform,
-                                crate::VERSION
-                            ),
+                            format!("OneBot/{} ({}) Walle/{}", 12, platform, crate::VERSION),
                         )
-                        .header("X-OneBot-Version", ob.get_onebot_version().to_string())
+                        .header("X-OneBot-Version", 12.to_string())
                         .header("X-Platform", platform.clone())
                         .header("X-Impl", r#impl.clone())
                         .header("X-Self-ID", self_id.clone())
@@ -220,8 +215,8 @@ pub(crate) async fn ws_recv<E, A, R, AH, EH>(
     ws_msg: WsMsg,
     ob: &Arc<OneBot<AH, EH, 12>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
-    json_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
-    rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<R>,
+    json_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,
+    rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,
 ) -> bool
 where
     E: ProtocolItem,
@@ -241,15 +236,16 @@ where
     };
 
     match ws_msg {
-        WsMsg::Text(text) => match serde_json::from_str(&text) {
+        WsMsg::Text(text) => match serde_json::from_str::<'_, Echo<A>>(&text) {
             Ok(action) => {
+                let (action, echos) = action.unpack();
                 let tx = json_resp_sender.clone();
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
                         match ob.action_handler.call(action, &ob).await {
                             Ok(r) => {
-                                tx.send(r).ok();
+                                tx.send(echos.pack(r)).ok();
                             }
                             Err(e) => warn!(target: super::OBC, "handle action error: {}", e),
                         }
@@ -274,15 +270,16 @@ where
                 }
             },
         },
-        WsMsg::Binary(v) => match rmp_serde::from_read(v.as_slice()) {
+        WsMsg::Binary(v) => match rmp_serde::from_read::<_, Echo<A>>(v.as_slice()) {
             Ok(action) => {
+                let (action, echos) = action.unpack();
                 let tx = rmp_resp_sender.clone();
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
                         match ob.action_handler.call(action, &ob).await {
                             Ok(r) => {
-                                tx.send(r).ok();
+                                tx.send(echos.pack(r)).ok();
                             }
                             Err(e) => warn!(target: super::OBC, "handle action error: {}", e),
                         }

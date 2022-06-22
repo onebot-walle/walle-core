@@ -50,11 +50,7 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!(
-                                "OneBot/{} Walle-App/{}",
-                                ob.get_onebot_version(),
-                                crate::VERSION
-                            ),
+                            format!("OneBot/12 Walle-App/{}", crate::VERSION),
                         )
                         .header_auth_token(&wsc.access_token);
                     match crate::comms::ws_utils::try_connect(&wsc, req).await {
