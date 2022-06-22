@@ -40,6 +40,7 @@ dashmap = "5.3"
 
 [dev-dependencies]
 tracing-subscriber = "0.3"
+toml = "*"
 
 [[example]]
 name = "impl_ws"

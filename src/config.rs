@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 /// OneBot 实现端设置项
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ImplConfig {
-    pub heartbeat: Heartbeat,
     pub http: Vec<HttpServer>,
     pub http_webhook: Vec<HttpClient>,
     pub websocket: Vec<WebSocketServer>,
     pub websocket_rev: Vec<WebSocketClient>,
+    pub heartbeat: Heartbeat,
 }
 
 impl Default for ImplConfig {
@@ -45,10 +45,10 @@ impl Default for Heartbeat {
 /// OneBot 应用端设置项
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
-    pub http: HashMap<String, HttpClient>,
     pub http_webhook: Vec<HttpServer>,
     pub websocket: Vec<WebSocketClient>,
     pub websocket_rev: Vec<WebSocketServer>,
+    pub http: HashMap<String, HttpClient>,
 }
 
 impl Default for AppConfig {
@@ -151,4 +151,10 @@ impl Default for WebSocketClient {
             reconnect_interval: 4,
         }
     }
+}
+
+#[test]
+fn toml_test() {
+    let config = AppConfig::default();
+    println!("{:?}", toml::to_string(&config));
 }
