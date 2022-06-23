@@ -12,11 +12,10 @@ use tokio::{net::TcpListener, task::JoinHandle};
 use tracing::{info, trace, warn};
 
 use crate::{
-    comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
     onebot::{ActionHandler, EventHandler, OneBot, Static},
     resp::error_builder,
-    utils::{Echo, ProtocolItem},
+    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
     ContentType, Resps, WalleError, WalleResult,
 };
 

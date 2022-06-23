@@ -1,3 +1,4 @@
+use super::OBC;
 use colored::*;
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::handshake::client::{generate_key, Request, Response};
@@ -18,12 +19,9 @@ pub(crate) async fn try_connect(
         config: &WebSocketClient,
         e: E,
     ) -> Option<WebSocketStream<TcpStream>> {
-        warn!(
-            target: crate::WALLE_CORE,
-            "connect to {} failed: {}", config.url, e
-        );
+        warn!(target: OBC, "connect to {} failed: {}", config.url, e);
         info!(
-            target: crate::WALLE_CORE,
+            target: OBC,
             "Retry in {} seconds", config.reconnect_interval
         );
         None
@@ -59,10 +57,7 @@ pub(crate) async fn try_connect(
     .await
     {
         Ok((ws_stream, _)) => {
-            info!(
-                target: crate::WALLE_CORE,
-                "Success connect to {}", config.url
-            );
+            info!(target: OBC, "Success connect to {}", config.url);
             Some(ws_stream)
         }
         Err(e) => err(config, e),
@@ -76,7 +71,7 @@ pub(crate) async fn upgrade_websocket(
     let addr = match stream.peer_addr() {
         Ok(addr) => addr,
         Err(e) => {
-            warn!(target: crate::WALLE_CORE, "Upgrade websocket failed: {}", e);
+            warn!(target: OBC, "Upgrade websocket failed: {}", e);
             return None;
         }
     };
@@ -102,7 +97,7 @@ pub(crate) async fn upgrade_websocket(
             }
         }
         info!(
-            target: crate::WALLE_CORE,
+            target: OBC,
             "Websocket connectted with {}",
             addr.to_string().blue()
         );
@@ -111,17 +106,11 @@ pub(crate) async fn upgrade_websocket(
 
     match accept_hdr_async(stream, callback).await {
         Ok(s) => {
-            info!(
-                target: crate::WALLE_CORE,
-                "New websocket client connected from {}", addr
-            );
+            info!(target: OBC, "New websocket client connected from {}", addr);
             Some(s)
         }
         Err(e) => {
-            info!(
-                target: crate::WALLE_CORE,
-                "Upgrade websocket from {} failed: {}", addr, e
-            );
+            info!(target: OBC, "Upgrade websocket from {} failed: {}", addr, e);
             None
         }
     }

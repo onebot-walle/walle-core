@@ -1,11 +1,12 @@
-use super::ImplOBC;
+use super::{
+    ws_util::{try_connect, upgrade_websocket},
+    ImplOBC,
+};
 use crate::{
-    comms::utils::AuthReqHeaderExt,
-    comms::ws_utils::upgrade_websocket,
     error::{WalleError, WalleResult},
     onebot::{ActionHandler, EventHandler, OneBot, Static},
     resp::error_builder,
-    utils::{Echo, ExtendedMap, ProtocolItem},
+    utils::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
     Resps, StandardEvent,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -102,7 +103,7 @@ where
                         .header("X-Self-ID", self_id.clone())
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token);
-                    match crate::comms::ws_utils::try_connect(&wsr, req).await {
+                    match try_connect(&wsr, req).await {
                         Some(ws_stream) => {
                             ws_loop(
                                 ob.clone(),

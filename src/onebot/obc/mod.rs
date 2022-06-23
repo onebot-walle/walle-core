@@ -11,6 +11,8 @@ mod impl_http;
 mod impl_obc;
 #[cfg(feature = "websocket")]
 mod impl_ws;
+#[cfg(feature = "websocket")]
+mod ws_util;
 
 pub use app_obc::*;
 pub use impl_obc::*;

@@ -2,10 +2,9 @@ use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 
 use crate::{
     action::ActionType,
-    comms::utils::AuthReqHeaderExt,
     config::{HttpClient, HttpServer},
     onebot::{ActionHandler, EventHandler, OneBot, Static},
-    utils::{Echo, ProtocolItem},
+    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
 use hyper::{

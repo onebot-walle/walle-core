@@ -1,10 +1,12 @@
-use super::{AppOBC, BotMap, EchoMap};
+use super::{
+    ws_util::{try_connect, upgrade_websocket},
+    AppOBC, BotMap, EchoMap,
+};
 use crate::{
     action::ActionType,
-    comms::utils::AuthReqHeaderExt,
     config::{WebSocketClient, WebSocketServer},
     onebot::{ActionHandler, EventHandler, OneBot, Static},
-    utils::{Echo, ProtocolItem},
+    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
     SelfId, WalleError, WalleResult,
 };
 
@@ -53,7 +55,7 @@ where
                             format!("OneBot/12 Walle-App/{}", crate::VERSION),
                         )
                         .header_auth_token(&wsc.access_token);
-                    match crate::comms::ws_utils::try_connect(&wsc, req).await {
+                    match try_connect(&wsc, req).await {
                         Some(ws_stream) => {
                             ws_loop(ob, ws_stream, echo_map, bot_map).await;
                             warn!(target: crate::WALLE_CORE, "Disconnected from {}", wsc.url);
@@ -101,7 +103,7 @@ where
                         }
                         Ok((stream, _)) = tcp_listener.accept() => {
                             if let Some(ws_stream) =
-                                crate::comms::ws_utils::upgrade_websocket(&wss.access_token, stream)
+                                upgrade_websocket(&wss.access_token, stream)
                                     .await
                             {
                                 let ob = ob.clone();
