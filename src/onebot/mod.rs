@@ -110,7 +110,7 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
     pub fn started(&self) -> bool {
         self.signal.lock().unwrap().is_some()
     }
-    fn get_signal_rx(&self) -> WalleResult<broadcast::Receiver<()>> {
+    pub fn get_signal_rx(&self) -> WalleResult<broadcast::Receiver<()>> {
         Ok(self
             .signal
             .lock()
