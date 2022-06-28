@@ -115,6 +115,12 @@ resp_content!(Vec<GuildInfoContent>, GuildList);
 resp_content!(ChannelInfoContent, ChannelInfo);
 resp_content!(Vec<ChannelInfoContent>, ChannelList);
 
+impl<E> From<Vec<u8>> for RespContent<E> {
+    fn from(t: Vec<u8>) -> Self {
+        RespContent::TransferFileFragmented(OneBotBytes(t))
+    }
+}
+
 impl<T> Resp<T> {
     #[allow(dead_code)]
     pub fn success(data: T) -> Self {
