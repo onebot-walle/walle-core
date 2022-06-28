@@ -168,3 +168,52 @@ impl EventType for EventContent {
         }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub struct RefEvent<'e, T> {
+    pub id: &'e str,
+    pub r#impl: &'e str,
+    pub platform: &'e str,
+    pub self_id: &'e str,
+    pub time: f64,
+    pub content: &'e T,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct RefMutEvent<'e, T> {
+    pub id: &'e mut String,
+    pub r#impl: &'e mut String,
+    pub platform: &'e mut String,
+    pub self_id: &'e mut String,
+    pub time: f64,
+    pub content: &'e mut T,
+}
+
+impl<T> BaseEvent<T> {
+    pub fn as_ref<'e, T1>(&'e self) -> RefEvent<'e, T1>
+    where
+        T: AsRef<T1>,
+    {
+        RefEvent {
+            id: &self.id,
+            r#impl: &self.r#impl,
+            platform: &self.platform,
+            self_id: &self.self_id,
+            time: self.time,
+            content: self.content.as_ref(),
+        }
+    }
+    pub fn as_mut<'e, T1>(&'e mut self) -> RefMutEvent<'e, T1>
+    where
+        T: AsMut<T1>,
+    {
+        RefMutEvent {
+            id: &mut self.id,
+            r#impl: &mut self.r#impl,
+            platform: &mut self.platform,
+            self_id: &mut self.self_id,
+            time: self.time,
+            content: self.content.as_mut(),
+        }
+    }
+}
