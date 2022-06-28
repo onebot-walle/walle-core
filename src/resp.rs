@@ -287,7 +287,7 @@ where
     }
 }
 
-pub mod error_builder {
+pub mod resp_error {
     use super::RespError;
     /// RespError 构造函数声明
     /// ```rust
@@ -308,7 +308,15 @@ pub mod error_builder {
             pub fn $name<T: std::fmt::Display>(msg: T) -> RespError {
                 RespError {
                     code: $retcode,
-                    message: format!("{}:{}", $message, msg),
+                    message: {
+                        let mut message = String::from($message);
+                        let msg = msg.to_string();
+                        if msg != String::default() {
+                            message.push(':');
+                            message.push_str(&msg);
+                        }
+                        message
+                    },
                 }
             }
         };

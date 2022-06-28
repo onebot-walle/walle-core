@@ -5,7 +5,7 @@ use crate::obc::{
 use crate::{
     error::{WalleError, WalleResult},
     event::StandardEvent,
-    resp::{error_builder, Resps},
+    resp::{resp_error, Resps},
     util::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
@@ -232,7 +232,7 @@ where
         if msg.starts_with("missing field") {
             echo_s.pack(crate::resp::Resps::empty_fail(10006, msg))
         } else {
-            echo_s.pack(error_builder::unsupported_action(msg).into())
+            echo_s.pack(resp_error::unsupported_action(msg).into())
         }
     };
 

@@ -14,7 +14,7 @@ use tracing::{info, trace, warn};
 use crate::{
     config::{HttpClient, HttpServer},
     error::{WalleError, WalleResult},
-    resp::{error_builder, Resps},
+    resp::{resp_error, Resps},
     util::{AuthReqHeaderExt, ContentType, Echo, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
@@ -117,7 +117,7 @@ where
                                 Err(e) => {
                                     warn!(target: super::OBC, "handle action error: {}", e);
                                     Ok(encode2resp::<Resps<E>>(
-                                        error_builder::bad_handler(e).into(),
+                                        resp_error::bad_handler(e).into(),
                                         &content_type,
                                     ))
                                 }
@@ -132,7 +132,7 @@ where
                                 Resps::<E>::empty_fail(10006, e)
                             } else {
                                 warn!(target: crate::WALLE_CORE, "Http call action ser error: {e}",);
-                                error_builder::unsupported_action(e).into()
+                                resp_error::unsupported_action(e).into()
                             },
                             &content_type,
                         )),
