@@ -1,7 +1,8 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::WalleError;
+use super::OneBotBytes;
+use crate::error::WalleError;
 
 /// 扩展字段 Map
 pub type ExtendedMap = HashMap<String, ExtendedValue>;
@@ -16,7 +17,7 @@ pub enum ExtendedValue {
     Bool(bool),
     Map(HashMap<String, ExtendedValue>),
     List(Vec<ExtendedValue>),
-    Bytes(Vec<u8>),
+    Bytes(OneBotBytes),
     #[serde(serialize_with = "null_serialize")]
     // deserialize_with = "null_deserialize" will cause error
     Null,
@@ -50,11 +51,17 @@ impl_from!(Int, u32, i64);
 impl_from!(F64, f64);
 impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
-impl_from!(Bytes, Vec<u8>);
+impl_from!(Bytes, OneBotBytes);
+
+impl From<Vec<u8>> for ExtendedValue {
+    fn from(v: Vec<u8>) -> Self {
+        ExtendedValue::Bytes(OneBotBytes(v))
+    }
+}
 
 impl From<&[u8]> for ExtendedValue {
     fn from(v: &[u8]) -> Self {
-        ExtendedValue::Bytes(v.to_vec())
+        ExtendedValue::Bytes(OneBotBytes(v.to_vec()))
     }
 }
 
@@ -110,8 +117,20 @@ impl_try_from!(Int, i64);
 impl_try_from!(F64, f64);
 impl_try_from!(Bool, bool);
 impl_try_from!(Map, ExtendedMap);
-impl_try_from!(Bytes, Vec<u8>);
 impl_try_from!(List, Vec<ExtendedValue>);
+// impl_try_from!(Bytes, Vec<u8>);
+
+/// json bytes could be String
+impl TryFrom<ExtendedValue> for Vec<u8> {
+    type Error = ExtendedValue;
+    fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+        match value {
+            ExtendedValue::Bytes(v) => Ok(v.0),
+            ExtendedValue::Str(ref s) => base64::decode(s).map_err(|_| value),
+            _ => Err(value),
+        }
+    }
+}
 
 fn null_serialize<S>(serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -119,6 +138,13 @@ where
 {
     serializer.serialize_none()
 }
+
+// fn null_deserialize<'de, D>(deserializer: D) -> Result<ExtendedValue, D::Error>
+// where
+//     D: serde::de::Deserializer<'de>,
+// {
+//     deserializer.deserialize_unit(ValueVisitor)
+// }
 
 struct ValueVisitor;
 
@@ -156,14 +182,14 @@ impl<'de> Visitor<'de> for ValueVisitor {
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Bytes(v.to_owned()))
+        Ok(ExtendedValue::Bytes(OneBotBytes(v.to_owned())))
     }
 
     fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Bytes(v))
+        Ok(ExtendedValue::Bytes(OneBotBytes(v)))
     }
 
     fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
@@ -275,7 +301,7 @@ impl ExtendedValue {
 
     pub fn as_bytes(&self) -> Option<&[u8]> {
         match self {
-            Self::Bytes(b) => Some(b),
+            Self::Bytes(b) => Some(&b.0),
             _ => None,
         }
     }
@@ -365,16 +391,16 @@ impl ExtendedMapExt for ExtendedMap {
 /// ExtendedValue 声明宏，类似于`serde_json::json!`
 macro_rules! extended_value {
     (null) => {
-        $crate::ExtendedValue::Null
+        $crate::util::ExtendedValue::Null
     };
     ([$($tt:tt)*]) => {
-        $crate::ExtendedValue::List($crate::extended_vec![$($tt)*])
+        $crate::util::ExtendedValue::List($crate::extended_vec![$($tt)*])
     };
     ({$($tt:tt)*}) => {
-        $crate::ExtendedValue::Map($crate::extended_map!{$($tt)*})
+        $crate::util::ExtendedValue::Map($crate::extended_map!{$($tt)*})
     };
     ($s:expr) => {
-        $crate::ExtendedValue::from_value($s.to_owned())
+        $crate::util::ExtendedValue::from_value($s.to_owned())
     };
 }
 
@@ -385,7 +411,7 @@ macro_rules! extended_vec {
         vec![$($elems),*]
     };
     (@internal [$($elems: expr,)*] null $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* ExtendedValue::Null] $($rest)*]
+        $crate::extended_vec![@internal [$($elems,)* $crate::util::ExtendedValue::Null] $($rest)*]
     };
     (@internal [$($elems: expr,)*] [$($vec: tt)*] $($rest:tt)*) => {
         $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!([$($vec)*])] $($rest)*]
@@ -441,7 +467,7 @@ macro_rules! extended_map {
     (@internal $map: ident () ()) => {};
     {$($tt:tt)*} => {
         {
-            let mut map = $crate::ExtendedMap::default();
+            let mut map = $crate::util::ExtendedMap::default();
             $crate::extended_map!(@internal map () ($($tt)*));
             map
         }
@@ -453,7 +479,7 @@ fn macro_test() {
     println!("{:?}", extended_value!(null));
     println!(
         "{:?}",
-        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, ExtendedValue::Bytes(vec![1, 2, 3])]
+        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, ExtendedValue::Bytes(vec![1, 2, 3].into())]
     );
     let a = "a";
     println!("{:?}", extended_value!([1, "c", 3.]));

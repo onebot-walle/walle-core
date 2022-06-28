@@ -1,13 +1,13 @@
-use super::{
+use crate::obc::{
     ws_util::{try_connect, upgrade_websocket},
     AppOBC, BotMap, EchoMap,
 };
 use crate::{
     action::ActionType,
     config::{WebSocketClient, WebSocketServer},
-    onebot::{ActionHandler, EventHandler, OneBot, Static},
-    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
-    SelfId, WalleError, WalleResult,
+    error::{WalleError, WalleResult},
+    util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
+    ActionHandler, EventHandler, OneBot,
 };
 
 use std::{collections::HashSet, sync::Arc};
@@ -35,8 +35,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for wsc in config {
             info!(target: super::OBC, "Start try connect to {}", wsc.url);
@@ -80,8 +80,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -127,8 +127,8 @@ async fn ws_loop<E, A, R, AH, EH>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem + ActionType,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Static,
-    EH: EventHandler<E, A, R, 12> + Static,
+    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
@@ -180,8 +180,8 @@ where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Static,
-    EH: EventHandler<E, A, R, 12> + Static,
+    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]

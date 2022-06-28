@@ -11,7 +11,7 @@ pub use meta::*;
 pub use notice::*;
 pub use request::*;
 
-use crate::ExtendedMap;
+use crate::util::ExtendedMap;
 
 /// Onebot 12 标准事件
 pub type StandardEvent = BaseEvent<EventContent>;
@@ -107,7 +107,7 @@ impl_From!(MessageContent<MessageEventDetail>, Message);
 impl_From!(NoticeContent, Notice);
 impl_From!(RequestContent, Request);
 
-impl<T> crate::SelfId for BaseEvent<T> {
+impl<T> crate::util::SelfId for BaseEvent<T> {
     fn self_id(&self) -> String {
         self.self_id.clone()
     }

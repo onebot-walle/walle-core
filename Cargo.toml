@@ -14,10 +14,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 http = ["hyper"]
 websocket = ["tokio-tungstenite"]
-app = ["sha2", "tokio/fs", "hex", "tokio/io-util"]
-impl = ["uuid"]
-v11 = []
-full = ["http", "websocket", "app", "impl"]
+app_obc = ["sha2", "tokio/fs", "tokio/io-util"]
+impl_obc = ["uuid"]
+full = ["http", "websocket", "app_obc", "impl_obc"]
 tokio-rt = ["tokio/rt-multi-thread"]
 
 [dependencies]
@@ -34,9 +33,11 @@ tokio-tungstenite = { version = "0.17", optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "1.0"
 sha2 = { version = "0.10", optional = true }
-hex = { version = "0.4", optional = true }
 
 dashmap = "5.3"
+
+base64 = "0.13"
+hex = "0.4"
 
 [dev-dependencies]
 tracing-subscriber = "0.3"

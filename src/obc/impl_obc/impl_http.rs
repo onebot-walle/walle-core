@@ -13,10 +13,10 @@ use tracing::{info, trace, warn};
 
 use crate::{
     config::{HttpClient, HttpServer},
-    onebot::{ActionHandler, EventHandler, OneBot, Static},
-    resp::error_builder,
-    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
-    ContentType, Resps, WalleError, WalleResult,
+    error::{WalleError, WalleResult},
+    resp::{error_builder, Resps},
+    util::{AuthReqHeaderExt, ContentType, Echo, ProtocolItem},
+    ActionHandler, EventHandler, OneBot,
 };
 
 use super::ImplOBC;
@@ -58,8 +58,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for http in config {
             let ob_ = ob.clone();
@@ -171,8 +171,8 @@ where
     where
         E: ProtocolItem + Clone,
         A: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         let client = Arc::new(HyperClient::new());
         let ob = ob.clone();
@@ -212,8 +212,8 @@ async fn webhook_push<E, A, R, AH, EH>(
 ) where
     E: ProtocolItem,
     A: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Static,
-    EH: EventHandler<E, A, R, 12> + Static,
+    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
     let date = event.json_encode();
     for webhook in config {

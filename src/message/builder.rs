@@ -1,4 +1,5 @@
-use crate::{ExtendedMap, MessageSegment};
+use super::MessageSegment;
+use crate::util::ExtendedMap;
 
 use super::Message;
 

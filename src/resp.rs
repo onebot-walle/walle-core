@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::action::UploadFile;
+use crate::event::StandardEvent;
 use crate::extra_struct;
-use crate::{action::UploadFile, ExtendedMap, ExtendedValue, StandardEvent};
+use crate::util::{ExtendedMap, ExtendedValue, OneBotBytes};
 
 /// ## OneBot 12 标准动作响应
 pub type StandardResps = Resps<StandardEvent>;
@@ -42,7 +44,7 @@ pub enum RespContent<E> {
     ChannelList(Vec<ChannelInfoContent>),
     FileId(FileIdContent),
     PrepareFileFragmented(FileFragmentedHead),
-    TransferFileFragmented(Vec<u8>),
+    TransferFileFragmented(OneBotBytes),
     GetFile(UploadFile),
     Other(ExtendedValue),
 }
@@ -105,7 +107,7 @@ resp_content!(GroupInfoContent, GroupInfo);
 resp_content!(Vec<GroupInfoContent>, GroupList);
 resp_content!(FileIdContent, FileId);
 resp_content!(FileFragmentedHead, PrepareFileFragmented);
-resp_content!(Vec<u8>, TransferFileFragmented);
+resp_content!(OneBotBytes, TransferFileFragmented);
 resp_content!(UploadFile, GetFile);
 resp_content!(ExtendedValue, Other);
 resp_content!(GuildInfoContent, GuildInfo);

@@ -1,13 +1,11 @@
 #[test]
 fn event() {
-    use crate::event::StandardEvent;
     use crate::event::{
-        BaseEvent, EventContent, MessageContent as MsgContent, MessageEventDetail, MetaContent,
-        NoticeContent,
+        EventContent, MessageContent as MsgContent, MessageEventDetail, MetaContent, NoticeContent,
     };
+    use crate::prelude::*;
     use crate::resp::StatusContent;
-    use crate::ExtendedMap;
-    use crate::MessageSegment;
+    use crate::util::ExtendedMap;
     use std::collections::HashMap;
     let data = vec![
         (
@@ -141,10 +139,9 @@ fn event() {
 
 #[test]
 fn action() {
-    use crate::action::GetLatestEvents;
-    use crate::action::*;
-    use crate::utils::Echo;
-    use crate::{MessageSegment, StandardAction};
+    use crate::action::{GetLatestEvents, SendMessage};
+    use crate::prelude::*;
+    use crate::util::Echo;
     use std::collections::HashMap;
 
     let data = vec![
@@ -211,9 +208,9 @@ fn action() {
 
 #[test]
 fn action_resp() {
-    use crate::resp::*;
-    use crate::StandardEvent;
-    use crate::{ExtendedMap, ExtendedValue};
+    use crate::prelude::*;
+    use crate::resp::StatusContent;
+    use crate::util::{ExtendedMap, ExtendedValue};
     use std::collections::HashMap;
 
     let status_data = (
@@ -298,7 +295,7 @@ fn message() {
 
 #[test]
 fn extendedmap_test() {
-    use crate::{ExtendedMap, ExtendedValue};
+    use crate::util::{ExtendedMap, ExtendedValue};
     let mut map = ExtendedMap::new();
     map.insert("key1".to_owned(), ExtendedValue::Null);
     println!("{}", serde_json::to_string(&map).unwrap());

@@ -1195,6 +1195,7 @@ name = "walle-core"
 version = "0.5.4"
 dependencies = [
  "async-trait",
+ "base64",
  "colored",
  "dashmap",
  "futures-util",

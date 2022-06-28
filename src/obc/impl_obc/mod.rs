@@ -1,10 +1,16 @@
 use std::sync::Arc;
 
-use crate::onebot::{ActionHandler, EventHandler, OneBot};
-use crate::utils::ProtocolItem;
+use super::OBC;
+use crate::util::ProtocolItem;
 use crate::WalleResult;
+use crate::{ActionHandler, EventHandler, OneBot};
 use async_trait::async_trait;
 use tokio::task::JoinHandle;
+
+#[cfg(feature = "http")]
+mod impl_http;
+#[cfg(feature = "websocket")]
+mod impl_ws;
 
 /// OneBotConnect 实现端实现
 ///
@@ -16,7 +22,7 @@ pub struct ImplOBC<E> {
     pub platform: String,
     pub r#impl: String,
     pub(crate) event_tx: tokio::sync::broadcast::Sender<E>,
-    pub(crate) hb_tx: tokio::sync::broadcast::Sender<crate::StandardEvent>,
+    pub(crate) hb_tx: tokio::sync::broadcast::Sender<crate::event::StandardEvent>,
 }
 
 #[async_trait]
@@ -81,15 +87,15 @@ impl<E> ImplOBC<E> {
     }
 }
 
-impl<C> ImplOBC<crate::BaseEvent<C>> {
+impl<C> ImplOBC<crate::event::BaseEvent<C>> {
     pub fn new_event_with_time(
         &self,
         time: f64,
         content: C,
         self_id: String,
-    ) -> crate::BaseEvent<C> {
-        crate::BaseEvent {
-            id: crate::utils::new_uuid(),
+    ) -> crate::event::BaseEvent<C> {
+        crate::event::BaseEvent {
+            id: crate::util::new_uuid(),
             r#impl: self.r#impl.clone(),
             platform: self.platform.clone(),
             self_id,
@@ -98,7 +104,7 @@ impl<C> ImplOBC<crate::BaseEvent<C>> {
         }
     }
 
-    pub fn new_event(&self, content: C, self_id: String) -> crate::BaseEvent<C> {
-        self.new_event_with_time(crate::utils::timestamp_nano_f64(), content, self_id)
+    pub fn new_event(&self, content: C, self_id: String) -> crate::event::BaseEvent<C> {
+        self.new_event_with_time(crate::util::timestamp_nano_f64(), content, self_id)
     }
 }

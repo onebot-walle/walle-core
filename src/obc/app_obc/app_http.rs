@@ -3,9 +3,9 @@ use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 use crate::{
     action::ActionType,
     config::{HttpClient, HttpServer},
-    onebot::{ActionHandler, EventHandler, OneBot, Static},
-    utils::{AuthReqHeaderExt, Echo, ProtocolItem},
-    SelfId, WalleError, WalleResult,
+    error::{WalleError, WalleResult},
+    util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
+    ActionHandler, EventHandler, OneBot,
 };
 use hyper::{
     body::Buf,
@@ -33,8 +33,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for webhook in config {
             let bot_map = self.bots.clone();
@@ -131,8 +131,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {

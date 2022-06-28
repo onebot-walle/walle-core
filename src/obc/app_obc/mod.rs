@@ -1,8 +1,9 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
+use super::OBC;
 use crate::action::ActionType;
-use crate::onebot::{ActionHandler, EventHandler, OneBot};
-use crate::utils::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
+use crate::util::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
+use crate::{ActionHandler, EventHandler, OneBot};
 use crate::{WalleError, WalleResult};
 
 use async_trait::async_trait;
@@ -10,6 +11,12 @@ use dashmap::DashMap;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tracing::warn;
+
+#[cfg(feature = "http")]
+mod app_http;
+#[cfg(feature = "websocket")]
+mod app_ws;
+mod bot_ext;
 
 pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 pub(crate) type BotMap<A> = Arc<BotMapInner<A>>;

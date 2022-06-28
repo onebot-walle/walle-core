@@ -1,5 +1,5 @@
 use super::BaseEvent;
-use crate::ExtendedMap;
+use crate::util::ExtendedMap;
 #[cfg(feature = "impl")]
 use crate::MessageAlt;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ pub struct MessageContent<D> {
     #[serde(flatten)]
     pub detail: D,
     pub message_id: String,
-    pub message: crate::Message,
+    pub message: crate::message::Message,
     pub alt_message: String,
     pub user_id: String,
 }
@@ -112,7 +112,7 @@ impl BaseEvent<MessageContent<MessageEventDetail>> {
     pub fn message_id(&self) -> &str {
         &self.content.message_id
     }
-    pub fn message(&self) -> &crate::Message {
+    pub fn message(&self) -> &crate::message::Message {
         &self.content.message
     }
     pub fn alt_message(&self) -> &str {

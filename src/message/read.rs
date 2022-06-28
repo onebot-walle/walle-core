@@ -1,4 +1,4 @@
-use crate::{Message, MessageSegment};
+use super::{Message, MessageSegment};
 
 pub trait MessageExt {
     fn extract_plain_text(&self) -> String;

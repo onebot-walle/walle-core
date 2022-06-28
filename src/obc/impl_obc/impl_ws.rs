@@ -1,13 +1,13 @@
-use super::{
+use crate::obc::{
     ws_util::{try_connect, upgrade_websocket},
     ImplOBC,
 };
 use crate::{
     error::{WalleError, WalleResult},
-    onebot::{ActionHandler, EventHandler, OneBot, Static},
-    resp::error_builder,
-    utils::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
-    Resps, StandardEvent,
+    event::StandardEvent,
+    resp::{error_builder, Resps},
+    util::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
+    ActionHandler, EventHandler, OneBot,
 };
 use futures_util::{SinkExt, StreamExt};
 use std::{sync::Arc, time::Duration};
@@ -32,8 +32,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -78,8 +78,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Static,
-        EH: EventHandler<E, A, R, 12> + Static,
+        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
         for wsr in config {
             let platform = self.platform.clone();
@@ -137,8 +137,8 @@ async fn ws_loop<E, A, R, AH, EH>(
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Static,
-    EH: EventHandler<E, A, R, 12> + Static,
+    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -223,14 +223,14 @@ where
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Static,
-    EH: EventHandler<E, A, R, 12> + Static,
+    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
     let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<Resps<E>> {
         let (_, echo_s) = a.unpack();
         warn!(target: crate::WALLE_CORE, "action warn: {}", msg);
         if msg.starts_with("missing field") {
-            echo_s.pack(crate::Resps::empty_fail(10006, msg))
+            echo_s.pack(crate::resp::Resps::empty_fail(10006, msg))
         } else {
             echo_s.pack(error_builder::unsupported_action(msg).into())
         }

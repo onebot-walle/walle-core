@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Serialize};
 
-use crate::utils::{ExtendedMap, ExtendedValue};
+use crate::util::{ExtendedMap, ExtendedValue};
 
 mod builder;
 mod read;

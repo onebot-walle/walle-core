@@ -1,9 +1,11 @@
 use colored::*;
 
+use crate::action::StandardAction;
 use crate::event::{
-    EventContent, MessageContent, MessageEventDetail, NoticeContent, RequestContent,
+    BaseEvent, EventContent, EventType, MessageContent, MessageEventDetail, NoticeContent,
+    RequestContent,
 };
-use crate::{BaseEvent, EventType, MessageAlt, StandardAction};
+use crate::message::MessageAlt;
 
 /// 命令行着色输出，可以用于 log
 pub trait ColoredAlt {

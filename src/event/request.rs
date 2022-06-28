@@ -1,4 +1,4 @@
-use crate::ExtendedMap;
+use crate::util::ExtendedMap;
 use serde::{Deserialize, Serialize};
 
 /// ## OneBot 请求事件 Content
