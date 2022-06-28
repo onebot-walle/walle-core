@@ -26,6 +26,8 @@ pub mod prelude {
     pub use crate::resp::{Resp, RespContent, Resps, StandardResps};
 
     pub use crate::error::{WalleError, WalleResult};
+    pub use crate::util::{Echo, ExtendedMap, ExtendedMapExt, ExtendedValue, OneBotBytes, SelfId};
+    pub use crate::{extended_map, extended_value, extended_vec, extra_struct};
     pub use async_trait::async_trait;
 }
 
