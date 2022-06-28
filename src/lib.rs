@@ -4,8 +4,7 @@
 pub const VERSION: &str = std::env!("CARGO_PKG_VERSION");
 pub const WALLE_CORE: &str = "Walle-core";
 
-mod error;
-mod test;
+pub mod error;
 pub mod util;
 
 /// Onebot Action
@@ -17,6 +16,8 @@ pub mod event;
 pub mod message;
 /// Onebot ActionResp
 pub mod resp;
+
+mod test;
 
 pub mod prelude {
     pub use crate::action::StandardAction;
