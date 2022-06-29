@@ -41,7 +41,7 @@ hex = "0.4"
 
 [dev-dependencies]
 tracing-subscriber = "0.3"
-toml = "*"
+toml = "0.5"
 
 [[example]]
 name = "impl_ws"
