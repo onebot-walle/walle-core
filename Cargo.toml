@@ -1,6 +1,6 @@
 [package]
 name = "walle-core"
-version = "0.5.4"
+version = "0.6.0-a1"
 edition = "2021"
 license = "MIT"
 description = "Onebot Lib in Rust"
