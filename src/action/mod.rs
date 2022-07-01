@@ -22,7 +22,6 @@ pub enum StandardAction {
     // message action
     SendMessage(SendMessage),
     DeleteMessage(DeleteMessage),
-    GetMessage(GetMessage),
 
     // user action
     GetSelfInfo(ExtendedMap),
@@ -36,11 +35,6 @@ pub enum StandardAction {
     GetGroupMemberList(GetGroupMemberList),
     SetGroupName(SetGroupName),
     LeaveGroup(LeaveGroup),
-    KickGroupMember(KickGroupMember),
-    BanGroupMember(BanGroupMember),
-    UnbanGroupMember(UnbanGroupMember),
-    SetGroupAdmin(SetGroupAdmin),
-    UnsetGroupAdmin(UnsetGroupAdmin),
 
     // guild action
     GetGuildInfo(GetGuildInfo),
@@ -92,7 +86,6 @@ impl StandardAction {
             Self::GetVersion(_) => "get_version",
             Self::SendMessage(_) => "send_message",
             Self::DeleteMessage(_) => "delete_message",
-            Self::GetMessage(_) => "get_message",
             Self::GetSelfInfo(_) => "get_self_info",
             Self::GetUserInfo(_) => "get_user_info",
             Self::GetFriendList(_) => "get_friend_list",
@@ -102,11 +95,6 @@ impl StandardAction {
             Self::GetGroupMemberList(_) => "get_group_member_list",
             Self::SetGroupName(_) => "set_group_name",
             Self::LeaveGroup(_) => "leave_group",
-            Self::KickGroupMember(_) => "kick_group_member",
-            Self::BanGroupMember(_) => "ban_group_member",
-            Self::UnbanGroupMember(_) => "unban_group_member",
-            Self::SetGroupAdmin(_) => "set_group_admin",
-            Self::UnsetGroupAdmin(_) => "unset_group_admin",
             Self::GetGuildInfo(_) => "get_guild_info",
             Self::GetGuildList(_) => "get_guild_list",
             Self::GetChannelInfo(_) => "get_channel_info",
@@ -201,17 +189,11 @@ pub struct GetLatestEvents {
 }
 // onebot_action!(GetLatestEvents, limit: i64, timeout: i64);
 extra_struct!(DeleteMessage, message_id: String);
-extra_struct!(GetMessage, message_id: String);
 extra_struct!(GetUserInfo, user_id: String);
 extra_struct!(GetGroupInfo, group_id: String);
 extra_struct!(GetGroupMemberList, group_id: String);
 extra_struct!(LeaveGroup, group_id: String);
 extra_struct!(GetGroupMemberInfo, group_id: String, user_id: String);
-extra_struct!(KickGroupMember, group_id: String, user_id: String);
-extra_struct!(BanGroupMember, group_id: String, user_id: String);
-extra_struct!(UnbanGroupMember, group_id: String, user_id: String);
-extra_struct!(SetGroupAdmin, group_id: String, user_id: String);
-extra_struct!(UnsetGroupAdmin, group_id: String, user_id: String);
 extra_struct!(SetGroupName, group_id: String, group_name: String);
 extra_struct!(GetChannelInfo, guild_id: String, channel_id: String);
 extra_struct!(GetChannelList, guild_id: String);
@@ -292,11 +274,6 @@ impl_from!(
     GetGroupMemberList,
     LeaveGroup,
     GetGroupMemberInfo,
-    KickGroupMember,
-    BanGroupMember,
-    UnbanGroupMember,
-    SetGroupAdmin,
-    UnsetGroupAdmin,
     SetGroupName,
     UploadFile,
     UploadFileFragmented,
@@ -330,7 +307,6 @@ impl SelfId for StandardAction {
 
             StandardAction::SendMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
             StandardAction::DeleteMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
 
             StandardAction::GetSelfInfo(g) => g.try_get("self_id").unwrap_or_default(),
             StandardAction::GetUserInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
@@ -341,11 +317,6 @@ impl SelfId for StandardAction {
             StandardAction::GetGroupMemberList(g) => g.extra.try_get("self_id").unwrap_or_default(),
             StandardAction::SetGroupName(g) => g.extra.try_get("self_id").unwrap_or_default(),
             StandardAction::LeaveGroup(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::KickGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::BanGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::UnbanGroupMember(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::SetGroupAdmin(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::UnsetGroupAdmin(g) => g.extra.try_get("self_id").unwrap_or_default(),
 
             StandardAction::GetGuildInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
             StandardAction::GetGuildList(g) => g.try_get("self_id").unwrap_or_default(),

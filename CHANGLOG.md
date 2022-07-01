@@ -1,3 +1,16 @@
+# 0.6.0 (unrelease)
+
+- new OneBot and OBC
+- remove action.kick_group_member
+- remove action.ban_group_member
+- remove action.unban_group_member
+- remove action.set_group_admin
+- remove action.unset_group_admin
+- remove notice.group_member_ban
+- remvoe notice.group_member_unban
+- remove notice.group_admin_set
+- remove notice.group_admin_unset
+
 # 0.5.4
 
 - http 反序列化错误（serde_json from_reader 潜在bug？）

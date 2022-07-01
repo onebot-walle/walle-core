@@ -23,38 +23,6 @@ pub enum NoticeContent {
         #[serde(flatten)]
         extra: ExtendedMap,
     },
-    GroupMemberBan {
-        sub_type: String, // just for Deserialize
-        group_id: String,
-        user_id: String,
-        operator_id: String,
-        #[serde(flatten)]
-        extra: ExtendedMap,
-    },
-    GroupMemberUnban {
-        sub_type: String, // just for Deserialize
-        group_id: String,
-        user_id: String,
-        operator_id: String,
-        #[serde(flatten)]
-        extra: ExtendedMap,
-    },
-    GroupAdminSet {
-        sub_type: String, // just for Deserialize
-        group_id: String,
-        user_id: String,
-        operator_id: String,
-        #[serde(flatten)]
-        extra: ExtendedMap,
-    },
-    GroupAdminUnset {
-        sub_type: String, // just for Deserialize
-        group_id: String,
-        user_id: String,
-        operator_id: String,
-        #[serde(flatten)]
-        extra: ExtendedMap,
-    },
     GroupMessageDelete {
         sub_type: String,
         group_id: String,
@@ -135,10 +103,6 @@ impl super::EventType for NoticeContent {
         match self {
             Self::GroupMemberIncrease { .. } => "group_member_increase",
             Self::GroupMemberDecrease { .. } => "group_member_decrease",
-            Self::GroupMemberBan { .. } => "group_member_ban",
-            Self::GroupMemberUnban { .. } => "group_member_unban",
-            Self::GroupAdminSet { .. } => "group_admin_set",
-            Self::GroupAdminUnset { .. } => "group_admin_unset",
             Self::GroupMessageDelete { .. } => "group_message_delete",
             Self::FriendIncrease { .. } => "friend_increase",
             Self::FriendDecrease { .. } => "friend_decrease",
@@ -154,10 +118,6 @@ impl super::EventType for NoticeContent {
         match self {
             Self::GroupMemberIncrease { sub_type, .. } => sub_type,
             Self::GroupMemberDecrease { sub_type, .. } => sub_type,
-            Self::GroupMemberBan { sub_type, .. } => sub_type,
-            Self::GroupMemberUnban { sub_type, .. } => sub_type,
-            Self::GroupAdminSet { sub_type, .. } => sub_type,
-            Self::GroupAdminUnset { sub_type, .. } => sub_type,
             Self::GroupMessageDelete { sub_type, .. } => sub_type,
             Self::FriendIncrease { sub_type, .. } => sub_type,
             Self::FriendDecrease { sub_type, .. } => sub_type,
