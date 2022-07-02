@@ -3,3 +3,5 @@
 *recruit.toml
 *.pyc
 *.pyd
+.idea
+.vscode

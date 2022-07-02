@@ -1,16 +1,17 @@
 use crate::util::{ExtendedMap, ExtendedMapExt, OneBotBytes, SelfId};
 use crate::{extra_struct, message::MSVistor};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
+use snake_cased::SnakedEnum;
 
-#[cfg(feature = "app")]
+#[cfg(feature = "bot-action")]
 mod ext;
-#[cfg(feature = "app")]
+#[cfg(feature = "bot-action")]
 pub use ext::*;
 
 /// ## OneBot 12 标准动作
 ///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SnakedEnum)]
 #[serde(tag = "action", content = "params", rename_all = "snake_case")]
 pub enum StandardAction {
     // meta action
@@ -79,36 +80,7 @@ pub struct ExtendedAction {
 
 impl StandardAction {
     pub fn action_type(&self) -> &str {
-        match self {
-            Self::GetLatestEvents(_) => "get_latest_events",
-            Self::GetSupportedActions(_) => "get_supported_actions",
-            Self::GetStatus(_) => "get_status",
-            Self::GetVersion(_) => "get_version",
-            Self::SendMessage(_) => "send_message",
-            Self::DeleteMessage(_) => "delete_message",
-            Self::GetSelfInfo(_) => "get_self_info",
-            Self::GetUserInfo(_) => "get_user_info",
-            Self::GetFriendList(_) => "get_friend_list",
-            Self::GetGroupInfo(_) => "get_group_info",
-            Self::GetGroupList(_) => "get_group_list",
-            Self::GetGroupMemberInfo(_) => "get_group_member_info",
-            Self::GetGroupMemberList(_) => "get_group_member_list",
-            Self::SetGroupName(_) => "set_group_name",
-            Self::LeaveGroup(_) => "leave_group",
-            Self::GetGuildInfo(_) => "get_guild_info",
-            Self::GetGuildList(_) => "get_guild_list",
-            Self::GetChannelInfo(_) => "get_channel_info",
-            Self::GetChannelList(_) => "get_channel_list",
-            Self::GetGuildMemberInfo(_) => "get_guild_member_info",
-            Self::GetGuildMemberList(_) => "get_guild_member_list",
-            Self::SetGuildName(_) => "set_guild_name",
-            Self::SetChannelName(_) => "set_channel_name",
-            Self::LeaveGuild(_) => "leave_guild",
-            Self::UploadFile(_) => "upload_file",
-            Self::UploadFileFragmented(_) => "upload_file_fragmented",
-            Self::GetFile(_) => "get_file",
-            Self::GetFileFragmented(_) => "get_file_fragmented",
-        }
+        self.snaked_enum()
     }
 }
 
@@ -354,6 +326,12 @@ impl SelfId for GetFileFragmented {
             Self::Transfer { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Action {
+    pub action: String,
+    pub params: ExtendedMap,
 }
 
 #[test]

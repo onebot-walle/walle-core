@@ -1,8 +1,8 @@
 use super::BaseEvent;
 use crate::util::ExtendedMap;
-#[cfg(feature = "impl")]
-use crate::MessageAlt;
+
 use serde::{Deserialize, Serialize};
+use snake_cased::SnakedEnum;
 
 /// ## OneBot 消息事件 Content
 ///
@@ -18,7 +18,7 @@ pub struct MessageContent<D> {
 }
 
 /// MessageEvent detail_type ( private or group )
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SnakedEnum)]
 #[serde(tag = "detail_type", rename_all = "snake_case")]
 pub enum MessageEventDetail {
     Private {
@@ -49,52 +49,6 @@ impl MessageEventDetail {
         match self {
             MessageEventDetail::Group { group_id, .. } => Some(group_id),
             _ => None,
-        }
-    }
-}
-
-#[cfg(feature = "impl")]
-impl<D> MessageContent<D>
-where
-    D: From<MessageEventDetail>,
-{
-    pub fn new_group_message_content(
-        message: crate::Message,
-        message_id: String,
-        user_id: String,
-        group_id: String,
-        extra: ExtendedMap,
-    ) -> Self {
-        Self {
-            detail: MessageEventDetail::Group {
-                sub_type: "".to_owned(),
-                group_id,
-                extra,
-            }
-            .into(),
-            message_id,
-            alt_message: message.alt(),
-            message,
-            user_id,
-        }
-    }
-
-    pub fn new_private_message_content(
-        message: crate::Message,
-        message_id: String,
-        user_id: String,
-        extra: ExtendedMap,
-    ) -> Self {
-        Self {
-            detail: MessageEventDetail::Private {
-                sub_type: "".to_owned(),
-                extra,
-            }
-            .into(),
-            message_id,
-            alt_message: message.alt(),
-            message,
-            user_id,
         }
     }
 }
@@ -139,11 +93,7 @@ impl super::EventType for MessageEventDetail {
         "message"
     }
     fn detail_type(&self) -> &str {
-        match self {
-            MessageEventDetail::Private { .. } => "private",
-            MessageEventDetail::Group { .. } => "group",
-            MessageEventDetail::Channel { .. } => "channel",
-        }
+        self.snaked_enum()
     }
     fn sub_type(&self) -> &str {
         match self {

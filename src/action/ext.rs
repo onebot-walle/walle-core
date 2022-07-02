@@ -1,10 +1,8 @@
 use std::{future::Future, pin::Pin};
 
-use super::UploadFile;
+use crate::action::UploadFile;
+use crate::prelude::*;
 use crate::resp::*;
-use crate::Message;
-use crate::WalleResult;
-use crate::{ExtendedMap, ExtendedValue};
 
 type Pbfr<'r, R> = Pin<Box<dyn Future<Output = WalleResult<R>> + Send + 'r>>;
 
@@ -170,41 +168,6 @@ pub trait BotActionExt<R>: Sync {
         leave_group,
         Resp<ExtendedValue>,
         group_id: String
-    );
-    exts!(
-        kick_group_member_ex,
-        kick_group_member,
-        Resp<ExtendedValue>,
-        group_id: String,
-        user_id: String
-    );
-    exts!(
-        ban_group_member_ex,
-        ban_group_member,
-        Resp<ExtendedValue>,
-        group_id: String,
-        user_id: String
-    );
-    exts!(
-        unban_group_member_ex,
-        unban_group_member,
-        Resp<ExtendedValue>,
-        group_id: String,
-        user_id: String
-    );
-    exts!(
-        set_group_admin_ex,
-        set_group_admin,
-        Resp<ExtendedValue>,
-        group_id: String,
-        user_id: String
-    );
-    exts!(
-        unset_group_admin_ex,
-        unset_group_admin,
-        Resp<ExtendedValue>,
-        group_id: String,
-        user_id: String
     );
     exts!(
         get_guild_info_ex,

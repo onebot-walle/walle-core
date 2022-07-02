@@ -1,7 +1,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
-pub const VERSION: &str = std::env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WALLE_CORE: &str = "Walle-core";
 
 pub mod error;
@@ -31,7 +31,7 @@ pub mod prelude {
     pub use async_trait::async_trait;
 }
 
-#[cfg(any(feature = "impl_obc", feature = "app_obc"))]
+#[cfg(any(feature = "impl-obc", feature = "app-obc"))]
 pub mod obc;
 
 /// ECAH: EventConstructor + ActionHandler
