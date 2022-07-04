@@ -1,11 +1,17 @@
+use std::sync::Arc;
+
 use colored::*;
+use tracing::info;
 
 use crate::action::StandardAction;
 use crate::event::{
-    BaseEvent, EventContent, EventType, MessageContent, MessageEventDetail, NoticeContent,
+    BaseEvent, EventContent, EventDetailType, MessageContent, MessageEventDetail, NoticeContent,
     RequestContent,
 };
 use crate::message::MessageAlt;
+use crate::prelude::WalleResult;
+use crate::resp::{resp_error, RespError};
+use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
 /// 命令行着色输出，可以用于 log
 pub trait ColoredAlt {
@@ -130,5 +136,75 @@ impl ColoredAlt for StandardAction {
             a => format!("{a:?}"), //todo
         };
         Some(format!("{head} {body}"))
+    }
+}
+
+#[derive(Debug)]
+pub struct TracingHandler<E, A, R>(std::marker::PhantomData<(E, A, R)>);
+
+impl<E, A, R> Default for TracingHandler<E, A, R> {
+    fn default() -> Self {
+        Self(std::marker::PhantomData::default())
+    }
+}
+
+#[async_trait::async_trait]
+impl<E, A, R, const V: u8> ActionHandler<E, A, R, V> for TracingHandler<E, A, R>
+where
+    E: Send + Sync + 'static,
+    A: ColoredAlt + Send + Sync + 'static,
+    R: From<RespError> + Send + Sync + 'static,
+{
+    type Config = ();
+    async fn start<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH, V>>,
+        _config: (),
+    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    {
+        Ok(vec![])
+    }
+    async fn call<AH, EH>(&self, action: A, _ob: &OneBot<AH, EH, V>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    {
+        if let Some(alt) = action.colored_alt() {
+            info!(target: WALLE_CORE, alt);
+        }
+        Ok(resp_error::unsupported_action("").into())
+    }
+}
+
+#[async_trait::async_trait]
+impl<E, A, R, const V: u8> EventHandler<E, A, R, V> for TracingHandler<E, A, R>
+where
+    E: ColoredAlt + Send + Sync + 'static,
+    A: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    type Config = ();
+    async fn start<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH, V>>,
+        _config: Self::Config,
+    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    {
+        Ok(vec![])
+    }
+    async fn call<AH, EH>(&self, event: E, _ob: &OneBot<AH, EH, V>)
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    {
+        if let Some(alt) = event.colored_alt() {
+            info!(target: WALLE_CORE, alt);
+        }
     }
 }

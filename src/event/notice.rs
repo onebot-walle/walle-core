@@ -1,10 +1,11 @@
 use crate::util::ExtendedMap;
 use serde::{Deserialize, Serialize};
+use snake_cased::SnakedEnum;
 
 /// ## OneBot 通知事件 Content
 ///
 /// 通知事件是机器人平台向机器人发送通知对应的事件，例如群成员变动等。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, SnakedEnum)]
 #[serde(tag = "detail_type", rename_all = "snake_case")]
 pub enum NoticeContent {
     GroupMemberIncrease {
@@ -95,38 +96,32 @@ pub enum NoticeContent {
     },
 }
 
-impl super::EventType for NoticeContent {
-    fn event_type(&self) -> &str {
-        "notice"
-    }
-    fn detail_type(&self) -> &str {
-        match self {
-            Self::GroupMemberIncrease { .. } => "group_member_increase",
-            Self::GroupMemberDecrease { .. } => "group_member_decrease",
-            Self::GroupMessageDelete { .. } => "group_message_delete",
-            Self::FriendIncrease { .. } => "friend_increase",
-            Self::FriendDecrease { .. } => "friend_decrease",
-            Self::PrivateMessageDelete { .. } => "private_message_delete",
-            Self::GuildMemberIncrease { .. } => "guild_member_increase",
-            Self::GuildMemberDecrease { .. } => "guild_member_decrease",
-            Self::ChannelMessageDelete { .. } => "channel_message_delete",
-            Self::ChannelCreate { .. } => "channel_create",
-            Self::ChannelDelete { .. } => "channel_delete",
-        }
-    }
+impl super::EventSubType for NoticeContent {
     fn sub_type(&self) -> &str {
         match self {
-            Self::GroupMemberIncrease { sub_type, .. } => sub_type,
-            Self::GroupMemberDecrease { sub_type, .. } => sub_type,
-            Self::GroupMessageDelete { sub_type, .. } => sub_type,
-            Self::FriendIncrease { sub_type, .. } => sub_type,
-            Self::FriendDecrease { sub_type, .. } => sub_type,
-            Self::PrivateMessageDelete { sub_type, .. } => sub_type,
-            Self::GuildMemberIncrease { sub_type, .. } => sub_type,
-            Self::GuildMemberDecrease { sub_type, .. } => sub_type,
-            Self::ChannelMessageDelete { sub_type, .. } => sub_type,
-            Self::ChannelCreate { sub_type, .. } => sub_type,
-            Self::ChannelDelete { sub_type, .. } => sub_type,
+            NoticeContent::GroupMemberIncrease { sub_type, .. } => sub_type,
+            NoticeContent::GroupMemberDecrease { sub_type, .. } => sub_type,
+            NoticeContent::GroupMessageDelete { sub_type, .. } => sub_type,
+            NoticeContent::FriendIncrease { sub_type, .. } => sub_type,
+            NoticeContent::FriendDecrease { sub_type, .. } => sub_type,
+            NoticeContent::PrivateMessageDelete { sub_type, .. } => sub_type,
+            NoticeContent::GuildMemberIncrease { sub_type, .. } => sub_type,
+            NoticeContent::GuildMemberDecrease { sub_type, .. } => sub_type,
+            NoticeContent::ChannelMessageDelete { sub_type, .. } => sub_type,
+            NoticeContent::ChannelCreate { sub_type, .. } => sub_type,
+            NoticeContent::ChannelDelete { sub_type, .. } => sub_type,
         }
+    }
+}
+
+impl super::EventDetailType for NoticeContent {
+    fn detail_type(&self) -> &str {
+        self.snaked_enum()
+    }
+}
+
+impl super::EventType for NoticeContent {
+    fn ty(&self) -> &str {
+        "notice"
     }
 }

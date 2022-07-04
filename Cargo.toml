@@ -47,11 +47,11 @@ toml = "0.5"
 
 [[example]]
 name = "impl_ws"
-required-features = ["impl", "websocket", "tokio-rt"]
+required-features = ["impl-obc", "websocket", "tokio-rt"]
 
 [[example]]
 name = "app_ws"
-required-features = ["app", "websocket", "tokio-rt"]
+required-features = ["app-obc", "websocket", "tokio-rt"]
 
 [workspace]
 members = ["walle-py", "walle-v11"]

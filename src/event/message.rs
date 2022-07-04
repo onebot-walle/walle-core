@@ -1,4 +1,3 @@
-use super::BaseEvent;
 use crate::util::ExtendedMap;
 
 use serde::{Deserialize, Serialize};
@@ -44,74 +43,36 @@ pub enum MessageEventDetail {
     },
 }
 
-impl MessageEventDetail {
-    pub fn group_id(&self) -> Option<&str> {
+impl super::EventSubType for MessageEventDetail {
+    fn sub_type(&self) -> &str {
         match self {
-            MessageEventDetail::Group { group_id, .. } => Some(group_id),
-            _ => None,
+            Self::Group { sub_type, .. } => sub_type,
+            Self::Channel { sub_type, .. } => sub_type,
+            Self::Private { sub_type, .. } => sub_type,
         }
     }
 }
 
-impl BaseEvent<MessageContent<MessageEventDetail>> {
-    pub fn group_id(&self) -> Option<&str> {
-        self.content.detail.group_id()
-    }
-    pub fn user_id(&self) -> &str {
-        &self.content.user_id
-    }
-    pub fn detail(&self) -> &MessageEventDetail {
-        &self.content.detail
-    }
-    pub fn message_id(&self) -> &str {
-        &self.content.message_id
-    }
-    pub fn message(&self) -> &crate::message::Message {
-        &self.content.message
-    }
-    pub fn alt_message(&self) -> &str {
-        &self.content.alt_message
-    }
-    pub fn sub_type(&self) -> &str {
-        match self.content.detail {
-            MessageEventDetail::Private { ref sub_type, .. } => sub_type,
-            MessageEventDetail::Group { ref sub_type, .. } => sub_type,
-            MessageEventDetail::Channel { ref sub_type, .. } => sub_type,
-        }
-    }
-    pub fn extra(&self) -> &ExtendedMap {
-        match self.content.detail {
-            MessageEventDetail::Private { ref extra, .. } => extra,
-            MessageEventDetail::Group { ref extra, .. } => extra,
-            MessageEventDetail::Channel { ref extra, .. } => extra,
-        }
-    }
-}
-
-impl super::EventType for MessageEventDetail {
-    fn event_type(&self) -> &str {
-        "message"
-    }
+impl super::EventDetailType for MessageEventDetail {
     fn detail_type(&self) -> &str {
         self.snaked_enum()
     }
+}
+
+impl<D: super::EventSubType> super::EventSubType for MessageContent<D> {
     fn sub_type(&self) -> &str {
-        match self {
-            MessageEventDetail::Private { ref sub_type, .. } => sub_type,
-            MessageEventDetail::Group { ref sub_type, .. } => sub_type,
-            MessageEventDetail::Channel { ref sub_type, .. } => sub_type,
-        }
+        self.detail.sub_type()
     }
 }
 
-impl<D: super::EventType> super::EventType for MessageContent<D> {
-    fn event_type(&self) -> &str {
-        "message"
-    }
+impl<D: super::EventDetailType> super::EventDetailType for MessageContent<D> {
     fn detail_type(&self) -> &str {
         self.detail.detail_type()
     }
-    fn sub_type(&self) -> &str {
-        self.detail.sub_type()
+}
+
+impl<D: super::EventDetailType> super::EventType for MessageContent<D> {
+    fn ty(&self) -> &str {
+        "message"
     }
 }

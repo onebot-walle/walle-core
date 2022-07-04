@@ -18,7 +18,7 @@ use hyper::{
 use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
 
-use super::{AppOBC, EchoMap};
+use super::{AppOBC, BotMapExt, EchoMap};
 
 impl<A, R> AppOBC<A, R>
 where
@@ -84,7 +84,7 @@ where
                         Ok(event) => {
                             let (action_tx, mut action_rx) = mpsc::unbounded_channel();
                             let self_id = event.self_id();
-                            bot_map.ensure_tx(&self_id, &action_tx);
+                            bot_map.ensure_bot(&self_id, &action_tx);
                             ob.event_handler.call(event, &ob).await;
                             if let Ok(Some(a)) = tokio::time::timeout(
                                 std::time::Duration::from_secs(8),
@@ -137,7 +137,7 @@ where
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
             let (tx, mut rx) = mpsc::unbounded_channel();
-            self.bots.ensure_tx(&bot_id, &tx);
+            self.bots.ensure_bot(&bot_id, &tx);
             let ob = ob.clone();
             let cli = client.clone();
             let echo_map = self.echos.clone();

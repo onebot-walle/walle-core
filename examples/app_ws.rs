@@ -1,10 +1,19 @@
-use walle_core::app::StandardOneBot;
+use std::sync::Arc;
+
 use walle_core::config::AppConfig;
-use walle_core::DefaultHandler;
+use walle_core::obc::AppOBC;
+use walle_core::prelude::*;
+use walle_core::util::TracingHandler;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let ob = StandardOneBot::new(AppConfig::default(), DefaultHandler).arc();
-    ob.run_block().await.unwrap();
+    let ob = Arc::new(OneBot::new_12(
+        AppOBC::new(),
+        TracingHandler::<StandardEvent, StandardAction, StandardResps>::default(),
+    ));
+    let joins = ob.start(AppConfig::default(), (), true).await.unwrap();
+    for join in joins {
+        join.await.unwrap()
+    }
 }

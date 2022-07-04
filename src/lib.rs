@@ -25,6 +25,7 @@ pub mod prelude {
     pub use crate::message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
     pub use crate::resp::{Resp, RespContent, Resps, StandardResps};
 
+    pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
     pub use crate::util::{Echo, ExtendedMap, ExtendedMapExt, ExtendedValue, OneBotBytes, SelfId};
     pub use crate::{extended_map, extended_value, extended_vec, extra_struct};
@@ -154,5 +155,11 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             .ok_or(WalleError::NotRunning)?;
         tx.send(()).ok();
         Ok(())
+    }
+}
+
+impl<AH, EH> OneBot<AH, EH, 12> {
+    pub fn new_12(action_handler: AH, event_handler: EH) -> Self {
+        Self::new(action_handler, event_handler)
     }
 }

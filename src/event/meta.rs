@@ -19,18 +19,22 @@ pub enum MetaContent {
     },
 }
 
-impl super::EventType for MetaContent {
-    fn event_type(&self) -> &str {
-        "meta"
-    }
-    fn detail_type(&self) -> &str {
-        match self {
-            MetaContent::Heartbeat { .. } => "heartbeat",
-        }
-    }
+impl super::EventSubType for MetaContent {
     fn sub_type(&self) -> &str {
         match self {
-            MetaContent::Heartbeat { sub_type, .. } => sub_type,
+            Self::Heartbeat { sub_type, .. } => sub_type,
         }
+    }
+}
+
+impl super::EventDetailType for MetaContent {
+    fn detail_type(&self) -> &str {
+        "heartbeat"
+    }
+}
+
+impl super::EventType for MetaContent {
+    fn ty(&self) -> &str {
+        "meta"
     }
 }

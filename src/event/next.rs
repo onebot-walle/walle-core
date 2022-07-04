@@ -17,23 +17,3 @@ pub struct Event {
     #[serde(flatten)]
     pub extra: ExtendedMap,
 }
-
-pub trait EventSubType {
-    fn sub_type() -> &'static str;
-}
-
-pub trait EventDetailType: EventSubType {
-    fn detail_type() -> &'static str;
-}
-
-pub trait EventType: EventDetailType {
-    fn ty() -> &'static str;
-}
-
-pub trait EventPlatform: EventType {
-    fn platform() -> &'static str;
-}
-
-pub trait EventImpl: EventPlatform {
-    fn r#impl() -> &'static str;
-}

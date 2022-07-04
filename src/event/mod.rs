@@ -121,100 +121,85 @@ pub struct DetailEventContent {
     pub content: ExtendedMap,
 }
 
-pub trait EventType {
-    fn event_type(&self) -> &str;
-    fn detail_type(&self) -> &str;
+pub trait EventSubType {
     fn sub_type(&self) -> &str;
 }
 
-impl<T: EventType> EventType for BaseEvent<T> {
-    fn event_type(&self) -> &str {
-        self.content.event_type()
-    }
+pub trait EventDetailType: EventSubType {
+    fn detail_type(&self) -> &str;
+}
 
+pub trait EventType: EventDetailType {
+    fn ty(&self) -> &str;
+}
+
+pub trait EventPlatform: EventType {
+    fn platform(&self) -> &str;
+}
+
+pub trait EventImpl: EventPlatform {
+    fn r#impl(&self) -> &str;
+}
+
+impl EventSubType for EventContent {
+    fn sub_type(&self) -> &str {
+        match self {
+            Self::Message(message) => message.sub_type(),
+            Self::Meta(meta) => meta.sub_type(),
+            Self::Notice(notice) => notice.sub_type(),
+            Self::Request(request) => request.sub_type(),
+        }
+    }
+}
+
+impl EventDetailType for EventContent {
     fn detail_type(&self) -> &str {
-        self.content.detail_type()
+        match self {
+            Self::Message(message) => message.detail_type(),
+            Self::Meta(meta) => meta.detail_type(),
+            Self::Notice(notice) => notice.detail_type(),
+            Self::Request(request) => request.detail_type(),
+        }
     }
+}
 
+impl EventType for EventContent {
+    fn ty(&self) -> &str {
+        match self {
+            Self::Message(message) => message.ty(),
+            Self::Meta(meta) => meta.ty(),
+            Self::Notice(notice) => notice.ty(),
+            Self::Request(request) => request.ty(),
+        }
+    }
+}
+
+impl<T: EventSubType> EventSubType for BaseEvent<T> {
     fn sub_type(&self) -> &str {
         self.content.sub_type()
     }
 }
 
-impl EventType for EventContent {
-    fn event_type(&self) -> &str {
-        match self {
-            EventContent::Meta(_) => "meta",
-            EventContent::Message(_) => "message",
-            EventContent::Notice(_) => "notice",
-            EventContent::Request(_) => "request",
-        }
-    }
-
+impl<T: EventDetailType> EventDetailType for BaseEvent<T> {
     fn detail_type(&self) -> &str {
-        match self {
-            EventContent::Meta(c) => c.detail_type(),
-            EventContent::Message(c) => c.detail_type(),
-            EventContent::Notice(c) => c.detail_type(),
-            EventContent::Request(c) => c.detail_type(),
-        }
-    }
-
-    fn sub_type(&self) -> &str {
-        match self {
-            EventContent::Meta(c) => c.sub_type(),
-            EventContent::Message(c) => c.sub_type(),
-            EventContent::Notice(c) => c.sub_type(),
-            EventContent::Request(c) => c.sub_type(),
-        }
+        self.content.detail_type()
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct RefEvent<'e, T> {
-    pub id: &'e str,
-    pub r#impl: &'e str,
-    pub platform: &'e str,
-    pub self_id: &'e str,
-    pub time: f64,
-    pub content: &'e T,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct RefMutEvent<'e, T> {
-    pub id: &'e mut String,
-    pub r#impl: &'e mut String,
-    pub platform: &'e mut String,
-    pub self_id: &'e mut String,
-    pub time: f64,
-    pub content: &'e mut T,
-}
-
-impl<T> BaseEvent<T> {
-    pub fn as_ref<'e, T1>(&'e self) -> RefEvent<'e, T1>
-    where
-        T: AsRef<T1>,
-    {
-        RefEvent {
-            id: &self.id,
-            r#impl: &self.r#impl,
-            platform: &self.platform,
-            self_id: &self.self_id,
-            time: self.time,
-            content: self.content.as_ref(),
-        }
+impl<T: EventType> EventType for BaseEvent<T> {
+    fn ty(&self) -> &str {
+        self.content.ty()
     }
-    pub fn as_mut<'e, T1>(&'e mut self) -> RefMutEvent<'e, T1>
-    where
-        T: AsMut<T1>,
-    {
-        RefMutEvent {
-            id: &mut self.id,
-            r#impl: &mut self.r#impl,
-            platform: &mut self.platform,
-            self_id: &mut self.self_id,
-            time: self.time,
-            content: self.content.as_mut(),
-        }
+}
+
+impl<T: EventType> EventPlatform for BaseEvent<T> {
+    fn platform(&self) -> &str {
+        &self.platform
+    }
+}
+
+impl<T: EventType> EventImpl for BaseEvent<T> {
+    fn r#impl(&self) -> &str {
+        &self.r#impl
     }
 }

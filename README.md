@@ -26,7 +26,6 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 
 ## features
 
-- ~~echo~~: 启用 echo 字段 ( echo 字段默认实现，才不是因为分离太难了 )
 - http: 启用 Http 与 HttpWebhook 通讯协议
 - websocket: 启用正向 WebSocket 与反向 WebSocket 通讯协议
 - impl: 启用实现端 lib api
@@ -39,40 +38,51 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 ### Implementation
 
 ```rust
-use walle_core::{ImplConfig, impls::OneBot, DefaultHandler};
+use std::sync::Arc;
+
+use walle_core::config::ImplConfig;
+use walle_core::obc::ImplOBC;
+use walle_core::prelude::*;
+use walle_core::util::TracingHandler;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().init(); // 初始化 tracing
-    let config = ImplConfig::default();
-    let ob = OneBot::new(
-        "Your impl name".to_owned(),
-        "Your impl platform".to_owned(),
-        "Your bot self id".to_owned(),
-        config,
-        DefaultHandler::arc(), // ActionHandler
-        ).arc();
-    ob.run().await
-    ... // run is not blocking do your own things
+    tracing_subscriber::fmt::init();
+    let ob = Arc::new(OneBot::new_12(
+        TracingHandler::<StandardEvent, StandardEvent, StandardResps>::default(),
+        ImplOBC::new(
+            "self_id".to_string(),
+            "impl".to_string(),
+            "platform".to_string(),
+        ),
+    ));
+    let joins = ob.start((), ImplConfig::default(), true).await.unwrap();
+    for join in joins {
+        join.await.unwrap()
+    }
 }
 ```
 
 ### Application
 
 ```rust
-use walle_core::{AppConfig, app::OneBot, DefaultHandler};
+use std::sync::Arc;
+
+use walle_core::config::AppConfig;
+use walle_core::obc::AppOBC;
+use walle_core::prelude::*;
+use walle_core::util::TracingHandler;
 
 #[tokio::main]
-async fn main() { 
-    tracing_subscriber::fmt().init(); // 初始化 tracing
-    let config = AppConfig::default();
-    let ob = OneBot::new(
-        config, 
-        DefaultHandler::arc(), // EventHandler
-    ).arc();
-    ob.run().await
-    ... 
-    // run is not blocking do your own things
-    // or use run_block().await
+async fn main() {
+    tracing_subscriber::fmt::init();
+    let ob = Arc::new(OneBot::new_12(
+        AppOBC::new(),
+        TracingHandler::<StandardEvent, StandardAction, StandardResps>::default(),
+    ));
+    let joins = ob.start(AppConfig::default(), (), true).await.unwrap();
+    for join in joins {
+        join.await.unwrap()
+    }
 }
 ```

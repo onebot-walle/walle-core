@@ -1,6 +1,6 @@
 use crate::obc::{
     ws_util::{try_connect, upgrade_websocket},
-    AppOBC, BotMap, EchoMap,
+    AppOBC, BotMap, BotMapExt, EchoMap,
 };
 use crate::{
     action::ActionType,
@@ -194,7 +194,7 @@ where
         match item {
             Ok(ReceiveItem::Event(event)) => {
                 let self_id = event.self_id();
-                bot_map.ensure_tx(&self_id, &action_tx);
+                bot_map.ensure_bot(&self_id, &action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();
                 tokio::spawn(async move { ob.event_handler.call(event, &ob).await });

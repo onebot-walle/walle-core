@@ -19,7 +19,7 @@ mod app_ws;
 mod bot_ext;
 
 pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
-pub(crate) type BotMap<A> = Arc<BotMapInner<A>>;
+pub(crate) type BotMap<A> = Arc<DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>>>;
 
 /// OneBotConnect 应用端实现
 ///
@@ -28,7 +28,8 @@ pub(crate) type BotMap<A> = Arc<BotMapInner<A>>;
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
-    pub echos: EchoMap<R>,
+    pub(crate) echos: EchoMap<R>,
+    pub(crate) seq: AtomicU64,
     pub bots: BotMap<A>,
 }
 
@@ -42,8 +43,19 @@ impl<A, R> Default for AppOBC<A, R> {
     fn default() -> Self {
         Self {
             echos: Arc::new(DashMap::new()),
+            seq: AtomicU64::default(),
             bots: Arc::new(Default::default()),
         }
+    }
+}
+
+impl<A, R> AppOBC<A, R> {
+    pub fn next_seg(&self) -> EchoS {
+        EchoS(Some(EchoInner::S(
+            self.seq
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                .to_string(),
+        )))
     }
 }
 
@@ -82,38 +94,11 @@ where
         AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
     {
-        self.bots.handle_action(action, &self.echos).await
-    }
-}
-
-pub struct BotMapInner<A>(
-    DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>>,
-    AtomicU64,
-);
-
-impl<A> Default for BotMapInner<A> {
-    fn default() -> Self {
-        Self(DashMap::new(), AtomicU64::new(0))
-    }
-}
-
-impl<A> BotMapInner<A> {
-    pub fn next_seg(&self) -> EchoS {
-        EchoS(Some(EchoInner::S(
-            self.1
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-                .to_string(),
-        )))
-    }
-    pub async fn handle_action<R>(&self, action: A, echo_map: &EchoMap<R>) -> WalleResult<R>
-    where
-        A: SelfId,
-    {
-        match self.0.get_mut(&action.self_id()) {
+        match self.bots.get_bot(&action.self_id()) {
             Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();
                 let seq = self.next_seg();
-                echo_map.insert(seq.clone(), tx);
+                self.echos.insert(seq.clone(), tx);
                 action_txs
                     .first()
                     .unwrap() //todo
@@ -140,19 +125,28 @@ impl<A> BotMapInner<A> {
             }
         }
     }
-    pub fn ensure_tx(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
-        self.0
-            .entry(bot_id.to_string())
-            .or_default()
-            .push(tx.clone());
+}
+
+pub trait BotMapExt<A> {
+    fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>);
+    fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>);
+    fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>>;
+}
+
+impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
+    fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        self.entry(bot_id.to_string()).or_default().push(tx.clone())
     }
-    pub fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
-        if let Some(mut txs) = self.0.get_mut(bot_id) {
+    fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        if let Some(mut txs) = self.get_mut(bot_id) {
             for i in 0..txs.len() {
                 if tx.same_channel(&txs[i]) {
                     txs.remove(i);
                 }
             }
         };
+    }
+    fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
+        self.get(bot_id).as_deref().cloned()
     }
 }
