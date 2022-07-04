@@ -2,12 +2,10 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-mod alt;
 mod bytes;
 mod echo;
 pub mod value;
 
-pub use alt::*;
 pub use bytes::*;
 pub use echo::*;
 pub use value::*;

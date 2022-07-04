@@ -1,3 +1,0 @@
-# OneBot Implementation
-
-todo

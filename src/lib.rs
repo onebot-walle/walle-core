@@ -4,18 +4,14 @@
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WALLE_CORE: &str = "Walle-core";
 
-pub mod error;
-pub mod util;
-
-/// Onebot Action
 pub mod action;
-/// 相关配置项
+pub mod alt;
 pub mod config;
-/// Onebot Event
+pub mod error;
 pub mod event;
 pub mod message;
-/// Onebot ActionResp
 pub mod resp;
+pub mod util;
 
 mod test;
 
@@ -23,7 +19,7 @@ pub mod prelude {
     pub use crate::action::StandardAction;
     pub use crate::event::*;
     pub use crate::message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
-    pub use crate::resp::{Resp, RespContent, Resps, StandardResps};
+    pub use crate::resp::{resp_error, Resp, RespContent, Resps, StandardResps};
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};

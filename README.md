@@ -40,10 +40,10 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 ```rust
 use std::sync::Arc;
 
+use walle_core::alt::TracingHandler;
 use walle_core::config::ImplConfig;
 use walle_core::obc::ImplOBC;
 use walle_core::prelude::*;
-use walle_core::util::TracingHandler;
 
 #[tokio::main]
 async fn main() {
@@ -68,10 +68,10 @@ async fn main() {
 ```rust
 use std::sync::Arc;
 
+use walle_core::alt::TracingHandler;
 use walle_core::config::AppConfig;
 use walle_core::obc::AppOBC;
 use walle_core::prelude::*;
-use walle_core::util::TracingHandler;
 
 #[tokio::main]
 async fn main() {

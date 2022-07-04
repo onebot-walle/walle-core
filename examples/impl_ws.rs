@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use walle_core::alt::TracingHandler;
 use walle_core::config::ImplConfig;
 use walle_core::obc::ImplOBC;
 use walle_core::prelude::*;
-use walle_core::util::TracingHandler;
 
 #[tokio::main]
 async fn main() {

@@ -9,7 +9,7 @@ use crate::event::{
     RequestContent,
 };
 use crate::message::MessageAlt;
-use crate::prelude::WalleResult;
+use crate::prelude::{EventSubType, EventType, WalleResult};
 use crate::resp::{resp_error, RespError};
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
@@ -18,9 +18,27 @@ pub trait ColoredAlt {
     fn colored_alt(&self) -> Option<String>;
 }
 
-impl<T: ColoredAlt> ColoredAlt for BaseEvent<T> {
+fn type_tree(v: Vec<&str>) -> String {
+    let mut out = String::default();
+    for s in v {
+        if !s.is_empty() {
+            out.push('.');
+            out.push_str(s)
+        }
+    }
+    out.remove(0);
+    out
+}
+
+impl<T: ColoredAlt + EventType> ColoredAlt for BaseEvent<T> {
     fn colored_alt(&self) -> Option<String> {
-        self.content.colored_alt()
+        self.content.colored_alt().map(|alt| {
+            format!(
+                "{}{}",
+                type_tree(vec![self.ty(), self.detail_type(), self.sub_type()]),
+                alt
+            )
+        })
     }
 }
 
@@ -43,22 +61,22 @@ impl ColoredAlt for MessageContent<MessageEventDetail> {
                 channel_id,
                 ..
             } => Some(format!(
-                "[{}:{}] {} from {}",
+                "{} from {}:{}:{}",
+                self.alt_message,
                 guild_id.blue(),
                 channel_id.bright_blue(),
-                self.alt_message,
                 self.user_id.bright_green()
             )),
             MessageEventDetail::Group { group_id, .. } => Some(format!(
-                "[{}] {} from {}",
-                group_id.bright_blue(),
+                "{} from {}:{}",
                 self.alt_message,
+                group_id.bright_blue(),
                 self.user_id.bright_green()
             )),
             MessageEventDetail::Private { .. } => Some(format!(
-                "[{}] {}",
-                self.user_id.bright_green(),
-                self.alt_message
+                "{} from {}",
+                self.alt_message,
+                self.user_id.bright_green()
             )),
         }
     }
@@ -66,57 +84,13 @@ impl ColoredAlt for MessageContent<MessageEventDetail> {
 
 impl ColoredAlt for NoticeContent {
     fn colored_alt(&self) -> Option<String> {
-        let head = format!("[{}]", self.detail_type().bright_red());
-        let body = match self {
-            Self::GroupMemberIncrease {
-                sub_type,
-                group_id,
-                user_id,
-                operator_id,
-                ..
-            } => match sub_type.as_str() {
-                "invite" => format!(
-                    "{} invite {} to {}",
-                    operator_id.bright_red(),
-                    user_id.bright_green(),
-                    group_id.bright_blue()
-                ),
-                "join" => format!("{} join {}", user_id.bright_green(), group_id.bright_blue()),
-                _ => format!("{:?}", self),
-            },
-            Self::GroupMemberDecrease {
-                sub_type,
-                group_id,
-                user_id,
-                operator_id,
-                ..
-            } => match sub_type.as_str() {
-                "kick" => format!(
-                    "{} kick {} out of {}",
-                    operator_id.bright_red(),
-                    user_id.bright_green(),
-                    group_id.bright_blue()
-                ),
-                "leave" => format!(
-                    "{} leave {}",
-                    user_id.bright_green(),
-                    group_id.bright_blue()
-                ),
-                _ => format!("{:?}", self),
-            },
-            _ => format!("{:?}", self), //todo
-        };
-        return Some(format!("{} {}", head, body));
+        Some(format!("{:?}", self))
     }
 }
 
 impl ColoredAlt for RequestContent {
     fn colored_alt(&self) -> Option<String> {
-        return Some(format!(
-            "[{}] {:?}",
-            self.detail_type().bright_yellow(),
-            self
-        ));
+        Some(format!("{:?}", self))
     }
 }
 
