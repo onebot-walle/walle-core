@@ -55,7 +55,7 @@ where
         }
         Ok(tasks)
     }
-    async fn call<AH, EH>(&self, event: E, _ob: &OneBot<AH, EH, 12>)
+    async fn call<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH, 12>>)
     where
         AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,

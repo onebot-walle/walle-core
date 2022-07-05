@@ -59,7 +59,7 @@ pub trait ActionHandler<E, A, R, const V: u8> {
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-    async fn call<AH, EH>(&self, action: A, ob: &OneBot<AH, EH, V>) -> WalleResult<R>
+    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH, V>>) -> WalleResult<R>
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
@@ -76,7 +76,7 @@ pub trait EventHandler<E, A, R, const V: u8> {
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-    async fn call<AH, EH>(&self, event: E, ob: &OneBot<AH, EH, V>)
+    async fn call<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH, V>>)
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;

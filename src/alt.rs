@@ -142,7 +142,7 @@ where
     {
         Ok(vec![])
     }
-    async fn call<AH, EH>(&self, action: A, _ob: &OneBot<AH, EH, V>) -> WalleResult<R>
+    async fn call<AH, EH>(&self, action: A, _ob: &Arc<OneBot<AH, EH, V>>) -> WalleResult<R>
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
@@ -173,7 +173,7 @@ where
     {
         Ok(vec![])
     }
-    async fn call<AH, EH>(&self, event: E, _ob: &OneBot<AH, EH, V>)
+    async fn call<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH, V>>)
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
