@@ -56,9 +56,9 @@ async fn main() {
             "platform".to_string(),
         ),
     ));
-    let joins = ob.start((), ImplConfig::default(), true).await.unwrap();
-    for join in joins {
-        join.await.unwrap()
+    let tasks = ob.start((), ImplConfig::default(), true).await.unwrap();
+    for task in tasks {
+        task.await.unwrap()
     }
 }
 ```
@@ -80,9 +80,9 @@ async fn main() {
         AppOBC::new(),
         TracingHandler::<StandardEvent, StandardAction, StandardResps>::default(),
     ));
-    let joins = ob.start(AppConfig::default(), (), true).await.unwrap();
-    for join in joins {
-        join.await.unwrap()
+    let tasks = ob.start(AppConfig::default(), (), true).await.unwrap();
+    for task in tasks {
+        task.await.unwrap()
     }
 }
 ```

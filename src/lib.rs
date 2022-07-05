@@ -5,6 +5,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WALLE_CORE: &str = "Walle-core";
 
 pub mod action;
+#[cfg(feature = "alt")]
 pub mod alt;
 pub mod config;
 pub mod error;

@@ -127,7 +127,11 @@ fn event() {
         ),
     ];
 
+    use crate::alt::ColoredAlt;
     for (json, event) in data {
+        if let Some(alt) = event.colored_alt() {
+            println!("{}", alt);
+        }
         assert_eq!(serde_json::from_str::<StandardEvent>(json).unwrap(), event);
         let json_str = serde_json::to_string(&event).unwrap();
         assert_eq!(
@@ -190,6 +194,7 @@ fn action() {
         ),
     ];
 
+    use crate::alt::ColoredAlt;
     for (json, action) in data {
         assert_eq!(
             serde_json::from_str::<Echo<StandardAction>>(json)
@@ -198,6 +203,9 @@ fn action() {
                 .0,
             action
         );
+        if let Some(alt) = action.colored_alt() {
+            println!("{}", alt);
+        }
         let json_str = serde_json::to_string(&action).unwrap();
         assert_eq!(
             serde_json::from_str::<StandardAction>(&json_str).unwrap(),

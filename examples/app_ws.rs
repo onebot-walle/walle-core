@@ -12,8 +12,8 @@ async fn main() {
         AppOBC::new(),
         TracingHandler::<StandardEvent, StandardAction, StandardResps>::default(),
     ));
-    let joins = ob.start(AppConfig::default(), (), true).await.unwrap();
-    for join in joins {
-        join.await.unwrap()
+    let tasks = ob.start(AppConfig::default(), (), true).await.unwrap();
+    for task in tasks {
+        task.await.unwrap()
     }
 }

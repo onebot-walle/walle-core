@@ -16,7 +16,6 @@ use tracing::warn;
 mod app_http;
 #[cfg(feature = "websocket")]
 mod app_ws;
-mod bot_ext;
 
 pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 pub(crate) type BotMap<A> = Arc<DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>>>;

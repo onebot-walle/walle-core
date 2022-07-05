@@ -3,11 +3,6 @@ use crate::{extra_struct, message::MSVistor};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 use snake_cased::SnakedEnum;
 
-#[cfg(feature = "bot-action")]
-mod ext;
-#[cfg(feature = "bot-action")]
-pub use ext::*;
-
 /// ## OneBot 12 标准动作
 ///
 /// **动作请求**是应用端为了主动向 OneBot 实现请求服务而发送的数据。

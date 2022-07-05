@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use colored::*;
 use tracing::info;
 
@@ -34,7 +35,7 @@ impl<T: ColoredAlt + EventType> ColoredAlt for BaseEvent<T> {
     fn colored_alt(&self) -> Option<String> {
         self.content.colored_alt().map(|alt| {
             format!(
-                "{}{}",
+                "[{}] {}",
                 type_tree(vec![self.ty(), self.detail_type(), self.sub_type()]),
                 alt
             )
@@ -84,13 +85,13 @@ impl ColoredAlt for MessageContent<MessageEventDetail> {
 
 impl ColoredAlt for NoticeContent {
     fn colored_alt(&self) -> Option<String> {
-        Some(format!("{:?}", self))
+        Some(format!("{}", serde_json::to_string(self).unwrap()))
     }
 }
 
 impl ColoredAlt for RequestContent {
     fn colored_alt(&self) -> Option<String> {
-        Some(format!("{:?}", self))
+        Some(format!("{}", serde_json::to_string(&self.extra).unwrap()))
     }
 }
 
@@ -107,7 +108,7 @@ impl ColoredAlt for StandardAction {
                     format!("{:?}", self)
                 }
             }
-            a => format!("{a:?}"), //todo
+            a => format!("{}", serde_json::to_string(a).unwrap()), //todo
         };
         Some(format!("{head} {body}"))
     }
@@ -122,7 +123,7 @@ impl<E, A, R> Default for TracingHandler<E, A, R> {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<E, A, R, const V: u8> ActionHandler<E, A, R, V> for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
@@ -153,7 +154,7 @@ where
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl<E, A, R, const V: u8> EventHandler<E, A, R, V> for TracingHandler<E, A, R>
 where
     E: ColoredAlt + Send + Sync + 'static,
