@@ -7,34 +7,37 @@ pub type WalleResult<T> = Result<T, WalleError>;
 /// Walle-core errors
 #[derive(Error, Debug)]
 pub enum WalleError {
-    /// action
+    // event
+    #[error("expect {0} found {1}")]
+    EventDeclareNotMatch(&'static str, String),
+    // action
     #[error("Action send error")]
     ActionSendError,
-    /// resp
+    // resp
     #[error("Action Response Timeout")]
     ResponseTimeout,
-    /// server
+    #[error("RespMissmatch")]
+    RespNotMatch, //todo
+    #[error("{0:?}")]
+    RespError(RespError),
+    // server
     #[error("{0}")]
     IO(#[from] std::io::Error),
-    /// Running Time Error
+    // Running Time Error
     #[error("OneBot is already running")]
     AlreadyRunning,
     #[error("OneBot is not running")]
     NotRunning,
 
-    // ExtendedMap
+    // Extended
     #[error("ExtendedMap missed key: {0}")]
     MapMissedKey(String),
-    #[error("ExtendedMap value type mismatch: expect {0}, got {1}")]
-    MapValueTypeMismatch(String, String),
+    #[error("Type mismatch expect {0}, got {1}")]
+    ValueTypeNotMatch(String, String),
+    #[error("Illegal base64")]
+    IllegalBase64(String),
 
-    /// Resp
-    #[error("RespMissmatch")]
-    RespMissmatch, //todo
-    #[error("{0:?}")]
-    RespError(RespError),
-
-    /// OBC
+    // OBC
     #[error("Bot not exist")]
     BotNotExist,
 

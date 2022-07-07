@@ -49,7 +49,7 @@ impl<A, R> Default for AppOBC<A, R> {
 }
 
 impl<A, R> AppOBC<A, R> {
-    pub fn next_seg(&self) -> EchoS {
+    pub(crate) fn next_seg(&self) -> EchoS {
         EchoS(Some(EchoInner::S(
             self.seq
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed)

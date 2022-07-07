@@ -267,39 +267,55 @@ impl ActionType for StandardAction {
 impl SelfId for StandardAction {
     fn self_id(&self) -> String {
         match self {
-            StandardAction::GetLatestEvents(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetSupportedActions(g) => g.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetStatus(g) => g.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetVersion(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetLatestEvents(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::GetSupportedActions(g) => g.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetStatus(g) => g.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetVersion(g) => g.get_downcast("self_id").unwrap_or_default(),
 
-            StandardAction::SendMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::DeleteMessage(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::SendMessage(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::DeleteMessage(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
 
-            StandardAction::GetSelfInfo(g) => g.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetUserInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetSelfInfo(g) => g.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetUserInfo(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
 
-            StandardAction::GetGroupInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGroupList(g) => g.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGroupMemberInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGroupMemberList(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::SetGroupName(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::LeaveGroup(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGroupInfo(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetGroupList(g) => g.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetGroupMemberInfo(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::GetGroupMemberList(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::SetGroupName(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::LeaveGroup(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
 
-            StandardAction::GetGuildInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGuildList(g) => g.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetChannelInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetChannelList(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGuildMemberInfo(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::GetGuildMemberList(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::SetGuildName(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::SetChannelName(g) => g.extra.try_get("self_id").unwrap_or_default(),
-            StandardAction::LeaveGuild(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetGuildInfo(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetGuildList(g) => g.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::GetChannelInfo(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::GetChannelList(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::GetGuildMemberInfo(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::GetGuildMemberList(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::SetGuildName(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
+            StandardAction::SetChannelName(g) => {
+                g.extra.get_downcast("self_id").unwrap_or_default()
+            }
+            StandardAction::LeaveGuild(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
 
-            StandardAction::UploadFile(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::UploadFile(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
             StandardAction::UploadFileFragmented(g) => g.self_id(),
-            StandardAction::GetFile(g) => g.extra.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetFile(g) => g.extra.get_downcast("self_id").unwrap_or_default(),
             StandardAction::GetFileFragmented(g) => g.self_id(),
-            StandardAction::GetFriendList(g) => g.try_get("self_id").unwrap_or_default(),
+            StandardAction::GetFriendList(g) => g.get_downcast("self_id").unwrap_or_default(),
         }
     }
 }
@@ -307,9 +323,9 @@ impl SelfId for StandardAction {
 impl SelfId for UploadFileFragmented {
     fn self_id(&self) -> String {
         match self {
-            Self::Prepare { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
-            Self::Transfer { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
-            Self::Finish { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+            Self::Prepare { extra, .. } => extra.get_downcast("self_id").unwrap_or_default(),
+            Self::Transfer { extra, .. } => extra.get_downcast("self_id").unwrap_or_default(),
+            Self::Finish { extra, .. } => extra.get_downcast("self_id").unwrap_or_default(),
         }
     }
 }
@@ -317,8 +333,8 @@ impl SelfId for UploadFileFragmented {
 impl SelfId for GetFileFragmented {
     fn self_id(&self) -> String {
         match self {
-            Self::Prepare { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
-            Self::Transfer { extra, .. } => extra.try_get("self_id").unwrap_or_default(),
+            Self::Prepare { extra, .. } => extra.get_downcast("self_id").unwrap_or_default(),
+            Self::Transfer { extra, .. } => extra.get_downcast("self_id").unwrap_or_default(),
         }
     }
 }

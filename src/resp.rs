@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::action::UploadFile;
 use crate::event::StandardEvent;
-use crate::extra_struct;
 use crate::util::{ExtendedMap, ExtendedValue, OneBotBytes};
+use crate::{extended_value, extra_struct};
 
 /// ## OneBot 12 标准动作响应
 pub type StandardResps = Resps<StandardEvent>;
@@ -149,12 +149,12 @@ where
 {
     #[allow(dead_code)]
     pub fn empty_success() -> Self {
-        Self::success(T::from(ExtendedValue::empty_map()))
+        Self::success(T::from(extended_value!({})))
     }
 
     #[allow(dead_code)]
     pub fn empty_fail(retcode: u32, message: String) -> Self {
-        Self::fail(T::from(ExtendedValue::empty_map()), retcode, message)
+        Self::fail(T::from(extended_value!({})), retcode, message)
     }
 }
 

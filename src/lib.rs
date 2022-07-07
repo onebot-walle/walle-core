@@ -14,6 +14,8 @@ pub mod message;
 pub mod resp;
 pub mod util;
 
+pub mod message_next;
+
 mod test;
 
 pub mod prelude {
