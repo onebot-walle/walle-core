@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 mod message;
 mod meta;
-mod next;
+pub mod next;
 mod notice;
 mod request;
 

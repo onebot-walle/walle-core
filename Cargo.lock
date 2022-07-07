@@ -1227,6 +1227,16 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "walle-macro",
+]
+
+[[package]]
+name = "walle-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

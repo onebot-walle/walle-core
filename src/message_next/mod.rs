@@ -6,6 +6,7 @@ use crate::{
 
 pub type Message = Vec<MessageSegment>;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct MessageSegment {
     pub ty: String,
     pub data: ExtendedMap,

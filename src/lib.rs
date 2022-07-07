@@ -29,6 +29,7 @@ pub mod prelude {
     pub use crate::util::{Echo, ExtendedMap, ExtendedMapExt, ExtendedValue, OneBotBytes, SelfId};
     pub use crate::{extended_map, extended_value, extended_vec, extra_struct};
     pub use async_trait::async_trait;
+    pub use walle_macro::EventContent;
 }
 
 #[cfg(any(feature = "impl-obc", feature = "app-obc"))]

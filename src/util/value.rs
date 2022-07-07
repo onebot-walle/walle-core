@@ -398,7 +398,7 @@ impl ExtendedValue {
 }
 
 pub trait PushToExtendedMap {
-    fn push(self, map: &mut ExtendedMap)
+    fn push(self, _: &mut ExtendedMap)
     where
         Self: Sized,
     {
@@ -525,6 +525,7 @@ macro_rules! extended_map {
     (@internal $map: ident () ()) => {};
     {$($tt:tt)*} => {
         {
+            #[allow(unused_mut)]
             let mut map = $crate::util::ExtendedMap::default();
             $crate::extended_map!(@internal map () ($($tt)*));
             map

@@ -41,6 +41,9 @@ dashmap = "5.3"
 base64 = "0.13"
 hex = "0.4"
 
+[dependencies.walle-macro]
+path = "./walle-macro"
+
 [dev-dependencies]
 tracing-subscriber = "0.3"
 toml = "0.5"
@@ -54,4 +57,4 @@ name = "app_ws"
 required-features = ["app-obc", "websocket", "tokio-rt"]
 
 [workspace]
-members = ["walle-py", "walle-v11"]
+members = ["walle-py", "walle-v11", "walle-macro"]

@@ -1,6 +1,6 @@
 use crate::{
     prelude::WalleError,
-    util::{ExtendedMap, ExtendedMapExt, PushToExtendedMap},
+    util::{ExtendedMap, PushToExtendedMap},
 };
 
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct Event {
     pub id: String,
     #[serde(rename = "impl")]
-    pub r#impl: String,
+    pub implt: String,
     pub platform: String,
     pub self_id: String,
     pub time: f64,
@@ -21,6 +21,7 @@ pub struct Event {
     pub extra: ExtendedMap,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()>
 where
     T: TypeDeclare,
@@ -32,7 +33,7 @@ where
     pub id: String,
     pub self_id: String,
     pub time: f64,
-    pub r#impl: I,
+    pub implt: I,
     pub platform: P,
     pub ty: T,
     pub detail_type: D,
@@ -51,7 +52,7 @@ where
     fn from(mut event: BaseEvent<T, D, S, P, I>) -> Self {
         Self {
             id: event.id,
-            r#impl: I::r#impl().to_string(),
+            implt: I::implt().to_string(),
             platform: P::platform().to_string(),
             self_id: event.self_id,
             time: event.time,
@@ -60,7 +61,7 @@ where
             sub_type: S::sub_type().to_string(),
             extra: {
                 let map = &mut event.extra;
-                event.r#impl.push(map);
+                event.implt.push(map);
                 event.platform.push(map);
                 event.ty.push(map);
                 event.detail_type.push(map);
@@ -86,7 +87,7 @@ where
             ty: T::try_from(event)?,
             detail_type: D::try_from(event)?,
             sub_type: S::try_from(event)?,
-            r#impl: I::try_from(event)?,
+            implt: I::try_from(event)?,
             platform: P::try_from(event)?,
             id: value.id,
             self_id: value.self_id,
@@ -97,7 +98,7 @@ where
 }
 
 pub trait ImplDeclare {
-    fn r#impl() -> &'static str {
+    fn implt() -> &'static str {
         ""
     }
 }
@@ -126,49 +127,11 @@ pub trait TypeDeclare {
     }
 }
 
-macro_rules! declare_event {
-    ($main: ty, r#impl $(:$d: expr)?) => {
-        impl ImplDeclare for $main {
-            $(fn r#impl() -> &'static str {
-                $d
-            })?
-        }
-    };
-    ($main: ty, platform $(:$d: expr)?) => {
-        impl PlatformDeclare for $main {
-            $(fn platform() -> &'static str {
-                $d
-            })?
-        }
-    };
-    ($main: ty, sub_type $(:$d: expr)?) => {
-        impl SubTypeDeclare for $main {
-            $(fn sub_type() -> &'static str {
-                $d
-            })?
-        }
-    };
-    ($main: ty, detail_type $(:$d: expr)?) => {
-        impl DetailTypeDeclare for $main {
-            $(fn detail_type() -> &'static str {
-                $d
-            })?
-        }
-    };
-    ($main: ty, ty $(:$d: expr)?) => {
-        impl TypeDeclare for $main {
-            $(fn ty() -> &'static str {
-                $d
-            })?
-        }
-    };
-}
-
-declare_event!((), r#impl);
-declare_event!((), platform);
-declare_event!((), sub_type);
-declare_event!((), detail_type);
-declare_event!((), ty);
+impl TypeDeclare for () {}
+impl DetailTypeDeclare for () {}
+impl SubTypeDeclare for () {}
+impl PlatformDeclare for () {}
+impl ImplDeclare for () {}
 impl PushToExtendedMap for () {}
 impl TryFrom<&mut Event> for () {
     type Error = WalleError;
@@ -177,39 +140,96 @@ impl TryFrom<&mut Event> for () {
     }
 }
 
-pub struct MessageE {
+// pub struct MessageE {
+//     pub message_id: String,
+//     pub message: crate::message_next::Message,
+//     pub alt_message: String,
+//     pub user_id: String,
+// }
+
+// impl TypeDeclare for MessageE {
+//     fn ty() -> &'static str {
+//         "message"
+//     }
+// }
+
+// impl TryFrom<&mut Event> for MessageE {
+//     type Error = WalleError;
+//     fn try_from(value: &mut Event) -> Result<Self, Self::Error> {
+//         if value.ty == Self::ty() {
+//             Ok(Self {
+//                 message_id: value.extra.remove_downcast("message_id")?,
+//                 message: value.extra.remove_downcast("message")?,
+//                 alt_message: value.extra.remove_downcast("alt_message")?,
+//                 user_id: value.extra.remove_downcast("user_id")?,
+//             })
+//         } else {
+//             Err(WalleError::EventDeclareNotMatch(
+//                 Self::ty(),
+//                 value.ty.clone(),
+//             ))
+//         }
+//     }
+// }
+
+// impl PushToExtendedMap for MessageE {
+//     fn push(self, map: &mut ExtendedMap) {
+//         map.insert("message_id".to_string(), self.message_id.into());
+//         map.insert("message".to_string(), self.message.into());
+//         map.insert("alt_message".to_string(), self.alt_message.into());
+//         map.insert("user_id".to_string(), self.user_id.into());
+//     }
+// }
+
+// impl Into<ExtendedValue> for MessageE {
+//     fn into(self) -> ExtendedValue {
+//         let mut map = ExtendedMap::default();
+//         self.push(&mut map);
+//         ExtendedValue::Map(map)
+//     }
+// }
+
+use walle_macro::EventContent;
+
+#[derive(Debug, Clone, PartialEq, EventContent)]
+#[event(type = "message")]
+#[internal]
+pub struct Message {
     pub message_id: String,
     pub message: crate::message_next::Message,
     pub alt_message: String,
     pub user_id: String,
 }
+pub type MessageEvent = BaseEvent<Message>;
 
-declare_event!(MessageE, detail_type: "message");
+#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
+#[event(type = "notice")]
+#[internal]
+pub struct Notice {}
+pub type NoticeEvent = BaseEvent<Notice>;
 
-impl TryFrom<&mut Event> for MessageE {
-    type Error = WalleError;
-    fn try_from(value: &mut Event) -> Result<Self, Self::Error> {
-        if value.detail_type == Self::detail_type() {
-            Ok(Self {
-                message_id: value.extra.remove_downcast("message_id")?,
-                message: value.extra.remove_downcast("message")?,
-                alt_message: value.extra.remove_downcast("alt_message")?,
-                user_id: value.extra.remove_downcast("user_id")?,
-            })
-        } else {
-            Err(WalleError::EventDeclareNotMatch(
-                Self::detail_type(),
-                value.detail_type.clone(),
-            ))
-        }
-    }
+#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
+#[event(type = "request")]
+#[internal]
+pub struct Request {}
+pub type RequestEvent = BaseEvent<Request>;
+
+#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
+#[event(type = "meta")]
+#[internal]
+pub struct Meta {}
+pub type MetaEvent = BaseEvent<Meta>;
+
+#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
+#[event(detail_type = "private")]
+#[internal]
+pub struct Private {}
+pub type PrivateMessageEvent = BaseEvent<Message, Private>;
+
+#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
+#[event(detail_type = "group")]
+#[internal]
+pub struct Group {
+    pub group_id: String,
 }
-
-impl PushToExtendedMap for MessageE {
-    fn push(self, map: &mut ExtendedMap) {
-        map.insert("message_id".to_string(), self.message_id.into());
-        map.insert("message".to_string(), self.message.into());
-        map.insert("alt_message".to_string(), self.alt_message.into());
-        map.insert("user_id".to_string(), self.user_id.into());
-    }
-}
+pub type GroupMessageEvent = BaseEvent<Message, Group>;
