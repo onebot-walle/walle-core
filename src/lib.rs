@@ -14,7 +14,10 @@ pub mod message;
 pub mod resp;
 pub mod util;
 
+pub mod action_next;
 pub mod message_next;
+pub mod resp_next;
+pub mod structs;
 
 mod test;
 
@@ -29,7 +32,7 @@ pub mod prelude {
     pub use crate::util::{Echo, ExtendedMap, ExtendedMapExt, ExtendedValue, OneBotBytes, SelfId};
     pub use crate::{extended_map, extended_value, extended_vec, extra_struct};
     pub use async_trait::async_trait;
-    pub use walle_macro::EventContent;
+    pub use walle_macro::{OneBot, PushToMap, TryFromValue};
 }
 
 #[cfg(any(feature = "impl-obc", feature = "app-obc"))]

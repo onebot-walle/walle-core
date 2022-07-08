@@ -17,7 +17,7 @@ pub struct MessageE {
 pub struct Private {}
 
 #[derive(Debug, EventContent, PartialEq)]
-#[event(detail_type = "group")]
+#[event(detail_type)]
 pub struct Group {
     pub group_id: String,
 }

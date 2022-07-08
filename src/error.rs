@@ -9,7 +9,7 @@ pub type WalleResult<T> = Result<T, WalleError>;
 pub enum WalleError {
     // event
     #[error("expect {0} found {1}")]
-    EventDeclareNotMatch(&'static str, String),
+    DeclareNotMatch(&'static str, String),
     // action
     #[error("Action send error")]
     ActionSendError,

@@ -22,14 +22,7 @@ pub struct Event {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()>
-where
-    T: TypeDeclare,
-    D: DetailTypeDeclare,
-    S: SubTypeDeclare,
-    P: PlatformDeclare,
-    I: ImplDeclare,
-{
+pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
     pub id: String,
     pub self_id: String,
     pub time: f64,
@@ -69,6 +62,30 @@ where
                 event.extra
             },
         }
+    }
+}
+
+pub fn new_event<T, D, S, P, I>(
+    id: String,
+    time: f64,
+    self_id: String,
+    ty: T,
+    detail_type: D,
+    sub_type: S,
+    platform: P,
+    implt: I,
+    extra: ExtendedMap,
+) -> BaseEvent<T, D, S, P, I> {
+    BaseEvent::<T, D, S, P, I> {
+        id,
+        time,
+        self_id,
+        ty,
+        detail_type,
+        sub_type,
+        platform,
+        implt,
+        extra,
     }
 }
 
@@ -189,47 +206,153 @@ impl TryFrom<&mut Event> for () {
 //     }
 // }
 
-use walle_macro::EventContent;
+use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
 
-#[derive(Debug, Clone, PartialEq, EventContent)]
-#[event(type = "message")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]
+#[event(type)]
 pub struct Message {
     pub message_id: String,
     pub message: crate::message_next::Message,
     pub alt_message: String,
     pub user_id: String,
 }
-pub type MessageEvent = BaseEvent<Message>;
+pub type MessageEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Message, D, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
-#[event(type = "notice")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(type)]
 pub struct Notice {}
-pub type NoticeEvent = BaseEvent<Notice>;
+pub type NoticeEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Notice, D, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
-#[event(type = "request")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(type)]
 pub struct Request {}
-pub type RequestEvent = BaseEvent<Request>;
+pub type RequestEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Request, D, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
-#[event(type = "meta")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(type)]
 pub struct Meta {}
-pub type MetaEvent = BaseEvent<Meta>;
+pub type MetaEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Meta, D, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
-#[event(detail_type = "private")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
 pub struct Private {}
-pub type PrivateMessageEvent = BaseEvent<Message, Private>;
+pub type PrivateMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Private, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, EventContent)]
-#[event(detail_type = "group")]
-#[internal]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
 pub struct Group {
     pub group_id: String,
 }
-pub type GroupMessageEvent = BaseEvent<Message, Group>;
+pub type GroupMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Group, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct Heartbeat {
+    pub interval: u32,
+    pub status: crate::structs::Status,
+}
+pub type HeartbeatEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Heartbeat, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct GroupMemberIncrease {
+    pub group_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+}
+pub type GroupMemberIncreaseEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, GroupMemberIncrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct GroupMemberDecrease {
+    pub group_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+}
+pub type GroupMemberDecreaseEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, GroupMemberDecrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct GroupMessageDelete {
+    pub group_id: String,
+    pub message_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+}
+pub type GroupMessageDeleteEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, GroupMessageDelete, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct FriendIncrease {
+    pub user_id: String,
+}
+pub type FriendIncreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendIncrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct FriendDecrease {
+    pub user_id: String,
+}
+pub type FriendDecreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendDecrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct PrivateMessageDelete {
+    pub message_id: String,
+    pub user_id: String,
+}
+pub type PrivateMessageDeleteEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, PrivateMessageDelete, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct GuildMemberIncrease {
+    pub guild_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+}
+pub type GuildMemberIncreaseEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, GuildMemberIncrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct GuildMemberDecrease {
+    pub guild_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+}
+pub type GuildMemberDecreaseEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, GuildMemberDecrease, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct ChannelMessageDelete {
+    pub guild_id: String,
+    pub channel_id: String,
+    pub user_id: String,
+    pub operator_id: String,
+    pub message_id: String,
+}
+pub type ChannelMessageDeleteEvent<S = (), P = (), I = ()> =
+    BaseEvent<Notice, ChannelMessageDelete, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct ChannelCreate {
+    pub guild_id: String,
+    pub channel_id: String,
+    pub operator_id: String,
+}
+pub type ChannelCreateEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelCreate, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type)]
+pub struct ChannelDelete {
+    pub guild_id: String,
+    pub channel_id: String,
+    pub operator_id: String,
+}
+pub type ChannelDeleteEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelDelete, S, P, I>;

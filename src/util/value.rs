@@ -97,6 +97,18 @@ where
     }
 }
 
+impl<T> From<Option<T>> for ExtendedValue
+where
+    T: Into<ExtendedValue>,
+{
+    fn from(v: Option<T>) -> Self {
+        match v {
+            Some(v) => v.into(),
+            None => ExtendedValue::Null,
+        }
+    }
+}
+
 macro_rules! impl_try_from {
     ($inty: tt, $ty: ty) => {
         impl TryFrom<ExtendedValue> for $ty {
@@ -112,11 +124,32 @@ macro_rules! impl_try_from {
             }
         }
     };
+    ($inty: tt as $ty: ty) => {
+        impl TryFrom<ExtendedValue> for $ty {
+            type Error = WalleError;
+            fn try_from(i: ExtendedValue) -> Result<$ty, Self::Error> {
+                match i {
+                    ExtendedValue::$inty(v) => Ok(v as $ty),
+                    v => Err(WalleError::ValueTypeNotMatch(
+                        std::any::type_name::<$ty>().to_string(),
+                        format!("{:?}", v),
+                    )),
+                }
+            }
+        }
+    };
 }
 
 impl_try_from!(Str, String);
 impl_try_from!(Int, i64);
+impl_try_from!(Int as i32);
+impl_try_from!(Int as u32);
+impl_try_from!(Int as i16);
+impl_try_from!(Int as u16);
+impl_try_from!(Int as i8);
+impl_try_from!(Int as u8);
 impl_try_from!(F64, f64);
+impl_try_from!(F64 as f32);
 impl_try_from!(Bool, bool);
 
 impl<V> TryFrom<ExtendedValue> for Vec<V>
@@ -153,6 +186,19 @@ where
         }
     }
 }
+
+// impl<T> TryFrom<ExtendedValue> for Option<T>
+// where
+//     T: TryFrom<ExtendedValue, Error = WalleError>,
+// {
+//     type Error = WalleError;
+//     fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+//         match value {
+//             ExtendedValue::Null => Ok(None),
+//             v => Ok(Some(v.try_into()?)),
+//         }
+//     }
+// }
 
 /// json bytes could be String
 impl TryFrom<ExtendedValue> for OneBotBytes {
@@ -405,9 +451,14 @@ pub trait PushToExtendedMap {
     }
 }
 
-/// add try_remove for ExtendedMap
 pub trait ExtendedMapExt {
+    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = WalleError>;
     fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = WalleError>;
+    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
     where
         T: TryFrom<ExtendedValue, Error = WalleError>;
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
@@ -416,32 +467,45 @@ pub trait ExtendedMapExt {
 }
 
 impl ExtendedMapExt for ExtendedMap {
+    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = WalleError>,
+    {
+        self.remove(key)
+            .map(|v| {
+                v.try_into().map_err(|v| {
+                    let msg = format!("{:?}", v);
+                    WalleError::ValueTypeNotMatch(std::any::type_name::<T>().to_string(), msg)
+                })
+            })
+            .transpose()
+    }
     fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<ExtendedValue, Error = WalleError>,
     {
-        let value = self
-            .remove(key)
-            .ok_or_else(|| WalleError::MapMissedKey(key.to_owned()))?;
-        T::try_from(value).map_err(|v| {
-            let msg = format!("{:?}", v);
-            WalleError::ValueTypeNotMatch(std::any::type_name::<T>().to_string(), msg)
-        })
+        self.try_remove_downcast(key)
+            .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
+    }
+    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<ExtendedValue, Error = WalleError>,
+    {
+        self.get(key)
+            .map(|v| {
+                v.clone().try_into().map_err(|v| {
+                    let msg = format!("{:?}", v);
+                    WalleError::ValueTypeNotMatch(std::any::type_name::<T>().to_string(), msg)
+                })
+            })
+            .transpose()
     }
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<ExtendedValue, Error = WalleError>,
     {
-        let value = self
-            .get(key)
-            .ok_or_else(|| WalleError::MapMissedKey(key.to_owned()))?
-            .clone();
-        T::try_from(value).map_err(|v| {
-            WalleError::ValueTypeNotMatch(
-                std::any::type_name::<T>().to_string(),
-                format!("{:?}", v),
-            )
-        })
+        self.try_get_downcast(key)
+            .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
     }
 }
 
