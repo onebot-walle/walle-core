@@ -1,6 +1,6 @@
 use crate::{
     prelude::WalleError,
-    util::{ExtendedMap, PushToExtendedMap},
+    util::{ExtendedMap, PushToExtendedMap, SelfId},
 };
 
 use serde::{Deserialize, Serialize};
@@ -19,6 +19,12 @@ pub struct Event {
     pub sub_type: String,
     #[serde(flatten)]
     pub extra: ExtendedMap,
+}
+
+impl SelfId for Event {
+    fn self_id(&self) -> String {
+        self.self_id.to_string()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

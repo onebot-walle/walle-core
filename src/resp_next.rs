@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{prelude::WalleError, util::ExtendedValue};
+use crate::{
+    prelude::{WalleError, WalleResult},
+    util::ExtendedValue,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Resp {
@@ -13,8 +16,6 @@ pub struct Resp {
     /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
     pub message: String,
 }
-
-pub struct RespValue<T>(pub T);
 
 impl<T> From<T> for Resp
 where
@@ -30,12 +31,27 @@ where
     }
 }
 
-impl<T> TryFrom<Resp> for RespValue<T>
-where
-    T: TryFrom<ExtendedValue, Error = WalleError>,
-{
-    type Error = WalleError;
-    fn try_from(value: Resp) -> Result<Self, Self::Error> {
-        Ok(Self(T::try_from(value.data)?))
+#[derive(Clone)]
+pub struct RespError {
+    pub retcode: u32,
+    pub message: String,
+}
+
+impl std::fmt::Debug for RespError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RespError[{}]: {}", self.retcode, self.message)
+    }
+}
+
+impl Resp {
+    pub fn as_result(self) -> WalleResult<ExtendedValue> {
+        if self.retcode != 0 {
+            Err(WalleError::RespError(RespError {
+                retcode: self.retcode,
+                message: self.message,
+            }))
+        } else {
+            Ok(self.data)
+        }
     }
 }

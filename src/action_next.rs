@@ -2,13 +2,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::WalleError,
-    util::{ExtendedMap, ExtendedMapExt, ExtendedValue, PushToExtendedMap},
+    util::{ExtendedMap, ExtendedMapExt, ExtendedValue, PushToExtendedMap, SelfId},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Action {
     pub action: String,
     pub params: ExtendedMap,
+}
+
+impl SelfId for Action {
+    fn self_id(&self) -> String {
+        self.params.get_downcast("self_id").unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
