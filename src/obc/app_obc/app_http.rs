@@ -1,7 +1,6 @@
 use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 
 use crate::{
-    action::ActionType,
     config::{HttpClient, HttpServer},
     error::{WalleError, WalleResult},
     util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
@@ -22,7 +21,7 @@ use super::{AppOBC, BotMapExt, EchoMap};
 
 impl<A, R> AppOBC<A, R>
 where
-    A: ProtocolItem + ActionType,
+    A: ProtocolItem,
     R: ProtocolItem,
 {
     pub(crate) async fn webhook<E, AH, EH>(
@@ -168,7 +167,7 @@ async fn http_push<A, R>(
     http: HttpClient,
     echo_map: EchoMap<R>,
 ) where
-    A: ProtocolItem + ActionType,
+    A: ProtocolItem,
     R: ProtocolItem,
 {
     let (action, echo_s) = action.unpack();
@@ -176,8 +175,8 @@ async fn http_push<A, R>(
         .method(Method::POST)
         .uri(&http.url)
         .header_auth_token(&http.access_token)
-        .header(CONTENT_TYPE, action.content_type().to_string())
-        .body(action.to_body())
+        .header(CONTENT_TYPE, crate::util::ContentType::Json.to_string())
+        .body(action.to_body(&crate::util::ContentType::Json)) //todo
         .unwrap();
     match tokio::time::timeout(Duration::from_secs(http.timeout), client.request(req)).await {
         Ok(Ok(resp)) => {

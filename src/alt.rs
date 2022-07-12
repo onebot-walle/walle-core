@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use colored::*;
 use tracing::info;
 
-use crate::action::StandardAction;
 use crate::event::{
     BaseEvent, EventContent, EventDetailType, MessageContent, MessageEventDetail, NoticeContent,
     RequestContent,
@@ -95,24 +94,24 @@ impl ColoredAlt for RequestContent {
     }
 }
 
-impl ColoredAlt for StandardAction {
-    fn colored_alt(&self) -> Option<String> {
-        let head = format!("[{}]", self.action_type().bright_yellow());
-        let body = match self {
-            StandardAction::SendMessage(c) => {
-                if let Some(group_id) = &c.group_id {
-                    format!("{} to {}", c.message.alt(), group_id.bright_blue())
-                } else if let Some(user_id) = &c.user_id {
-                    format!("{} to {}", c.message.alt(), user_id.bright_green())
-                } else {
-                    format!("{:?}", self)
-                }
-            }
-            a => format!("{}", serde_json::to_string(a).unwrap()), //todo
-        };
-        Some(format!("{head} {body}"))
-    }
-}
+// impl ColoredAlt for StandardAction {
+//     fn colored_alt(&self) -> Option<String> {
+//         let head = format!("[{}]", self.action_type().bright_yellow());
+//         let body = match self {
+//             StandardAction::SendMessage(c) => {
+//                 if let Some(group_id) = &c.group_id {
+//                     format!("{} to {}", c.message.alt(), group_id.bright_blue())
+//                 } else if let Some(user_id) = &c.user_id {
+//                     format!("{} to {}", c.message.alt(), user_id.bright_green())
+//                 } else {
+//                     format!("{:?}", self)
+//                 }
+//             }
+//             a => format!("{}", serde_json::to_string(a).unwrap()), //todo
+//         };
+//         Some(format!("{head} {body}"))
+//     }
+// }
 
 #[derive(Debug)]
 pub struct TracingHandler<E, A, R>(std::marker::PhantomData<(E, A, R)>);

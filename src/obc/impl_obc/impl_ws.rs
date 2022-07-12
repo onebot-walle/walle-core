@@ -5,7 +5,7 @@ use crate::obc::{
 use crate::{
     error::{WalleError, WalleResult},
     event::StandardEvent,
-    resp::{resp_error, Resps},
+    resp::{resp_error, Resp},
     util::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
@@ -226,11 +226,11 @@ where
     AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
     EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
-    let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<Resps<E>> {
+    let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<Resp> {
         let (_, echo_s) = a.unpack();
         warn!(target: crate::WALLE_CORE, "action warn: {}", msg);
         if msg.starts_with("missing field") {
-            echo_s.pack(crate::resp::Resps::empty_fail(10006, msg))
+            echo_s.pack(Resp::from(resp_error::bad_segment_data(msg)))
         } else {
             echo_s.pack(resp_error::unsupported_action(msg).into())
         }

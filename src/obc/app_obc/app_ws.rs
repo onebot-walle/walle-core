@@ -1,13 +1,15 @@
-use crate::obc::{
-    ws_util::{try_connect, upgrade_websocket},
-    AppOBC, BotMap, BotMapExt, EchoMap,
-};
 use crate::{
-    action::ActionType,
     config::{WebSocketClient, WebSocketServer},
     error::{WalleError, WalleResult},
     util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
     ActionHandler, EventHandler, OneBot,
+};
+use crate::{
+    obc::{
+        ws_util::{try_connect, upgrade_websocket},
+        AppOBC, BotMap, BotMapExt, EchoMap,
+    },
+    util::ContentType,
 };
 
 use std::{collections::HashSet, sync::Arc};
@@ -24,7 +26,7 @@ use tracing::{info, warn};
 
 impl<A, R> AppOBC<A, R>
 where
-    A: ProtocolItem + ActionType,
+    A: ProtocolItem,
     R: ProtocolItem,
 {
     pub(crate) async fn ws<E, AH, EH>(
@@ -125,7 +127,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     bot_map: BotMap<A>,
 ) where
     E: ProtocolItem + SelfId + Clone,
-    A: ProtocolItem + ActionType,
+    A: ProtocolItem,
     R: ProtocolItem,
     AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
     EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
@@ -137,7 +139,7 @@ async fn ws_loop<E, A, R, AH, EH>(
         tokio::select! {
             _ = signal_rx.recv() => break,
             Some(action) = action_rx.recv() => {
-                if ws_stream.send(action.to_ws_msg()).await.is_err() {
+                if ws_stream.send(action.to_ws_msg(&ContentType::Json)).await.is_err() { //todo
                     break;
                 }
             },

@@ -1,9 +1,9 @@
-use walle_core::event::next::{BaseEvent, Event};
+use walle_core::event::{BaseEvent, Event};
 use walle_core::extended_map;
 use walle_core::message_next::{Message, MessageSegment};
-use walle_macro::EventContent;
+use walle_core::prelude::OneBot;
 
-#[derive(Debug, EventContent, PartialEq)]
+#[derive(Debug, OneBot, PartialEq)]
 #[event(type = "message")]
 pub struct MessageE {
     pub message_id: String,
@@ -12,11 +12,11 @@ pub struct MessageE {
     pub user_id: String,
 }
 
-#[derive(Debug, EventContent, PartialEq)]
+#[derive(Debug, OneBot, PartialEq)]
 #[event(detail_type = "private")]
 pub struct Private {}
 
-#[derive(Debug, EventContent, PartialEq)]
+#[derive(Debug, OneBot, PartialEq)]
 #[event(detail_type)]
 pub struct Group {
     pub group_id: String,

@@ -60,11 +60,11 @@ where
             sub_type: S::sub_type().to_string(),
             extra: {
                 let map = &mut event.extra;
-                event.implt.push(map);
-                event.platform.push(map);
-                event.ty.push(map);
-                event.detail_type.push(map);
-                event.sub_type.push(map);
+                event.implt.push_to(map);
+                event.platform.push_to(map);
+                event.ty.push_to(map);
+                event.detail_type.push_to(map);
+                event.sub_type.push_to(map);
                 event.extra
             },
         }

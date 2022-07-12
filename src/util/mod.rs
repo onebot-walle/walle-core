@@ -10,8 +10,6 @@ pub use bytes::*;
 pub use echo::*;
 pub use value::*;
 
-use crate::action::ActionType;
-
 pub fn timestamp_nano() -> u128 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -26,15 +24,6 @@ pub fn timestamp_nano_f64() -> f64 {
 #[cfg(feature = "impl-obc")]
 pub fn new_uuid() -> String {
     uuid::Uuid::from_u128(timestamp_nano()).to_string()
-}
-
-impl<I> ActionType for Echo<I>
-where
-    I: ActionType,
-{
-    fn content_type(&self) -> ContentType {
-        self.inner.content_type()
-    }
 }
 
 /// Event 模型 self_id 字段约束
@@ -65,21 +54,15 @@ pub trait ProtocolItem:
         rmp_serde::from_slice(v).map_err(|e| e.to_string())
     }
     #[cfg(feature = "http")]
-    fn to_body(self) -> hyper::Body
-    where
-        Self: ActionType,
-    {
-        match self.content_type() {
+    fn to_body(self, content_type: &ContentType) -> hyper::Body {
+        match content_type {
             ContentType::Json => hyper::Body::from(self.json_encode()),
             ContentType::MsgPack => hyper::Body::from(self.rmp_encode()),
         }
     }
     #[cfg(feature = "websocket")]
-    fn to_ws_msg(self) -> tokio_tungstenite::tungstenite::Message
-    where
-        Self: ActionType,
-    {
-        match self.content_type() {
+    fn to_ws_msg(self, content_type: &ContentType) -> tokio_tungstenite::tungstenite::Message {
+        match content_type {
             ContentType::Json => tokio_tungstenite::tungstenite::Message::Text(self.json_encode()),
             ContentType::MsgPack => {
                 tokio_tungstenite::tungstenite::Message::Binary(self.rmp_encode())

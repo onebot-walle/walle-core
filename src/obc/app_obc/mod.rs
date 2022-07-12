@@ -1,7 +1,6 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use super::OBC;
-use crate::action::ActionType;
 use crate::util::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
 use crate::{ActionHandler, EventHandler, OneBot};
 use crate::{WalleError, WalleResult};
@@ -62,7 +61,7 @@ impl<A, R> AppOBC<A, R> {
 impl<E, A, R> ActionHandler<E, A, R, 12> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
-    A: ProtocolItem + SelfId + ActionType,
+    A: ProtocolItem + SelfId,
     R: ProtocolItem,
 {
     type Config = crate::config::AppConfig;

@@ -15,7 +15,7 @@ pub enum ExtendedValue {
     F64(f64),
     Int(i64),
     Bool(bool),
-    Map(HashMap<String, ExtendedValue>),
+    Map(ExtendedMap),
     List(Vec<ExtendedValue>),
     Bytes(OneBotBytes),
     #[serde(serialize_with = "null_serialize")]
@@ -444,7 +444,7 @@ impl ExtendedValue {
 }
 
 pub trait PushToExtendedMap {
-    fn push(self, _: &mut ExtendedMap)
+    fn push_to(self, _: &mut ExtendedMap)
     where
         Self: Sized,
     {
@@ -464,6 +464,9 @@ pub trait ExtendedMapExt {
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<ExtendedValue, Error = WalleError>;
+    fn push<T>(&mut self, value: T)
+    where
+        T: PushToExtendedMap;
 }
 
 impl ExtendedMapExt for ExtendedMap {
@@ -506,6 +509,12 @@ impl ExtendedMapExt for ExtendedMap {
     {
         self.try_get_downcast(key)
             .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
+    }
+    fn push<T>(&mut self, value: T)
+    where
+        T: PushToExtendedMap,
+    {
+        value.push_to(self)
     }
 }
 
