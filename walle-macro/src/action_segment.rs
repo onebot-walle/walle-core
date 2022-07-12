@@ -4,10 +4,11 @@ use syn::{Attribute, Data, DeriveInput, Error, Lit, Meta, Result};
 
 use super::{snake_case, try_from_idents};
 
-pub(crate) fn action_internal(
+pub(crate) fn internal(
     attr: &Attribute,
     input: &DeriveInput,
     span: &TokenStream2,
+    action: bool,
 ) -> Result<TokenStream2> {
     let name = &input.ident;
     let s = match attr.parse_meta()? {
@@ -18,27 +19,58 @@ pub(crate) fn action_internal(
         },
         _ => return Err(Error::new(Span::call_site(), "expect NameValue for action")),
     };
+    let (declare, fn_name, from_ty, extra) = if action {
+        (
+            quote!(action::ActionDeclare),
+            quote!(action),
+            quote!(action::Action),
+            quote!(params),
+        )
+    } else {
+        (
+            quote!(message::SegmentDeclare),
+            quote!(ty),
+            quote!(message::MessageSegment),
+            quote!(data),
+        )
+    };
     match &input.data {
         Data::Struct(data) => {
-            let idents = try_from_idents(&data.fields, quote!(a.params))?;
+            let idents = try_from_idents(
+                &data.fields,
+                if action {
+                    quote!(v.params)
+                } else {
+                    quote!(v.data)
+                },
+            )?;
             Ok(quote!(
-                impl #span::action::ActionDeclare for #name {
-                    fn action() -> &'static str {
+                impl #span::#declare for #name {
+                    fn #fn_name() -> &'static str {
                         #s
                     }
                 }
 
-                impl TryFrom<&mut #span::action::Action> for #name {
+                impl TryFrom<&mut #span::#from_ty> for #name {
                     type Error = #span::error::WalleError;
-                    fn try_from(a: &mut #span::action::Action) -> Result<Self, Self::Error> {
+                    fn try_from(v: &mut #span::#from_ty) -> Result<Self, Self::Error> {
                         use #span::util::value::ExtendedMapExt;
-                        if a.action.as_str() != #s {
+                        if v.#fn_name.as_str() != #s {
                             Err(#span::error::WalleError::DeclareNotMatch(
                                 #s,
-                                a.action.clone(),
+                                v.#fn_name.clone(),
                             ))
                         } else {
                             Ok(Self #idents)
+                        }
+                    }
+                }
+
+                impl From<#name> for #span::#from_ty {
+                    fn from(v: #name) -> Self {
+                        Self {
+                            #fn_name: #s.to_string(),
+                            #extra: v.into(),
                         }
                     }
                 }
@@ -50,21 +82,21 @@ pub(crate) fn action_internal(
                 // todo attr
                 let ident = &var.ident;
                 let s = snake_case(ident.to_string());
-                let idents = try_from_idents(&var.fields, quote!(a))?;
+                let idents = try_from_idents(&var.fields, quote!(v))?;
                 vars.push(quote!(
                     #s => Ok(Self::#ident #idents)
                 ));
             }
             Ok(quote!(
-                impl TryFrom<&mut #span::action::Action> for #name {
+                impl TryFrom<&mut #span::#from_ty> for #name {
                     type Error = #span::error::WalleError;
-                    fn try_from(a: &mut #span::action::Action) -> Result<Self, Self::Error> {
+                    fn try_from(v: &mut #span::#from_ty) -> Result<Self, Self::Error> {
                         use #span::util::value::ExtendedMapExt;
-                        match a.action.as_str() {
+                        match v.#fn_name.as_str() {
                             #(#vars,)*
                             _ => Err(#span::error::WalleError::DeclareNotMatch(
                                 #s,
-                                a.action.clone(),
+                                v.#fn_name.clone(),
                             ))
                         }
                     }

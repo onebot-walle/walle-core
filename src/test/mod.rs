@@ -242,30 +242,30 @@
 //     );
 // }
 
-#[test]
-fn message() {
-    use crate::message::{Message, MessageBuild, MessageSegment};
-    let message = r#"{
-        "type": "ctext",
-        "data": {
-            "text": "这是一个纯文本消息段"
-        }
-    }"#;
-    let location_message = r#"{
-        "type": "location",
-        "data": {
-            "latitude": 31.032315,
-            "longitude": 121.447127,
-            "title": "上海交通大学闵行校区",
-            "content": "中国上海市闵行区东川路800号"
-        }
-    }"#;
-    let text: MessageSegment = serde_json::from_str(message).unwrap();
-    let loc: MessageSegment = serde_json::from_str(location_message).unwrap();
-    let location = Message::new().location(1.1, 2.2, "title".to_owned(), "content".to_owned());
-    println!("{:?}\n{:?}", text, loc);
-    println!("{}", serde_json::to_string(&location).unwrap())
-}
+// #[test]
+// fn message() {
+//     use crate::message::{Message, MessageBuild, MessageSegment};
+//     let message = r#"{
+//         "type": "ctext",
+//         "data": {
+//             "text": "这是一个纯文本消息段"
+//         }
+//     }"#;
+//     let location_message = r#"{
+//         "type": "location",
+//         "data": {
+//             "latitude": 31.032315,
+//             "longitude": 121.447127,
+//             "title": "上海交通大学闵行校区",
+//             "content": "中国上海市闵行区东川路800号"
+//         }
+//     }"#;
+//     let text: MessageSegment = serde_json::from_str(message).unwrap();
+//     let loc: MessageSegment = serde_json::from_str(location_message).unwrap();
+//     let location = Message::new().location(1.1, 2.2, "title".to_owned(), "content".to_owned());
+//     println!("{:?}\n{:?}", text, loc);
+//     println!("{}", serde_json::to_string(&location).unwrap())
+// }
 
 #[test]
 fn extendedmap_test() {

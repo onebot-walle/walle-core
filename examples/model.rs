@@ -1,6 +1,6 @@
 use walle_core::event::{BaseEvent, Event};
 use walle_core::extended_map;
-use walle_core::message_next::{Message, MessageSegment};
+use walle_core::message::{Message, MessageSegment};
 use walle_core::prelude::OneBot;
 
 #[derive(Debug, OneBot, PartialEq)]

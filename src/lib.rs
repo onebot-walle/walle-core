@@ -12,16 +12,14 @@ pub mod error;
 pub mod event;
 pub mod message;
 pub mod resp;
-pub mod util;
-
-pub mod message_next;
 pub mod structs;
+pub mod util;
 
 mod test;
 
 pub mod prelude {
     pub use crate::event::*;
-    pub use crate::message::{IntoMessage, Message, MessageAlt, MessageBuild, MessageSegment};
+    pub use crate::message::{IntoMessage, Message, MessageExt, MessageSegment};
     pub use crate::resp::{resp_error, Resp};
 
     pub use super::*;

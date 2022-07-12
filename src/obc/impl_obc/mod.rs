@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use super::OBC;
+use crate::event::Event;
 use crate::util::ProtocolItem;
 use crate::WalleResult;
 use crate::{ActionHandler, EventHandler, OneBot};
 use async_trait::async_trait;
+use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 #[cfg(feature = "http")]
@@ -20,9 +22,9 @@ mod impl_ws;
 pub struct ImplOBC<E> {
     pub self_id: std::sync::RwLock<String>,
     pub platform: String,
-    pub r#impl: String,
+    pub implt: String,
     pub(crate) event_tx: tokio::sync::broadcast::Sender<E>,
-    pub(crate) hb_tx: tokio::sync::broadcast::Sender<crate::event::StandardEvent>,
+    pub(crate) hb_tx: tokio::sync::broadcast::Sender<crate::event::Event>,
 }
 
 #[async_trait]
@@ -53,6 +55,16 @@ where
             self.http(ob, config.http, &mut tasks).await?;
             self.webhook(ob, config.http_webhook, &mut tasks).await?;
         }
+        if config.heartbeat.enabled {
+            tasks.push(start_hb(
+                &ob,
+                self.self_id.read().unwrap().clone(),
+                self.implt.clone(),
+                self.platform.clone(),
+                config.heartbeat.interval,
+                self.hb_tx.clone(),
+            ))
+        }
         Ok(tasks)
     }
     async fn call<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH, 12>>)
@@ -74,7 +86,7 @@ impl<E> ImplOBC<E> {
         Self {
             self_id: std::sync::RwLock::new(self_id),
             platform,
-            r#impl,
+            implt: r#impl,
             event_tx,
             hb_tx,
         }
@@ -87,24 +99,44 @@ impl<E> ImplOBC<E> {
     }
 }
 
-impl<C> ImplOBC<crate::event::BaseEvent<C>> {
-    pub fn new_event_with_time(
-        &self,
-        time: f64,
-        content: C,
-        self_id: String,
-    ) -> crate::event::BaseEvent<C> {
-        crate::event::BaseEvent {
-            id: crate::util::new_uuid(),
-            r#impl: self.r#impl.clone(),
-            platform: self.platform.clone(),
-            self_id,
-            time,
-            content,
-        }
+fn build_hb(self_id: &str, implt: &str, platform: &str, interval: u32) -> crate::event::Event {
+    crate::event::Event {
+        id: crate::util::new_uuid(),
+        implt: implt.to_string(),
+        platform: platform.to_string(),
+        self_id: self_id.to_string(),
+        time: crate::util::timestamp_nano_f64(),
+        ty: "meta".to_string(),
+        detail_type: "heartbeat".to_string(),
+        sub_type: "".to_string(),
+        extra: crate::extended_map! {
+            "interval": interval,
+            "status": { //todo
+                "good": true,
+                "online": true
+            }
+        },
     }
+}
 
-    pub fn new_event(&self, content: C, self_id: String) -> crate::event::BaseEvent<C> {
-        self.new_event_with_time(crate::util::timestamp_nano_f64(), content, self_id)
-    }
+fn start_hb<AH, EH, const V: u8>(
+    ob: &OneBot<AH, EH, V>,
+    self_id: String,
+    implt: String,
+    platform: String,
+    interval: u32,
+    hb_tx: broadcast::Sender<Event>,
+) -> JoinHandle<()> {
+    let hb = build_hb(&self_id, &implt, &platform, interval);
+    let hb_tx = Arc::new(hb_tx);
+    let mut signal = ob.get_signal_rx().unwrap();
+    tokio::spawn(async move {
+        loop {
+            if let Ok(_) = signal.try_recv() {
+                break;
+            }
+            hb_tx.send(hb.clone()).ok();
+            tokio::time::sleep(std::time::Duration::from_secs(interval as u64)).await;
+        }
+    })
 }

@@ -1,13 +1,15 @@
-use crate::obc::{
-    ws_util::{try_connect, upgrade_websocket},
-    ImplOBC,
-};
 use crate::{
     error::{WalleError, WalleResult},
-    event::StandardEvent,
     resp::{resp_error, Resp},
     util::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
+};
+use crate::{
+    event::Event,
+    obc::{
+        ws_util::{try_connect, upgrade_websocket},
+        ImplOBC,
+    },
 };
 use futures_util::{SinkExt, StreamExt};
 use std::{sync::Arc, time::Duration};
@@ -83,7 +85,7 @@ where
     {
         for wsr in config {
             let platform = self.platform.clone();
-            let r#impl = self.r#impl.clone();
+            let r#impl = self.implt.clone();
             let self_id = self.get_self_id();
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
@@ -131,7 +133,7 @@ where
 async fn ws_loop<E, A, R, AH, EH>(
     ob: Arc<OneBot<AH, EH, 12>>,
     mut event_rx: broadcast::Receiver<E>,
-    mut hb_rx: broadcast::Receiver<StandardEvent>,
+    mut hb_rx: broadcast::Receiver<Event>,
     mut ws_stream: WebSocketStream<TcpStream>,
 ) where
     E: ProtocolItem + Clone,

@@ -3,15 +3,15 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{Data, DeriveInput, Error, Fields, Result, Type};
 
-mod action;
+mod action_segment;
 mod event;
 
-#[proc_macro_derive(OneBot, attributes(event, action, value))]
+#[proc_macro_derive(OneBot, attributes(event, action, value, segment))]
 pub fn onebot(token: TokenStream) -> TokenStream {
     onebot_internal(token, quote!(walle_core))
 }
 
-#[proc_macro_derive(_OneBot, attributes(event, action, value))]
+#[proc_macro_derive(_OneBot, attributes(event, action, value, segment))]
 pub fn _onebot(token: TokenStream) -> TokenStream {
     onebot_internal(token, quote!(crate))
 }
@@ -23,9 +23,13 @@ fn onebot_internal(token: TokenStream, span: TokenStream2) -> TokenStream {
         if attr.path.is_ident("event") {
             stream.extend(flatten(event::event_internal(&attr, &input, &span)));
         } else if attr.path.is_ident("action") {
-            stream.extend(flatten(action::action_internal(attr, &input, &span)));
+            stream.extend(flatten(action_segment::internal(attr, &input, &span, true)));
         } else if attr.path.is_ident("value") {
             stream.extend(flatten(value_internal(&input, &span)));
+        } else if attr.path.is_ident("segment") {
+            stream.extend(flatten(action_segment::internal(
+                attr, &input, &span, false,
+            )));
         }
     }
     stream.into()

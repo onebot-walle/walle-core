@@ -218,7 +218,7 @@ use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
 #[event(type)]
 pub struct Message {
     pub message_id: String,
-    pub message: crate::message_next::Message,
+    pub message: crate::message::Message,
     pub alt_message: String,
     pub user_id: String,
 }
