@@ -163,55 +163,6 @@ impl TryFrom<&mut Event> for () {
     }
 }
 
-// pub struct MessageE {
-//     pub message_id: String,
-//     pub message: crate::message_next::Message,
-//     pub alt_message: String,
-//     pub user_id: String,
-// }
-
-// impl TypeDeclare for MessageE {
-//     fn ty() -> &'static str {
-//         "message"
-//     }
-// }
-
-// impl TryFrom<&mut Event> for MessageE {
-//     type Error = WalleError;
-//     fn try_from(value: &mut Event) -> Result<Self, Self::Error> {
-//         if value.ty == Self::ty() {
-//             Ok(Self {
-//                 message_id: value.extra.remove_downcast("message_id")?,
-//                 message: value.extra.remove_downcast("message")?,
-//                 alt_message: value.extra.remove_downcast("alt_message")?,
-//                 user_id: value.extra.remove_downcast("user_id")?,
-//             })
-//         } else {
-//             Err(WalleError::EventDeclareNotMatch(
-//                 Self::ty(),
-//                 value.ty.clone(),
-//             ))
-//         }
-//     }
-// }
-
-// impl PushToExtendedMap for MessageE {
-//     fn push(self, map: &mut ExtendedMap) {
-//         map.insert("message_id".to_string(), self.message_id.into());
-//         map.insert("message".to_string(), self.message.into());
-//         map.insert("alt_message".to_string(), self.alt_message.into());
-//         map.insert("user_id".to_string(), self.user_id.into());
-//     }
-// }
-
-// impl Into<ExtendedValue> for MessageE {
-//     fn into(self) -> ExtendedValue {
-//         let mut map = ExtendedMap::default();
-//         self.push(&mut map);
-//         ExtendedValue::Map(map)
-//     }
-// }
-
 use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
 
 #[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]

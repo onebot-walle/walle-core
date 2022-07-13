@@ -26,9 +26,12 @@ pub fn new_uuid() -> String {
     uuid::Uuid::from_u128(timestamp_nano()).to_string()
 }
 
-/// Event 模型 self_id 字段约束
 pub trait SelfId: Sized {
     fn self_id(&self) -> String;
+}
+
+pub trait SelfIds {
+    fn self_ids(&self) -> Vec<String>;
 }
 
 #[doc(hidden)]

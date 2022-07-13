@@ -65,6 +65,12 @@ impl Resp {
             Ok(self.data)
         }
     }
+
+    pub fn as_resul_downcast<T: TryFrom<ExtendedValue, Error = WalleError>>(
+        self,
+    ) -> WalleResult<T> {
+        self.as_result().and_then(|v| v.try_into())
+    }
 }
 
 pub mod resp_error {

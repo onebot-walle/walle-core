@@ -35,7 +35,7 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 
 仅展示最小实例
 
-### Implementation
+### Implementation (Need update)
 
 ```rust
 use std::sync::Arc;
@@ -63,7 +63,7 @@ async fn main() {
 }
 ```
 
-### Application
+### Application (Need update)
 
 ```rust
 use std::sync::Arc;
@@ -84,5 +84,126 @@ async fn main() {
     for task in tasks {
         task.await.unwrap()
     }
+}
+```
+
+### Event
+
+walle_core::event::Event 为序列化使用标准类型，该模型仅确保 event 基础模型各字段。
+
+walle_core::event::BaseEvent\<T, D, S, P, I\> 为扩展模型，其中五个泛型依次为 type detail_type sub_type platform impl 五个层级的扩展字段
+
+定义一个 Event 模型的扩展你需要实现以下 trait：
+
+- TryFrom\<&mut Event\>
+- PushToExtendedMap
+- TypeDeclare (or other EventDeclare trait)
+
+或者直接使用本 crate 提供的 OneBot 与 PushToMap 宏
+
+定义一个 type 级别扩展字段（ ob12 理论上不支持该级别扩展）:
+
+```rust
+#[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]
+#[event(type)]
+pub struct Message {
+    pub message_id: String,
+    pub message: crate::message::Message,
+    pub alt_message: String,
+    pub user_id: String,
+}
+```
+
+或者定义一个 detail_type 级别扩展字段（ ob12 理论上不支持该级别扩展）
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[event(detail_type = "group")]
+pub struct Group_ {
+    pub group_id: String,
+}
+```
+
+### Action
+
+walle_core::action::Action 为序列化使用标准类型，该模型仅确保 action 与 params 字段存在且类型正确
+
+定义一个扩展 Action 模型你需要实现以下 trait：
+
+- TryFrom\<&mut Action\>
+- TryFrom\<Action\>
+- From\<YourAction\> for Action
+
+或者直接使用本 crate 提供的 OneBot 与 PushToMap 宏
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[action]
+pub struct GetFile {
+    pub file_id: String,
+    pub ty: String,
+}
+```
+
+或者
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[action = "upload_file"]
+pub struct UploadFile_ {
+    pub ty: String,
+    pub name: String,
+    pub url: Option<String>,
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    pub path: Option<String>,
+    pub data: Option<OneBotBytes>,
+    pub sha256: Option<String>,
+}
+```
+
+想要同时支持多种 Action ? 没问题! 
+
+```rust
+#[derive(Debug, OneBot)]
+#[action]
+pub enum MyAction {
+    GetUserInfo(GetUserInfo),
+    GetGroupInfo { group_id: String },
+}
+```
+
+### Resp (Value)
+
+walle_core::resp::Resp 为序列化使用标准类型
+
+同时本库还提供了 RespError 用于构造失败的 Resp，可以使用 \<Resp\>.as_result() 
+
+定义一个 Resp 模型你需要实现以下 trait：
+
+- TryFrom\<ExtendedValue\>
+- From\<YourResp\> for ExtendedValue
+
+当然还是可以使用 OneBot 与 PushToMap 宏
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[value]
+pub struct Status {
+    pub good: bool,
+    pub online: bool,
+}
+```
+
+同时实现了 Value 的结构体可以作为其他宏的字段使用。
+
+### MessageSegment
+
+基本与 Action 模型相同，唯一的不同是序列化使用的模型是 walle_core::message::MessageSegment，该模型同时也是一个Value，因此可以从 Event 或 Action 中获取。
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[segment]
+pub struct Text {
+    pub text: String,
 }
 ```

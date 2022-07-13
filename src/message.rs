@@ -154,37 +154,6 @@ pub struct Text {
     pub text: String,
 }
 
-// impl SegmentDeclare for Text {
-//     fn ty() -> &'static str {
-//         "text"
-//     }
-// }
-
-// impl TryFrom<&mut MessageSegment> for Text {
-//     type Error = WalleError;
-//     fn try_from(segment: &mut MessageSegment) -> Result<Self, Self::Error> {
-//         if segment.ty == Self::ty() {
-//             Ok(Self {
-//                 text: segment.data.remove_downcast("text")?,
-//             })
-//         } else {
-//             Err(WalleError::DeclareNotMatch(
-//                 Self::ty(),
-//                 segment.ty.to_string(),
-//             ))
-//         }
-//     }
-// }
-
-// impl Into<MessageSegment> for Text {
-//     fn into(self) -> MessageSegment {
-//         MessageSegment {
-//             ty: Self::ty().to_string(),
-//             data: self.into(),
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Mention {
@@ -243,6 +212,7 @@ pub struct Reply {
 
 pub trait MessageExt {
     fn extract_plain_text(&self) -> String;
+    fn extract<T: TryFrom<MessageSegment>>(self) -> Vec<T>;
 }
 
 impl MessageExt for Message {
@@ -257,5 +227,10 @@ impl MessageExt for Message {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+    fn extract<T: TryFrom<MessageSegment>>(self) -> Vec<T> {
+        self.into_iter()
+            .filter_map(|seg| T::try_from(seg).ok())
+            .collect()
     }
 }

@@ -331,3 +331,27 @@ fn enum_action() {
     let action: WalleResult<BaseAction<MyAction>> = raw_action.try_into();
     println!("{:?}", action);
 }
+
+#[test]
+fn option_action() {
+    use crate::action::Action;
+    use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
+    #[derive(Debug, OneBot, PushToMap)]
+    #[action]
+    pub struct MySeg {
+        pub text: Option<String>,
+    }
+    println!(
+        "{:?}",
+        MySeg::try_from(
+            serde_json::from_str::<Action>(r#"{"action":"my_seg", "params": {"text": "text"}}"#)
+                .unwrap()
+        )
+    );
+    println!(
+        "{:?}",
+        MySeg::try_from(
+            serde_json::from_str::<Action>(r#"{"action":"my_seg", "params": {}}"#).unwrap()
+        )
+    )
+}
