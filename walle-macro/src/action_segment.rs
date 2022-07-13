@@ -66,6 +66,21 @@ pub(crate) fn internal(
                     }
                 }
 
+                impl TryFrom<#span::#from_ty> for #name {
+                    type Error = #span::error::WalleError;
+                    fn try_from(mut v: #span::#from_ty) -> Result<Self, Self::Error> {
+                        use #span::util::value::ExtendedMapExt;
+                        if v.#fn_name.as_str() != #s {
+                            Err(#span::error::WalleError::DeclareNotMatch(
+                                #s,
+                                v.#fn_name.clone(),
+                            ))
+                        } else {
+                            Ok(Self #idents)
+                        }
+                    }
+                }
+
                 impl From<#name> for #span::#from_ty {
                     fn from(v: #name) -> Self {
                         Self {

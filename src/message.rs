@@ -92,6 +92,7 @@ impl TryFrom<ExtendedValue> for MessageSegment {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct BaseSegment<T> {
     pub segment: T,
     pub extra: ExtendedMap,
@@ -147,41 +148,42 @@ pub trait SegmentDeclare {
     fn ty() -> &'static str;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[segment]
 pub struct Text {
     pub text: String,
 }
 
-impl SegmentDeclare for Text {
-    fn ty() -> &'static str {
-        "text"
-    }
-}
+// impl SegmentDeclare for Text {
+//     fn ty() -> &'static str {
+//         "text"
+//     }
+// }
 
-impl TryFrom<&mut MessageSegment> for Text {
-    type Error = WalleError;
-    fn try_from(segment: &mut MessageSegment) -> Result<Self, Self::Error> {
-        if segment.ty == Self::ty() {
-            Ok(Self {
-                text: segment.data.remove_downcast("text")?,
-            })
-        } else {
-            Err(WalleError::DeclareNotMatch(
-                Self::ty(),
-                segment.ty.to_string(),
-            ))
-        }
-    }
-}
+// impl TryFrom<&mut MessageSegment> for Text {
+//     type Error = WalleError;
+//     fn try_from(segment: &mut MessageSegment) -> Result<Self, Self::Error> {
+//         if segment.ty == Self::ty() {
+//             Ok(Self {
+//                 text: segment.data.remove_downcast("text")?,
+//             })
+//         } else {
+//             Err(WalleError::DeclareNotMatch(
+//                 Self::ty(),
+//                 segment.ty.to_string(),
+//             ))
+//         }
+//     }
+// }
 
-impl Into<MessageSegment> for Text {
-    fn into(self) -> MessageSegment {
-        MessageSegment {
-            ty: Self::ty().to_string(),
-            data: self.into(),
-        }
-    }
-}
+// impl Into<MessageSegment> for Text {
+//     fn into(self) -> MessageSegment {
+//         MessageSegment {
+//             ty: Self::ty().to_string(),
+//             data: self.into(),
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
@@ -196,47 +198,47 @@ pub struct MentionAll {}
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Image {
-    file_id: String,
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Voice {
-    file_id: String,
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Audio {
-    file_id: String,
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Video {
-    file_id: String,
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct File {
-    file_id: String,
+    pub file_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, PushToMap, OneBot)]
 #[segment]
 pub struct Location {
-    latitude: f64,
-    longitude: f64,
-    title: String,
-    content: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub title: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
 #[segment]
 pub struct Reply {
-    message_id: String,
-    user_id: String,
+    pub message_id: String,
+    pub user_id: String,
 }
 
 pub trait MessageExt {

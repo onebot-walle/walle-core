@@ -1,111 +1,111 @@
-// #[test]
-// fn event() {
-//     use crate::event::{
-//         EventContent, MessageContent as MsgContent, MessageEventDetail, NoticeContent,
-//     };
-//     use crate::prelude::*;
-//     use crate::util::ExtendedMap;
-//     use std::collections::HashMap;
-//     let data = vec![
-//         (
-//             r#"{
-//                 "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
-//                 "impl": "go_onebot_qq",
-//                 "platform": "qq",
-//                 "self_id": "123234",
-//                 "time": 1632847927,
-//                 "type": "message",
-//                 "detail_type": "private",
-//                 "sub_type": "",
-//                 "message_id": "6283",
-//                 "message": [
-//                     {
-//                         "type": "text",
-//                         "data": {
-//                             "text": "OneBot is not a bot"
-//                         }
-//                     },
-//                     {
-//                         "type": "image",
-//                         "data": {
-//                             "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
-//                         }
-//                     }
-//                 ],
-//                 "alt_message": "OneBot is not a bot[图片]",
-//                 "user_id": "123456788"
-//             }"#,
-//             BaseEvent {
-//                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
-//                 r#impl: "go_onebot_qq".to_owned(),
-//                 platform: "qq".to_owned(),
-//                 self_id: "123234".to_owned(),
-//                 time: 1632847927.0,
-//                 content: EventContent::Message(MsgContent {
-//                     detail: MessageEventDetail::Private {
-//                         sub_type: String::default(),
-//                         extra: ExtendedMap::new(),
-//                     },
-//                     message_id: "6283".to_owned(),
-//                     message: vec![
-//                         MessageSegment::Text {
-//                             text: "OneBot is not a bot".to_owned(),
-//                             extra: HashMap::new(),
-//                         },
-//                         MessageSegment::Image {
-//                             file_id: "e30f9684-3d54-4f65-b2da-db291a477f16".to_owned(),
-//                             extra: HashMap::new(),
-//                         },
-//                     ],
-//                     alt_message: "OneBot is not a bot[图片]".to_owned(),
-//                     user_id: "123456788".to_owned(),
-//                 }),
-//             },
-//         ),
-//         (
-//             r#"{
-//                 "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
-//                 "impl": "go_onebot_qq",
-//                 "platform": "qq",
-//                 "self_id": "123234",
-//                 "time": 1632847927,
-//                 "type": "notice",
-//                 "detail_type": "group_member_increase",
-//                 "sub_type": "join",
-//                 "user_id": "123456788",
-//                 "group_id": "87654321",
-//                 "operator_id": "1234567"
-//             }"#,
-//             BaseEvent {
-//                 id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
-//                 r#impl: "go_onebot_qq".to_owned(),
-//                 platform: "qq".to_owned(),
-//                 self_id: "123234".to_owned(),
-//                 time: 1632847927.0,
-//                 content: EventContent::Notice(NoticeContent::GroupMemberIncrease {
-//                     sub_type: "join".to_owned(),
-//                     group_id: "87654321".to_owned(),
-//                     user_id: "123456788".to_owned(),
-//                     operator_id: "1234567".to_owned(),
-//                     extra: ExtendedMap::default(),
-//                 }),
-//             },
-//         ),
-//     ];
+#[test]
+fn event() {
+    use crate::alt::ColoredAlt;
+    use crate::event::*;
+    use crate::extended_map;
+    use crate::prelude::WalleError;
 
-//     use crate::alt::ColoredAlt;
-//     for (json, event) in data {
-//         if let Some(alt) = event.colored_alt() {
-//             println!("{}", alt);
-//         }
-//         assert_eq!(serde_json::from_str::<StandardEvent>(json).unwrap(), event);
-//         let json_str = serde_json::to_string(&event).unwrap();
-//         assert_eq!(
-//             serde_json::from_str::<StandardEvent>(&json_str).unwrap(),
-//             event
-//         );
-//     }
-// }
+    fn test<T>(event: (&str, Event, T))
+    where
+        T: TryFrom<Event, Error = WalleError> + std::fmt::Debug + PartialEq,
+    {
+        assert_eq!(serde_json::from_str::<Event>(event.0).unwrap(), event.1);
+        assert_eq!(
+            serde_json::from_str::<Event>(&serde_json::to_string(&event.1).unwrap()).unwrap(),
+            event.1
+        );
+        assert_eq!(T::try_from(event.1.clone()).unwrap(), event.2);
+        println!("{}", event.1.colored_alt());
+    }
+
+    test((
+        r#"{
+                "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
+                "impl": "go_onebot_qq",
+                "platform": "qq",
+                "self_id": "123234",
+                "time": 1632847927,
+                "type": "message",
+                "detail_type": "private",
+                "sub_type": "",
+                "message_id": "6283",
+                "message": [
+                    {
+                        "type": "text",
+                        "data": {
+                            "text": "OneBot is not a bot"
+                        }
+                    },
+                    {
+                        "type": "image",
+                        "data": {
+                            "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
+                        }
+                    }
+                ],
+                "alt_message": "OneBot is not a bot[图片]",
+                "user_id": "123456788"
+            }"#,
+        Event {
+            id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
+            implt: "go_onebot_qq".to_string(),
+            platform: "qq".to_string(),
+            self_id: "123234".to_string(),
+            time: 1632847927.0,
+            ty: "message".to_string(),
+            detail_type: "private".to_string(),
+            sub_type: "".to_string(),
+            extra: extended_map! {
+                "message_id": "6283",
+                "message": [
+                    {
+                        "type": "text",
+                        "data": {
+                            "text": "OneBot is not a bot"
+                        }
+                    },
+                    {
+                        "type": "image",
+                        "data": {
+                            "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
+                        }
+                    }
+                ],
+                "alt_message": "OneBot is not a bot[图片]",
+                "user_id": "123456788"
+            },
+        },
+        new_event(
+            "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
+            1632847927.0,
+            "123234".to_string(),
+            Message {
+                message: vec![
+                    crate::message::MessageSegment {
+                        ty: "text".to_string(),
+                        data: extended_map! {
+                            "text": "OneBot is not a bot"
+                        },
+                    },
+                    crate::message::MessageSegment {
+                        ty: "image".to_string(),
+                        data: extended_map! {
+                            "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
+                        },
+                    },
+                ],
+                message_id: "6283".to_string(),
+                alt_message: "OneBot is not a bot[图片]".to_string(),
+                user_id: "123456788".to_string(),
+            },
+            Private {},
+            (),
+            (),
+            (),
+            extended_map!(),
+        ),
+    ));
+}
 
 // #[test]
 // fn action() {
@@ -242,30 +242,61 @@
 //     );
 // }
 
-// #[test]
-// fn message() {
-//     use crate::message::{Message, MessageBuild, MessageSegment};
-//     let message = r#"{
-//         "type": "ctext",
-//         "data": {
-//             "text": "这是一个纯文本消息段"
-//         }
-//     }"#;
-//     let location_message = r#"{
-//         "type": "location",
-//         "data": {
-//             "latitude": 31.032315,
-//             "longitude": 121.447127,
-//             "title": "上海交通大学闵行校区",
-//             "content": "中国上海市闵行区东川路800号"
-//         }
-//     }"#;
-//     let text: MessageSegment = serde_json::from_str(message).unwrap();
-//     let loc: MessageSegment = serde_json::from_str(location_message).unwrap();
-//     let location = Message::new().location(1.1, 2.2, "title".to_owned(), "content".to_owned());
-//     println!("{:?}\n{:?}", text, loc);
-//     println!("{}", serde_json::to_string(&location).unwrap())
-// }
+#[test]
+fn message() {
+    use crate::message::*;
+    use crate::prelude::WalleError;
+    use crate::util::value::ExtendedValue;
+    use crate::{extended_map, extended_value};
+    fn test<T>(message: (ExtendedValue, MessageSegment, T))
+    where
+        T: TryFrom<MessageSegment, Error = WalleError> + std::fmt::Debug + PartialEq,
+    {
+        assert_eq!(MessageSegment::try_from(message.0).unwrap(), message.1);
+        assert_eq!(T::try_from(message.1.clone()).unwrap(), message.2);
+        println!("{}", message.1.alt());
+    }
+
+    test((
+        extended_value!({"type": "text",
+            "data": {
+                "text": "这是一个纯文本消息段"
+            }
+        }),
+        MessageSegment {
+            ty: "text".to_string(),
+            data: extended_map! {
+                "text": "这是一个纯文本消息段"
+            },
+        },
+        Text {
+            text: "这是一个纯文本消息段".to_string(),
+        },
+    ));
+    test((
+        extended_value!({"type": "image",
+            "data": {
+                "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16",
+                "url": "https://example.com"
+            }
+        }),
+        MessageSegment {
+            ty: "image".to_string(),
+            data: extended_map! {
+                "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16",
+                "url": "https://example.com"
+            },
+        },
+        BaseSegment {
+            segment: Image {
+                file_id: "e30f9684-3d54-4f65-b2da-db291a477f16".to_string(),
+            },
+            extra: extended_map! {
+                "url": "https://example.com"
+            },
+        },
+    ));
+}
 
 #[test]
 fn extendedmap_test() {
@@ -290,17 +321,6 @@ fn enum_action() {
         GetUserInfo(GetUserInfo),
         GetGroupInfo { group_id: String },
     }
-
-    // impl TryFrom<&mut Action> for MyAction {
-    //     type Error = crate::prelude::WalleError;
-    //     fn try_from(a: &mut Action) -> Result<Self, Self::Error> {
-    //         match a.action.as_str() {
-    //             "get_user_info" => Ok(Self::GetUserInfo(a.try_into()?)),
-    //             "get_group_info" => Ok(Self::GetGroupInfo(a.try_into()?)),
-    //             _ => todo!(),
-    //         }
-    //     }
-    // }
 
     let raw_action = Action {
         action: "get_user_info".to_string(),
