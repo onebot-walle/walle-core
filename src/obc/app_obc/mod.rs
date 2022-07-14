@@ -1,8 +1,8 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use super::OBC;
-use crate::util::{Echo, EchoInner, EchoS, ProtocolItem, SelfId};
-use crate::{ActionHandler, EventHandler, OneBot};
+use crate::util::{Echo, EchoInner, EchoS, ProtocolItem, SelfId, SelfIds};
+use crate::{ActionHandler, EventHandler, GetStatus, OneBot};
 use crate::{WalleError, WalleResult};
 
 use async_trait::async_trait;
@@ -146,5 +146,20 @@ impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
     }
     fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
         self.get(bot_id).as_deref().cloned()
+    }
+}
+
+impl<A, R> SelfIds for AppOBC<A, R> {
+    fn self_ids(&self) -> Vec<String> {
+        self.bots.iter().map(|r| r.key().clone()).collect()
+    }
+}
+
+impl<A, R> GetStatus for AppOBC<A, R> {
+    fn get_status(&self) -> crate::structs::Status {
+        crate::structs::Status {
+            good: true,
+            online: true,
+        }
     }
 }

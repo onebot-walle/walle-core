@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use super::OBC;
 use crate::event::Event;
-use crate::util::ProtocolItem;
-use crate::WalleResult;
+use crate::util::{ProtocolItem, SelfIds};
 use crate::{ActionHandler, EventHandler, OneBot};
+use crate::{GetStatus, WalleResult};
 use async_trait::async_trait;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
@@ -20,7 +20,6 @@ mod impl_ws;
 ///
 /// ImplOBC 仅对 Event 泛型要求 Clone trait
 pub struct ImplOBC<E> {
-    pub self_id: std::sync::RwLock<String>,
     pub platform: String,
     pub implt: String,
     pub(crate) event_tx: tokio::sync::broadcast::Sender<E>,
@@ -58,7 +57,6 @@ where
         if config.heartbeat.enabled {
             tasks.push(start_hb(
                 &ob,
-                self.self_id.read().unwrap().clone(),
                 self.implt.clone(),
                 self.platform.clone(),
                 config.heartbeat.interval,
@@ -77,29 +75,32 @@ where
 }
 
 impl<E> ImplOBC<E> {
-    pub fn new(self_id: String, r#impl: String, platform: String) -> Self
+    pub fn new(r#impl: String, platform: String) -> Self
     where
         E: Clone,
     {
         let (event_tx, _) = tokio::sync::broadcast::channel(1024); //todo
         let (hb_tx, _) = tokio::sync::broadcast::channel(1024);
         Self {
-            self_id: std::sync::RwLock::new(self_id),
             platform,
             implt: r#impl,
             event_tx,
             hb_tx,
         }
     }
-    pub fn get_self_id(&self) -> String {
-        self.self_id.read().unwrap().clone()
-    }
-    pub fn set_self_id(&self, self_id: &str) {
-        *self.self_id.write().unwrap() = self_id.to_string();
-    }
 }
 
-fn build_hb(self_id: &str, implt: &str, platform: &str, interval: u32) -> crate::event::Event {
+fn build_hb<AH, EH, const V: u8>(
+    ob: &OneBot<AH, EH, V>,
+    self_id: &str,
+    implt: &str,
+    platform: &str,
+    interval: u32,
+) -> crate::event::Event
+where
+    AH: GetStatus,
+{
+    let status = ob.action_handler.get_status();
     crate::event::Event {
         id: crate::util::new_uuid(),
         implt: implt.to_string(),
@@ -111,31 +112,43 @@ fn build_hb(self_id: &str, implt: &str, platform: &str, interval: u32) -> crate:
         sub_type: "".to_string(),
         extra: crate::extended_map! {
             "interval": interval,
-            "status": { //todo
-                "good": true,
-                "online": true
-            }
+            "status": status
         },
     }
 }
 
 fn start_hb<AH, EH, const V: u8>(
-    ob: &OneBot<AH, EH, V>,
-    self_id: String,
+    ob: &Arc<OneBot<AH, EH, V>>,
     implt: String,
     platform: String,
     interval: u32,
     hb_tx: broadcast::Sender<Event>,
-) -> JoinHandle<()> {
-    let hb = build_hb(&self_id, &implt, &platform, interval);
+) -> JoinHandle<()>
+where
+    AH: GetStatus + SelfIds + Send + Sync + 'static,
+    EH: Send + Sync + 'static,
+{
     let hb_tx = Arc::new(hb_tx);
     let mut signal = ob.get_signal_rx().unwrap();
+    let ob = ob.clone();
+    let mut self_ids = vec![];
     tokio::spawn(async move {
         loop {
+            if self_ids.is_empty() {
+                self_ids = ob.action_handler.self_ids();
+            }
             if let Ok(_) = signal.try_recv() {
                 break;
             }
-            hb_tx.send(hb.clone()).ok();
+            hb_tx
+                .send(build_hb(
+                    &ob,
+                    &self_ids.pop().unwrap_or_default(),
+                    &implt,
+                    &platform,
+                    interval,
+                ))
+                .ok();
             tokio::time::sleep(std::time::Duration::from_secs(interval as u64)).await;
         }
     })

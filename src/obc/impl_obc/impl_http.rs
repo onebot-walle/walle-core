@@ -178,7 +178,12 @@ where
         let ob = ob.clone();
         let mut event_rx = self.event_tx.subscribe();
         let mut signal_rx = ob.get_signal_rx()?;
-        let self_id = self.get_self_id();
+        let self_id = ob
+            .action_handler
+            .self_ids()
+            .first()
+            .cloned()
+            .unwrap_or_default();
         let r#impl = self.implt.clone();
         let platform = self.platform.clone();
         tasks.push(tokio::spawn(async move {

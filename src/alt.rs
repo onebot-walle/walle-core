@@ -8,6 +8,7 @@ use crate::action::Action;
 use crate::event::Event;
 use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
+use crate::util::SelfIds;
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
 /// 命令行着色输出，可以用于 log
@@ -50,6 +51,21 @@ pub struct TracingHandler<E, A, R>(std::marker::PhantomData<(E, A, R)>);
 impl<E, A, R> Default for TracingHandler<E, A, R> {
     fn default() -> Self {
         Self(std::marker::PhantomData::default())
+    }
+}
+
+impl<E, A, R> SelfIds for TracingHandler<E, A, R> {
+    fn self_ids(&self) -> Vec<String> {
+        vec![]
+    }
+}
+
+impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R> {
+    fn get_status(&self) -> crate::structs::Status {
+        crate::structs::Status {
+            good: true,
+            online: true,
+        }
     }
 }
 

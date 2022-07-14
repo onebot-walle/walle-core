@@ -15,6 +15,14 @@ pub mod resp;
 pub mod structs;
 pub mod util;
 
+mod ah;
+pub use ah::{ActionHandler, GetStatus};
+mod eh;
+pub use eh::EventHandler;
+
+#[cfg(any(feature = "impl-obc", feature = "app-obc"))]
+pub mod obc;
+
 mod test;
 
 pub mod prelude {
@@ -29,58 +37,18 @@ pub mod prelude {
     pub use walle_macro::{OneBot, PushToMap};
 }
 
-#[cfg(any(feature = "impl-obc", feature = "app-obc"))]
-pub mod obc;
-
-/// ECAH: EventConstructor + ActionHandler
-/// EHAC: EventHandler + ActionConstructor
+/// AH: EventConstructor + ActionHandler
+/// EH: EventHandler + ActionConstructor
 pub struct OneBot<AH, EH, const V: u8> {
     pub action_handler: AH,
     pub event_handler: EH,
-
     // Some for running, None for stopped
     signal: std::sync::Mutex<Option<tokio::sync::broadcast::Sender<()>>>,
 }
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
-
 use crate::error::{WalleError, WalleResult};
-
-#[async_trait]
-pub trait ActionHandler<E, A, R, const V: u8> {
-    type Config;
-    async fn start<AH, EH>(
-        &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
-        config: Self::Config,
-    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
-    where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH, V>>) -> WalleResult<R>
-    where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-}
-
-#[async_trait]
-pub trait EventHandler<E, A, R, const V: u8> {
-    type Config;
-    async fn start<AH, EH>(
-        &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
-        config: Self::Config,
-    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
-    where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-    async fn call<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH, V>>)
-    where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-}
 
 impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
     pub fn new(action_handler: AH, event_handler: EH) -> Self {
