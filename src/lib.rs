@@ -18,7 +18,6 @@ pub mod util;
 mod test;
 
 pub mod prelude {
-    pub use crate::event::*;
     pub use crate::message::{IntoMessage, Message, MessageExt, MessageSegment};
     pub use crate::resp::{resp_error, Resp};
 

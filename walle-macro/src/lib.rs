@@ -84,8 +84,10 @@ fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> 
         for field in &v.named {
             let ident = field.ident.clone().unwrap();
             let mut s = ident.to_string();
-            if &s == "ty" {
-                s = "type".to_string();
+            match s.as_str() {
+                "ty" => s = "type".to_string(),
+                "implt" => s = "impl".to_string(),
+                _ => {}
             }
             if let Type::Path(p) = &field.ty {
                 if p.path
@@ -167,8 +169,10 @@ fn push_idents(input: &DeriveInput) -> Result<Vec<TokenStream2>> {
             for field in &v.named {
                 let i = field.ident.clone().unwrap();
                 let mut s = i.to_string();
-                if &s == "ty" {
-                    s = "type".to_string();
+                match s.as_str() {
+                    "ty" => s = "type".to_string(),
+                    "implt" => s = "impl".to_string(),
+                    _ => {}
                 }
                 out.push(quote!(
                     map.insert(#s.to_string(), self.#i.into());
