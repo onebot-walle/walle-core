@@ -177,6 +177,17 @@ action!(
 action!(LeaveGuild, guild_id: String);
 action!(GetGuildInfo, guild_id: String);
 
+#[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]
+#[action]
+pub struct SendMessage {
+    pub detail_type: String,
+    pub user_id: Option<String>,
+    pub group_id: Option<String>,
+    pub guild_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub message: crate::message::Message,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
 #[action]
 #[value]
