@@ -116,6 +116,13 @@ pub(crate) fn internal(
                         }
                     }
                 }
+
+                impl TryFrom<#span::#from_ty> for #name {
+                    type Error = #span::error::WalleError;
+                    fn try_from(mut v: #span::#from_ty) -> Result<Self, Self::Error> {
+                        Self::try_from(&mut v)
+                    }
+                }
             ))
         }
         Data::Union(_) => Err(Error::new(Span::call_site(), "union not supported")),
