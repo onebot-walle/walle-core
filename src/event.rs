@@ -1,6 +1,6 @@
 use crate::{
     prelude::WalleError,
-    util::{ExtendedMap, PushToExtendedMap, SelfId},
+    util::{ExtendedMap, ExtendedMapExt, ExtendedValue, PushToExtendedMap, SelfId},
 };
 
 use serde::{Deserialize, Serialize};
@@ -19,6 +19,45 @@ pub struct Event {
     pub sub_type: String,
     #[serde(flatten)]
     pub extra: ExtendedMap,
+}
+
+impl From<Event> for ExtendedValue {
+    fn from(e: Event) -> Self {
+        let mut map = e.extra;
+        map.insert("id".to_string(), e.id.into());
+        map.insert("impl".to_string(), e.implt.into());
+        map.insert("time".to_string(), e.time.into());
+        map.insert("self_id".to_string(), e.self_id.into());
+        map.insert("platform".to_string(), e.platform.into());
+        map.insert("type".to_string(), e.ty.into());
+        map.insert("detail_type".to_string(), e.detail_type.into());
+        map.insert("sub_type".to_string(), e.sub_type.into());
+        ExtendedValue::Map(map)
+    }
+}
+
+impl TryFrom<ExtendedValue> for Event {
+    type Error = WalleError;
+    fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+        if let ExtendedValue::Map(mut map) = value {
+            Ok(Self {
+                id: map.remove_downcast("id")?,
+                implt: map.remove_downcast("impl")?,
+                platform: map.remove_downcast("platform")?,
+                time: map.remove_downcast("time")?,
+                self_id: map.remove_downcast("self_id")?,
+                ty: map.remove_downcast("type")?,
+                detail_type: map.remove_downcast("detail_type")?,
+                sub_type: map.remove_downcast("sub_type")?,
+                extra: map,
+            })
+        } else {
+            Err(WalleError::ValueTypeNotMatch(
+                "map".to_string(),
+                format!("{:?}", value),
+            ))
+        }
+    }
 }
 
 impl SelfId for Event {
