@@ -181,6 +181,7 @@ where
         let self_id = ob
             .action_handler
             .self_ids()
+            .await
             .first()
             .cloned()
             .unwrap_or_default();

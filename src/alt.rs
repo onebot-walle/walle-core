@@ -54,8 +54,14 @@ impl<E, A, R> Default for TracingHandler<E, A, R> {
     }
 }
 
-impl<E, A, R> SelfIds for TracingHandler<E, A, R> {
-    fn self_ids(&self) -> Vec<String> {
+#[async_trait::async_trait]
+impl<E, A, R> SelfIds for TracingHandler<E, A, R>
+where
+    E: Send + Sync + 'static,
+    A: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    async fn self_ids(&self) -> Vec<String> {
         vec![]
     }
 }

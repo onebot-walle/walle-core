@@ -30,8 +30,9 @@ pub trait SelfId: Sized {
     fn self_id(&self) -> String;
 }
 
+#[async_trait::async_trait]
 pub trait SelfIds {
-    fn self_ids(&self) -> Vec<String>;
+    async fn self_ids(&self) -> Vec<String>;
 }
 
 #[doc(hidden)]

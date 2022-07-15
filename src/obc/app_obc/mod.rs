@@ -149,8 +149,13 @@ impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
     }
 }
 
-impl<A, R> SelfIds for AppOBC<A, R> {
-    fn self_ids(&self) -> Vec<String> {
+#[async_trait]
+impl<A, R> SelfIds for AppOBC<A, R>
+where
+    A: Send + 'static,
+    R: Send + 'static,
+{
+    async fn self_ids(&self) -> Vec<String> {
         self.bots.iter().map(|r| r.key().clone()).collect()
     }
 }

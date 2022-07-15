@@ -135,7 +135,7 @@ where
     tokio::spawn(async move {
         loop {
             if self_ids.is_empty() {
-                self_ids = ob.action_handler.self_ids();
+                self_ids = ob.action_handler.self_ids().await;
             }
             if let Ok(_) = signal.try_recv() {
                 break;
