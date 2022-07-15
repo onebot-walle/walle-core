@@ -1,4 +1,3 @@
-use crate::util::ExtendedMapExt;
 use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]

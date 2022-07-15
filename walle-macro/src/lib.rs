@@ -50,6 +50,7 @@ fn value_internal(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStrea
             impl TryFrom<&mut #span::util::value::ExtendedMap> for #name {
                 type Error = #span::error::WalleError;
                 fn try_from(map: &mut #span::util::value::ExtendedMap) -> Result<Self, Self::Error> {
+                    use #span::util::value::ExtendedMapExt;
                     Ok(Self #idents )
                 }
             }

@@ -138,7 +138,7 @@ use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
 #[action]
 pub struct DeleteMessage {
-    pub message_id: Option<String>,
+    pub message_id: String,
 }
 
 macro_rules! action {
