@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    extended_map,
     prelude::WalleError,
     util::{ExtendedMap, ExtendedMapExt, ExtendedValue, PushToExtendedMap, SelfId},
 };
@@ -207,6 +208,180 @@ pub struct UploadFile {
     pub path: Option<String>,
     pub data: Option<OneBotBytes>,
     pub sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UploadFileFragmented {
+    Prepare {
+        name: String,
+        total_size: i64,
+    },
+    Transfer {
+        file_id: String,
+        offset: i64,
+        size: i64,
+        date: OneBotBytes,
+    },
+    Finish {
+        file_id: String,
+        sha256: Option<String>,
+    },
+}
+
+impl ActionDeclare for UploadFileFragmented {
+    fn action() -> &'static str {
+        "upload_file_fragmented"
+    }
+}
+
+impl TryFrom<&mut Action> for UploadFileFragmented {
+    type Error = WalleError;
+    fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
+        if action.action.as_str() != Self::action() {
+            Err(WalleError::DeclareNotMatch(
+                Self::action(),
+                action.action.clone(),
+            ))
+        } else {
+            match action.params.remove_downcast::<String>("stage")?.as_str() {
+                "prepare" => Ok(Self::Prepare {
+                    name: action.params.remove_downcast("name")?,
+                    total_size: action.params.remove_downcast("total_size")?,
+                }),
+                "transfer" => Ok(Self::Transfer {
+                    file_id: action.params.remove_downcast("file_id")?,
+                    offset: action.params.remove_downcast("offset")?,
+                    size: action.params.remove_downcast("size")?,
+                    date: action.params.remove_downcast("data")?,
+                }),
+                "finish" => Ok(Self::Finish {
+                    file_id: action.params.remove_downcast("file_id")?,
+                    sha256: action.params.try_remove_downcast("sha256")?,
+                }),
+                x => Err(WalleError::DeclareNotMatch(
+                    "prepare or transfer or finish",
+                    x.to_string(),
+                )),
+            }
+        }
+    }
+}
+
+impl TryFrom<Action> for UploadFileFragmented {
+    type Error = WalleError;
+    fn try_from(mut value: Action) -> Result<Self, Self::Error> {
+        Self::try_from(&mut value)
+    }
+}
+
+impl From<UploadFileFragmented> for Action {
+    fn from(u: UploadFileFragmented) -> Self {
+        Self {
+            action: UploadFileFragmented::action().to_string(),
+            params: {
+                match u {
+                    UploadFileFragmented::Prepare { name, total_size } => extended_map! {
+                        "stage": "prepare",
+                        "name": name,
+                        "total_size": total_size
+                    },
+                    UploadFileFragmented::Transfer {
+                        file_id,
+                        offset,
+                        size,
+                        date,
+                    } => extended_map! {
+                        "stage" : "transfer",
+                        "file_id" : file_id,
+                        "offset" : offset,
+                        "size" : size,
+                        "date" : date
+                    },
+                    UploadFileFragmented::Finish { file_id, sha256 } => extended_map! {
+                        "stage" : "finish",
+                        "file_id" : file_id,
+                        "sha256" : sha256
+                    },
+                }
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GetFileFragmented {
+    Prepare {
+        file_id: String,
+    },
+    Transfer {
+        file_id: String,
+        offset: i64,
+        size: i64,
+    },
+}
+
+impl ActionDeclare for GetFileFragmented {
+    fn action() -> &'static str {
+        "get_file_fragmented"
+    }
+}
+
+impl TryFrom<&mut Action> for GetFileFragmented {
+    type Error = WalleError;
+    fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
+        if action.action.as_str() != Self::action() {
+            Err(WalleError::DeclareNotMatch(
+                Self::action(),
+                action.action.clone(),
+            ))
+        } else {
+            match action.params.remove_downcast::<String>("stage")?.as_str() {
+                "prepare" => Ok(Self::Prepare {
+                    file_id: action.params.remove_downcast("file_id")?,
+                }),
+                "transfer" => Ok(Self::Transfer {
+                    file_id: action.params.remove_downcast("file_id")?,
+                    offset: action.params.remove_downcast("offset")?,
+                    size: action.params.remove_downcast("size")?,
+                }),
+                x => Err(WalleError::DeclareNotMatch(
+                    "prepare or transfer or finish",
+                    x.to_string(),
+                )),
+            }
+        }
+    }
+}
+
+impl TryFrom<Action> for GetFileFragmented {
+    type Error = WalleError;
+    fn try_from(mut value: Action) -> Result<Self, Self::Error> {
+        Self::try_from(&mut value)
+    }
+}
+
+impl From<GetFileFragmented> for Action {
+    fn from(g: GetFileFragmented) -> Self {
+        Self {
+            action: GetFileFragmented::action().to_string(),
+            params: match g {
+                GetFileFragmented::Prepare { file_id } => extended_map! {
+                    "stage": "prepare",
+                    "file_id": file_id
+                },
+                GetFileFragmented::Transfer {
+                    file_id,
+                    offset,
+                    size,
+                } => extended_map! {
+                    "stage": "transfer",
+                    "file_id": file_id,
+                    "offset": offset,
+                    "size": size
+                },
+            },
+        }
+    }
 }
 
 #[test]
