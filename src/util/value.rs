@@ -53,6 +53,12 @@ impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
 impl_from!(Bytes, OneBotBytes);
 
+impl From<()> for ExtendedValue {
+    fn from(_: ()) -> Self {
+        ExtendedValue::Null
+    }
+}
+
 impl From<Vec<u8>> for ExtendedValue {
     fn from(v: Vec<u8>) -> Self {
         ExtendedValue::Bytes(OneBotBytes(v))
