@@ -220,7 +220,7 @@ pub enum UploadFileFragmented {
         file_id: String,
         offset: i64,
         size: i64,
-        date: OneBotBytes,
+        data: OneBotBytes,
     },
     Finish {
         file_id: String,
@@ -252,7 +252,7 @@ impl TryFrom<&mut Action> for UploadFileFragmented {
                     file_id: action.params.remove_downcast("file_id")?,
                     offset: action.params.remove_downcast("offset")?,
                     size: action.params.remove_downcast("size")?,
-                    date: action.params.remove_downcast("data")?,
+                    data: action.params.remove_downcast("data")?,
                 }),
                 "finish" => Ok(Self::Finish {
                     file_id: action.params.remove_downcast("file_id")?,
@@ -289,13 +289,13 @@ impl From<UploadFileFragmented> for Action {
                         file_id,
                         offset,
                         size,
-                        date,
+                        data,
                     } => extended_map! {
                         "stage" : "transfer",
                         "file_id" : file_id,
                         "offset" : offset,
                         "size" : size,
-                        "date" : date
+                        "date" : data
                     },
                     UploadFileFragmented::Finish { file_id, sha256 } => extended_map! {
                         "stage" : "finish",
