@@ -81,13 +81,13 @@ fn event() {
             "123234".to_string(),
             Message {
                 message: vec![
-                    crate::message::MessageSegment {
+                    crate::segment::MessageSegment {
                         ty: "text".to_string(),
                         data: extended_map! {
                             "text": "OneBot is not a bot"
                         },
                     },
-                    crate::message::MessageSegment {
+                    crate::segment::MessageSegment {
                         ty: "image".to_string(),
                         data: extended_map! {
                             "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
@@ -244,7 +244,7 @@ fn event() {
 
 #[test]
 fn message() {
-    use crate::message::*;
+    use crate::segment::*;
     use crate::prelude::WalleError;
     use crate::util::value::Value;
     use crate::{extended_map, extended_value};

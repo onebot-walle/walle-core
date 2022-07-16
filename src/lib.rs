@@ -10,7 +10,7 @@ pub mod alt;
 pub mod config;
 pub mod error;
 pub mod event;
-pub mod message;
+pub mod segment;
 pub mod resp;
 pub mod structs;
 pub mod util;
@@ -26,7 +26,7 @@ pub mod obc;
 mod test;
 
 pub mod prelude {
-    pub use crate::message::{IntoMessage, Message, MessageExt, MessageSegment};
+    pub use crate::segment::{IntoMessage, Segments, MessageExt, MessageSegment};
     pub use crate::resp::{resp_error, Resp};
 
     pub use super::*;

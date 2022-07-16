@@ -1,13 +1,13 @@
 use walle_core::event::{BaseEvent, Event};
 use walle_core::extended_map;
-use walle_core::message::{Message, MessageSegment};
+use walle_core::segment::{Segments, MessageSegment};
 use walle_core::prelude::OneBot;
 
 #[derive(Debug, OneBot, PartialEq)]
 #[event(type = "message")]
 pub struct MessageE {
     pub message_id: String,
-    pub message: Message,
+    pub message: Segments,
     pub alt_message: String,
     pub user_id: String,
 }

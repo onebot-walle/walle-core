@@ -1,11 +1,11 @@
 use crate::{
     extended_map, extended_value,
     prelude::WalleError,
-    util::{ValueMap, ValueMapExt, Value},
+    util::{Value, ValueMap, ValueMapExt},
 };
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
-pub type Message = Vec<MessageSegment>;
+pub type Segments = Vec<MessageSegment>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MessageSegment {
@@ -111,17 +111,17 @@ impl<T: for<'a> TryFrom<&'a mut MessageSegment, Error = WalleError>> TryFrom<Mes
 }
 
 pub trait IntoMessage {
-    fn into_message(self) -> Message;
+    fn into_message(self) -> Segments;
 }
 
-impl IntoMessage for Message {
-    fn into_message(self) -> Message {
+impl IntoMessage for Segments {
+    fn into_message(self) -> Segments {
         self
     }
 }
 
 impl<T: Into<MessageSegment>> IntoMessage for T {
-    fn into_message(self) -> Message {
+    fn into_message(self) -> Segments {
         vec![self.into()]
     }
 }
@@ -215,7 +215,7 @@ pub trait MessageExt {
     fn extract<T: TryFrom<MessageSegment>>(self) -> Vec<T>;
 }
 
-impl MessageExt for Message {
+impl MessageExt for Segments {
     fn extract_plain_text(&self) -> String {
         self.iter()
             .filter_map(|segment| {

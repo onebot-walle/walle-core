@@ -28,9 +28,9 @@ pub(crate) fn internal(
         )
     } else {
         (
-            quote!(message::SegmentDeclare),
+            quote!(segment::SegmentDeclare),
             quote!(ty),
-            quote!(message::MessageSegment),
+            quote!(segment::MessageSegment),
             quote!(data),
         )
     };

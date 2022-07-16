@@ -186,7 +186,7 @@ pub struct SendMessage {
     pub group_id: Option<String>,
     pub guild_id: Option<String>,
     pub channel_id: Option<String>,
-    pub message: crate::message::Message,
+    pub message: crate::segment::Segments,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
