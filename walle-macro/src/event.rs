@@ -192,7 +192,7 @@ fn event_impl(
             impl TryFrom<&mut #span ::event::Event> for #name {
                 type Error = #span ::error::WalleError;
                 fn try_from(e: &mut #span ::event::Event) -> Result<Self, Self::Error> {
-                    use #span ::util::value::ExtendedMapExt;
+                    use #span ::util::value::ValueMapExt;
                     #check
                     Ok(Self #idents)
                 }

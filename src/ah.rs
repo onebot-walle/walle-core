@@ -8,7 +8,7 @@ use crate::EventHandler;
 use crate::OneBot;
 
 #[async_trait]
-pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds {
+pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds + Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
@@ -18,10 +18,8 @@ pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds {
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
-    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH, V>>) -> WalleResult<R>
-    where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+    async fn call(&self, action: A) -> WalleResult<R>;
+    async fn shutdown(&self) {}
 }
 
 pub trait GetStatus {

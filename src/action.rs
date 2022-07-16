@@ -3,43 +3,43 @@ use serde::{Deserialize, Serialize};
 use crate::{
     extended_map,
     prelude::WalleError,
-    util::{ExtendedMap, ExtendedMapExt, ExtendedValue, PushToExtendedMap, SelfId},
+    util::{ValueMap, ValueMapExt, Value, PushToValueMap, SelfId},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Action {
     pub action: String,
-    pub params: ExtendedMap,
+    pub params: ValueMap,
 }
 
-impl ExtendedMapExt for Action {
+impl ValueMapExt for Action {
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.params.get_downcast(key)
     }
     fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.params.remove_downcast(key)
     }
     fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.params.try_get_downcast(key)
     }
     fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.params.try_remove_downcast(key)
     }
     fn push<T>(&mut self, value: T)
     where
-        T: PushToExtendedMap,
+        T: PushToValueMap,
     {
         value.push_to(&mut self.params)
     }
@@ -54,7 +54,7 @@ impl SelfId for Action {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseAction<T> {
     pub action: T,
-    pub extra: ExtendedMap,
+    pub extra: ValueMap,
 }
 
 pub trait ActionDeclare {
@@ -63,7 +63,7 @@ pub trait ActionDeclare {
 
 impl<T> From<BaseAction<T>> for Action
 where
-    T: ActionDeclare + PushToExtendedMap,
+    T: ActionDeclare + PushToValueMap,
 {
     fn from(mut action: BaseAction<T>) -> Self {
         Self {
@@ -101,18 +101,18 @@ impl ActionDeclare for GetLatestEvents {
     }
 }
 
-impl PushToExtendedMap for GetLatestEvents {
-    fn push_to(self, map: &mut ExtendedMap) {
+impl PushToValueMap for GetLatestEvents {
+    fn push_to(self, map: &mut ValueMap) {
         map.insert("limit".to_owned(), self.limit.into());
         map.insert("timeout".to_owned(), self.timeout.into());
     }
 }
 
-impl Into<ExtendedValue> for GetLatestEvents {
-    fn into(self) -> ExtendedValue {
-        let mut map = ExtendedMap::default();
+impl Into<Value> for GetLatestEvents {
+    fn into(self) -> Value {
+        let mut map = ValueMap::default();
         self.push_to(&mut map);
-        ExtendedValue::Map(map)
+        Value::Map(map)
     }
 }
 
@@ -133,9 +133,9 @@ impl TryFrom<&mut Action> for GetLatestEvents {
     }
 }
 
-use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
+use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[action]
 pub struct DeleteMessage {
     pub message_id: String,
@@ -143,7 +143,7 @@ pub struct DeleteMessage {
 
 macro_rules! action {
     ($name: ident, $($f: ident: $fty: ty),*) => {
-        #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+        #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
         #[action]
         pub struct $name {
             $(pub $f: $fty,)*
@@ -153,7 +153,7 @@ macro_rules! action {
 
 use crate::util::OneBotBytes;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[action]
 pub struct GetUserInfo {
     pub user_id: String,
@@ -178,7 +178,7 @@ action!(
 action!(LeaveGuild, guild_id: String);
 action!(GetGuildInfo, guild_id: String);
 
-#[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]
+#[derive(Debug, Clone, PartialEq, OneBot, PushToValueMap)]
 #[action]
 pub struct SendMessage {
     pub detail_type: String,
@@ -189,7 +189,7 @@ pub struct SendMessage {
     pub message: crate::message::Message,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[action]
 #[value]
 pub struct GetFile {
@@ -197,7 +197,7 @@ pub struct GetFile {
     pub ty: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[action]
 #[value]
 pub struct UploadFile {

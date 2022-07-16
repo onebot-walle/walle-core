@@ -87,11 +87,7 @@ where
         }
         Ok(tasks)
     }
-    async fn call<AH, EH>(&self, action: A, _ob: &Arc<OneBot<AH, EH, 12>>) -> WalleResult<R>
-    where
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
-    {
+    async fn call(&self, action: A) -> WalleResult<R> {
         match self.bots.get_bot(&action.self_id()) {
             Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();

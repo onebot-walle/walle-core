@@ -5,18 +5,18 @@ use super::OneBotBytes;
 use crate::error::{WalleError, WalleResult};
 
 /// 扩展字段 Map
-pub type ExtendedMap = HashMap<String, ExtendedValue>;
+pub type ValueMap = HashMap<String, Value>;
 
 /// 扩展字段 MapValue
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(untagged)]
-pub enum ExtendedValue {
+pub enum Value {
     Str(String),
     F64(f64),
     Int(i64),
     Bool(bool),
-    Map(ExtendedMap),
-    List(Vec<ExtendedValue>),
+    Map(ValueMap),
+    List(Vec<Value>),
     Bytes(OneBotBytes),
     #[serde(serialize_with = "null_serialize")]
     // deserialize_with = "null_deserialize" will cause error
@@ -25,16 +25,16 @@ pub enum ExtendedValue {
 
 macro_rules! impl_from {
     ($inty: tt,$ty: ty) => {
-        impl From<$ty> for ExtendedValue {
+        impl From<$ty> for Value {
             fn from(v: $ty) -> Self {
-                ExtendedValue::$inty(v)
+                Value::$inty(v)
             }
         }
     };
     ($inty: tt, $ty: ty, $ty0:ty) => {
-        impl From<$ty> for ExtendedValue {
+        impl From<$ty> for Value {
             fn from(v: $ty) -> Self {
-                ExtendedValue::$inty(v as $ty0)
+                Value::$inty(v as $ty0)
             }
         }
     };
@@ -53,75 +53,75 @@ impl_from!(F64, f32, f64);
 impl_from!(Bool, bool);
 impl_from!(Bytes, OneBotBytes);
 
-impl From<()> for ExtendedValue {
+impl From<()> for Value {
     fn from(_: ()) -> Self {
-        ExtendedValue::Null
+        Value::Null
     }
 }
 
-impl From<Vec<u8>> for ExtendedValue {
+impl From<Vec<u8>> for Value {
     fn from(v: Vec<u8>) -> Self {
-        ExtendedValue::Bytes(OneBotBytes(v))
+        Value::Bytes(OneBotBytes(v))
     }
 }
 
-impl From<&[u8]> for ExtendedValue {
+impl From<&[u8]> for Value {
     fn from(v: &[u8]) -> Self {
-        ExtendedValue::Bytes(OneBotBytes(v.to_vec()))
+        Value::Bytes(OneBotBytes(v.to_vec()))
     }
 }
 
-impl From<&str> for ExtendedValue {
+impl From<&str> for Value {
     fn from(v: &str) -> Self {
-        ExtendedValue::Str(v.to_owned())
+        Value::Str(v.to_owned())
     }
 }
 
-impl<T> From<HashMap<String, T>> for ExtendedValue
+impl<T> From<HashMap<String, T>> for Value
 where
-    T: Into<ExtendedValue>,
+    T: Into<Value>,
 {
     fn from(v: HashMap<String, T>) -> Self {
         let mut map = HashMap::new();
         for (k, v) in v {
             map.insert(k, v.into());
         }
-        ExtendedValue::Map(map)
+        Value::Map(map)
     }
 }
 
-impl<T> From<Vec<T>> for ExtendedValue
+impl<T> From<Vec<T>> for Value
 where
-    T: Into<ExtendedValue>,
+    T: Into<Value>,
 {
     fn from(v: Vec<T>) -> Self {
         let mut list = Vec::new();
         for v in v {
             list.push(v.into());
         }
-        ExtendedValue::List(list)
+        Value::List(list)
     }
 }
 
-impl<T> From<Option<T>> for ExtendedValue
+impl<T> From<Option<T>> for Value
 where
-    T: Into<ExtendedValue>,
+    T: Into<Value>,
 {
     fn from(v: Option<T>) -> Self {
         match v {
             Some(v) => v.into(),
-            None => ExtendedValue::Null,
+            None => Value::Null,
         }
     }
 }
 
 macro_rules! impl_try_from {
     ($inty: tt, $ty: ty) => {
-        impl TryFrom<ExtendedValue> for $ty {
+        impl TryFrom<Value> for $ty {
             type Error = WalleError;
-            fn try_from(i: ExtendedValue) -> Result<$ty, Self::Error> {
+            fn try_from(i: Value) -> Result<$ty, Self::Error> {
                 match i {
-                    ExtendedValue::$inty(v) => Ok(v),
+                    Value::$inty(v) => Ok(v),
                     v => Err(WalleError::ValueTypeNotMatch(
                         std::any::type_name::<$ty>().to_string(),
                         format!("{:?}", v),
@@ -131,11 +131,11 @@ macro_rules! impl_try_from {
         }
     };
     ($inty: tt as $ty: ty) => {
-        impl TryFrom<ExtendedValue> for $ty {
+        impl TryFrom<Value> for $ty {
             type Error = WalleError;
-            fn try_from(i: ExtendedValue) -> Result<$ty, Self::Error> {
+            fn try_from(i: Value) -> Result<$ty, Self::Error> {
                 match i {
-                    ExtendedValue::$inty(v) => Ok(v as $ty),
+                    Value::$inty(v) => Ok(v as $ty),
                     v => Err(WalleError::ValueTypeNotMatch(
                         std::any::type_name::<$ty>().to_string(),
                         format!("{:?}", v),
@@ -158,14 +158,14 @@ impl_try_from!(F64, f64);
 impl_try_from!(F64 as f32);
 impl_try_from!(Bool, bool);
 
-impl<V> TryFrom<ExtendedValue> for Vec<V>
+impl<V> TryFrom<Value> for Vec<V>
 where
-    V: TryFrom<ExtendedValue, Error = WalleError>,
+    V: TryFrom<Value, Error = WalleError>,
 {
     type Error = WalleError;
-    fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            ExtendedValue::List(l) => l.into_iter().map(|v| v.try_into()).collect(),
+            Value::List(l) => l.into_iter().map(|v| v.try_into()).collect(),
             v => Err(WalleError::ValueTypeNotMatch(
                 format!("List<{}>", std::any::type_name::<V>()),
                 format!("{:?}", v),
@@ -174,14 +174,14 @@ where
     }
 }
 
-impl<V> TryFrom<ExtendedValue> for HashMap<String, V>
+impl<V> TryFrom<Value> for HashMap<String, V>
 where
-    V: TryFrom<ExtendedValue, Error = WalleError>,
+    V: TryFrom<Value, Error = WalleError>,
 {
     type Error = WalleError;
-    fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            ExtendedValue::Map(m) => m
+            Value::Map(m) => m
                 .into_iter()
                 .map(|e| e.1.try_into().map(|v| (e.0, v)))
                 .collect(),
@@ -207,12 +207,12 @@ where
 // }
 
 /// json bytes could be String
-impl TryFrom<ExtendedValue> for OneBotBytes {
+impl TryFrom<Value> for OneBotBytes {
     type Error = WalleError;
-    fn try_from(value: ExtendedValue) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            ExtendedValue::Bytes(v) => Ok(v),
-            ExtendedValue::Str(s) => Ok(OneBotBytes(
+            Value::Bytes(v) => Ok(v),
+            Value::Str(s) => Ok(OneBotBytes(
                 base64::decode(&s).map_err(|_| WalleError::IllegalBase64(s))?,
             )),
             v => Err(WalleError::ValueTypeNotMatch(
@@ -240,47 +240,47 @@ where
 struct ValueVisitor;
 
 impl<'de> Visitor<'de> for ValueVisitor {
-    type Value = ExtendedValue;
+    type Value = Value;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("accepts string, f64, int, bool, map, list, null")
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
-        Ok(ExtendedValue::Bool(v))
+        Ok(Value::Bool(v))
     }
 
     fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
-        Ok(ExtendedValue::Int(v))
+        Ok(Value::Int(v))
     }
 
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
-        Ok(ExtendedValue::Int(v as i64))
+        Ok(Value::Int(v as i64))
     }
 
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E> {
-        Ok(ExtendedValue::F64(v))
+        Ok(Value::F64(v))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Str(v.to_owned()))
+        Ok(Value::Str(v.to_owned()))
     }
 
     fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Bytes(OneBotBytes(v.to_owned())))
+        Ok(Value::Bytes(OneBotBytes(v.to_owned())))
     }
 
     fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Bytes(OneBotBytes(v)))
+        Ok(Value::Bytes(OneBotBytes(v)))
     }
 
     fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
@@ -291,7 +291,7 @@ impl<'de> Visitor<'de> for ValueVisitor {
         while let Some(value) = seq.next_element()? {
             values.push(value);
         }
-        Ok(ExtendedValue::List(values))
+        Ok(Value::List(values))
     }
 
     fn visit_map<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
@@ -302,25 +302,25 @@ impl<'de> Visitor<'de> for ValueVisitor {
         while let Some((key, value)) = visitor.next_entry()? {
             map.insert(key, value);
         }
-        Ok(ExtendedValue::Map(map))
+        Ok(Value::Map(map))
     }
 
     fn visit_none<E>(self) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Null)
+        Ok(Value::Null)
     }
 
     fn visit_unit<E>(self) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(ExtendedValue::Null)
+        Ok(Value::Null)
     }
 }
 
-impl<'de> Deserialize<'de> for ExtendedValue {
+impl<'de> Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -338,10 +338,10 @@ macro_rules! downcast_fn {
 }
 
 #[allow(dead_code)]
-impl ExtendedValue {
+impl Value {
     pub fn downcast<T>(self) -> WalleResult<T>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.try_into()
     }
@@ -352,7 +352,7 @@ impl ExtendedValue {
     downcast_fn!(downcast_bool, bool);
     downcast_fn!(downcast_bytes, OneBotBytes);
 
-    pub fn downcast_map(self) -> WalleResult<HashMap<String, ExtendedValue>> {
+    pub fn downcast_map(self) -> WalleResult<HashMap<String, Value>> {
         if let Self::Map(m) = self {
             Ok(m)
         } else {
@@ -363,7 +363,7 @@ impl ExtendedValue {
         }
     }
 
-    pub fn downcast_list(self) -> WalleResult<Vec<ExtendedValue>> {
+    pub fn downcast_list(self) -> WalleResult<Vec<Value>> {
         if let Self::List(l) = self {
             Ok(l)
         } else {
@@ -409,14 +409,14 @@ impl ExtendedValue {
         }
     }
 
-    pub fn as_map(&self) -> Option<&ExtendedMap> {
+    pub fn as_map(&self) -> Option<&ValueMap> {
         match self {
             Self::Map(m) => Some(m),
             _ => None,
         }
     }
 
-    pub fn as_list(&self) -> Option<&Vec<ExtendedValue>> {
+    pub fn as_list(&self) -> Option<&Vec<Value>> {
         match self {
             Self::List(l) => Some(l),
             _ => None,
@@ -449,36 +449,36 @@ impl ExtendedValue {
     }
 }
 
-pub trait PushToExtendedMap {
-    fn push_to(self, _: &mut ExtendedMap)
+pub trait PushToValueMap {
+    fn push_to(self, _: &mut ValueMap)
     where
         Self: Sized,
     {
     }
 }
 
-pub trait ExtendedMapExt {
+pub trait ValueMapExt {
     fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>;
+        T: TryFrom<Value, Error = WalleError>;
     fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>;
+        T: TryFrom<Value, Error = WalleError>;
     fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>;
+        T: TryFrom<Value, Error = WalleError>;
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>;
+        T: TryFrom<Value, Error = WalleError>;
     fn push<T>(&mut self, value: T)
     where
-        T: PushToExtendedMap;
+        T: PushToValueMap;
 }
 
-impl ExtendedMapExt for ExtendedMap {
+impl ValueMapExt for ValueMap {
     fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.remove(key)
             .map(|v| {
@@ -491,14 +491,14 @@ impl ExtendedMapExt for ExtendedMap {
     }
     fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.try_remove_downcast(key)
             .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
     }
     fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.get(key)
             .map(|v| {
@@ -511,14 +511,14 @@ impl ExtendedMapExt for ExtendedMap {
     }
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
-        T: TryFrom<ExtendedValue, Error = WalleError>,
+        T: TryFrom<Value, Error = WalleError>,
     {
         self.try_get_downcast(key)
             .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
     }
     fn push<T>(&mut self, value: T)
     where
-        T: PushToExtendedMap,
+        T: PushToValueMap,
     {
         value.push_to(self)
     }
@@ -528,13 +528,13 @@ impl ExtendedMapExt for ExtendedMap {
 /// ExtendedValue 声明宏，类似于`serde_json::json!`
 macro_rules! extended_value {
     (null) => {
-        $crate::util::ExtendedValue::Null
+        $crate::util::Value::Null
     };
     ([$($tt:tt)*]) => {
-        $crate::util::ExtendedValue::List($crate::extended_vec![$($tt)*])
+        $crate::util::Value::List($crate::extended_vec![$($tt)*])
     };
     ({$($tt:tt)*}) => {
-        $crate::util::ExtendedValue::Map($crate::extended_map!{$($tt)*})
+        $crate::util::Value::Map($crate::extended_map!{$($tt)*})
     };
     ($s:expr) => {
         $s.to_owned().into()
@@ -548,7 +548,7 @@ macro_rules! extended_vec {
         vec![$($elems),*]
     };
     (@internal [$($elems: expr,)*] null $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::util::ExtendedValue::Null] $($rest)*]
+        $crate::extended_vec![@internal [$($elems,)* $crate::util::Value::Null] $($rest)*]
     };
     (@internal [$($elems: expr,)*] [$($vec: tt)*] $($rest:tt)*) => {
         $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!([$($vec)*])] $($rest)*]
@@ -605,7 +605,7 @@ macro_rules! extended_map {
     {$($tt:tt)*} => {
         {
             #[allow(unused_mut)]
-            let mut map = $crate::util::ExtendedMap::default();
+            let mut map = $crate::util::ValueMap::default();
             $crate::extended_map!(@internal map () ($($tt)*));
             map
         }
@@ -617,7 +617,7 @@ fn macro_test() {
     println!("{:?}", extended_value!(null));
     println!(
         "{:?}",
-        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, ExtendedValue::Bytes(vec![1, 2, 3].into())]
+        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, Value::Bytes(vec![1, 2, 3].into())]
     );
     let a = "a";
     println!("{:?}", extended_value!([1, "c", 3.]));

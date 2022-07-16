@@ -246,9 +246,9 @@ fn event() {
 fn message() {
     use crate::message::*;
     use crate::prelude::WalleError;
-    use crate::util::value::ExtendedValue;
+    use crate::util::value::Value;
     use crate::{extended_map, extended_value};
-    fn test<T>(message: (ExtendedValue, MessageSegment, T))
+    fn test<T>(message: (Value, MessageSegment, T))
     where
         T: TryFrom<MessageSegment, Error = WalleError> + std::fmt::Debug + PartialEq,
     {
@@ -300,12 +300,12 @@ fn message() {
 
 #[test]
 fn extendedmap_test() {
-    use crate::util::{ExtendedMap, ExtendedValue};
-    let mut map = ExtendedMap::new();
-    map.insert("key1".to_owned(), ExtendedValue::Null);
+    use crate::util::{ValueMap, Value};
+    let mut map = ValueMap::new();
+    map.insert("key1".to_owned(), Value::Null);
     println!("{}", serde_json::to_string(&map).unwrap());
     let d = r#"{"key":3}"#;
-    let map: ExtendedMap = serde_json::from_str(d).unwrap();
+    let map: ValueMap = serde_json::from_str(d).unwrap();
     println!("{:?}", map);
 }
 
@@ -335,8 +335,8 @@ fn enum_action() {
 #[test]
 fn option_action() {
     use crate::action::Action;
-    use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
-    #[derive(Debug, OneBot, PushToMap)]
+    use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+    #[derive(Debug, OneBot, PushToValueMap)]
     #[action]
     pub struct MySeg {
         pub text: Option<String>,

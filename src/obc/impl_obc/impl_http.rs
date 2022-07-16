@@ -112,7 +112,7 @@ where
                     match action {
                         Ok(action) => {
                             let (action, echo) = action.unpack();
-                            match ob.action_handler.call(action, &ob).await {
+                            match ob.action_handler.call(action).await {
                                 Ok(r) => Ok(encode2resp(echo.pack(r), &content_type)),
                                 Err(e) => {
                                     warn!(target: super::OBC, "handle action error: {}", e);
@@ -263,7 +263,7 @@ async fn webhook_push<E, A, R, AH, EH>(
                         }
                     };
                     for a in actions {
-                        let _ = ob.action_handler.call(a, &ob).await;
+                        let _ = ob.action_handler.call(a).await;
                     }
                 }
                 x => info!("unhandle webhook push status: {}", x),

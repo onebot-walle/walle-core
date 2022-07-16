@@ -47,23 +47,23 @@ fn value_internal(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStrea
     if let Data::Struct(data) = &input.data {
         let idents = try_from_idents(&data.fields, quote!(map))?;
         Ok(quote!(
-            impl TryFrom<&mut #span::util::value::ExtendedMap> for #name {
+            impl TryFrom<&mut #span::util::value::ValueMap> for #name {
                 type Error = #span::error::WalleError;
-                fn try_from(map: &mut #span::util::value::ExtendedMap) -> Result<Self, Self::Error> {
-                    use #span::util::value::ExtendedMapExt;
+                fn try_from(map: &mut #span::util::value::ValueMap) -> Result<Self, Self::Error> {
+                    use #span::util::value::ValueMapExt;
                     Ok(Self #idents )
                 }
             }
-            impl TryFrom<#span::util::value::ExtendedMap> for #name {
+            impl TryFrom<#span::util::value::ValueMap> for #name {
                 type Error = #span::error::WalleError;
-                fn try_from(mut map: #span::util::value::ExtendedMap) -> Result<Self, Self::Error> {
+                fn try_from(mut map: #span::util::value::ValueMap) -> Result<Self, Self::Error> {
                     Self::try_from(&mut map)
                 }
             }
-            impl TryFrom<#span::util::value::ExtendedValue> for #name {
+            impl TryFrom<#span::util::value::Value> for #name {
                 type Error = #span::error::WalleError;
-                fn try_from(v: #span::util::value::ExtendedValue) -> Result<Self, Self::Error> {
-                    if let #span::util::value::ExtendedValue::Map(mut map) = v {
+                fn try_from(v: #span::util::value::Value) -> Result<Self, Self::Error> {
+                    if let #span::util::value::Value::Map(mut map) = v {
                         Self::try_from(&mut map)
                     } else {
                         Err(#span::error::WalleError::ValueTypeNotMatch(
@@ -124,13 +124,13 @@ fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> 
     }
 }
 
-#[proc_macro_derive(PushToMap)]
+#[proc_macro_derive(PushToValueMap)]
 pub fn push_to_map(token: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(token as DeriveInput);
     flatten(push_to_map_internal(input, quote!(walle_core))).into()
 }
 
-#[proc_macro_derive(_PushToMap)]
+#[proc_macro_derive(_PushToValueMap)]
 pub fn _push_to_map(token: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(token as DeriveInput);
     flatten(push_to_map_internal(input, quote!(crate))).into()
@@ -140,24 +140,24 @@ fn push_to_map_internal(input: DeriveInput, span: TokenStream2) -> Result<TokenS
     let name = &input.ident;
     let idents = push_idents(&input)?;
     Ok(quote!(
-        impl #span::util::value::PushToExtendedMap for #name {
-            fn push_to(self, map: &mut #span ::util::value::ExtendedMap) {
+        impl #span::util::value::PushToValueMap for #name {
+            fn push_to(self, map: &mut #span ::util::value::ValueMap) {
                 #(#idents)*
             }
         }
 
-        impl From<#name> for #span::util::value::ExtendedMap {
+        impl From<#name> for #span::util::value::ValueMap {
             fn from(i: #name) -> Self {
-                use #span ::util::value::PushToExtendedMap;
+                use #span ::util::value::PushToValueMap;
                 let mut map = Self::default();
                 i.push_to(&mut map);
                 map
             }
         }
 
-        impl From<#name> for #span::util::value::ExtendedValue {
+        impl From<#name> for #span::util::value::Value {
             fn from(i: #name) -> Self {
-                #span::util::value::ExtendedValue::Map(i.into())
+                #span::util::value::Value::Map(i.into())
             }
         }
     ))

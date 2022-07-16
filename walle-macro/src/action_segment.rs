@@ -54,7 +54,7 @@ pub(crate) fn internal(
                 impl TryFrom<&mut #span::#from_ty> for #name {
                     type Error = #span::error::WalleError;
                     fn try_from(v: &mut #span::#from_ty) -> Result<Self, Self::Error> {
-                        use #span::util::value::ExtendedMapExt;
+                        use #span::util::value::ValueMapExt;
                         if v.#fn_name.as_str() != #s {
                             Err(#span::error::WalleError::DeclareNotMatch(
                                 #s,
@@ -69,7 +69,7 @@ pub(crate) fn internal(
                 impl TryFrom<#span::#from_ty> for #name {
                     type Error = #span::error::WalleError;
                     fn try_from(mut v: #span::#from_ty) -> Result<Self, Self::Error> {
-                        use #span::util::value::ExtendedMapExt;
+                        use #span::util::value::ValueMapExt;
                         if v.#fn_name.as_str() != #s {
                             Err(#span::error::WalleError::DeclareNotMatch(
                                 #s,
@@ -106,7 +106,7 @@ pub(crate) fn internal(
                 impl TryFrom<&mut #span::#from_ty> for #name {
                     type Error = #span::error::WalleError;
                     fn try_from(v: &mut #span::#from_ty) -> Result<Self, Self::Error> {
-                        use #span::util::value::ExtendedMapExt;
+                        use #span::util::value::ValueMapExt;
                         match v.#fn_name.as_str() {
                             #(#vars,)*
                             _ => Err(#span::error::WalleError::DeclareNotMatch(

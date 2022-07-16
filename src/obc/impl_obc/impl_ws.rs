@@ -1,7 +1,7 @@
 use crate::{
     error::{WalleError, WalleResult},
     resp::{resp_error, Resp},
-    util::{AuthReqHeaderExt, Echo, ExtendedMap, ProtocolItem},
+    util::{AuthReqHeaderExt, Echo, ValueMap, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
 use crate::{
@@ -234,7 +234,7 @@ where
     AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
     EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
 {
-    let err_handle = |a: Echo<ExtendedMap>, msg: String| -> Echo<Resp> {
+    let err_handle = |a: Echo<ValueMap>, msg: String| -> Echo<Resp> {
         let (_, echo_s) = a.unpack();
         warn!(target: crate::WALLE_CORE, "action warn: {}", msg);
         if msg.starts_with("missing field") {
@@ -252,7 +252,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.action_handler.call(action, &ob).await {
+                        match ob.action_handler.call(action).await {
                             Ok(r) => {
                                 tx.send(echos.pack(r)).ok();
                             }
@@ -286,7 +286,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.action_handler.call(action, &ob).await {
+                        match ob.action_handler.call(action).await {
                             Ok(r) => {
                                 tx.send(echos.pack(r)).ok();
                             }

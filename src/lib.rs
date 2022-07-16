@@ -31,10 +31,10 @@ pub mod prelude {
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
-    pub use crate::util::{Echo, ExtendedMap, ExtendedMapExt, ExtendedValue, OneBotBytes, SelfId};
+    pub use crate::util::{Echo, ValueMap, ValueMapExt, Value, OneBotBytes, SelfId};
     pub use crate::{extended_map, extended_value, extended_vec, extra_struct};
     pub use async_trait::async_trait;
-    pub use walle_macro::{OneBot, PushToMap};
+    pub use walle_macro::{OneBot, PushToValueMap};
 }
 
 /// AH: EventConstructor + ActionHandler
@@ -76,7 +76,7 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             let (tx, _) = tokio::sync::broadcast::channel(1);
             *signal = Some(tx);
         } else {
-            return Err(WalleError::AlreadyRunning);
+            return Err(WalleError::AlreadyStarted);
         }
         drop(signal);
         let mut tasks = vec![];
@@ -108,17 +108,26 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             .lock()
             .unwrap()
             .as_ref()
-            .ok_or(WalleError::NotRunning)?
+            .ok_or(WalleError::NotStarted)?
             .subscribe())
     }
-    pub fn shutdown(&self) -> WalleResult<()> {
+    pub async fn shutdown<E, A, R>(&self) -> WalleResult<()>
+    where
+        E: Send + Sync + 'static,
+        A: Send + Sync + 'static,
+        R: Send + Sync + 'static,
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    {
         let tx = self
             .signal
             .lock()
             .unwrap()
             .take()
-            .ok_or(WalleError::NotRunning)?;
+            .ok_or(WalleError::NotStarted)?;
         tx.send(()).ok();
+        self.action_handler.shutdown().await;
+        self.event_handler.shutdown().await;
         Ok(())
     }
 }

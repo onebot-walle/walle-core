@@ -24,10 +24,10 @@ pub enum WalleError {
     #[error("{0}")]
     IO(#[from] std::io::Error),
     // Running Time Error
-    #[error("OneBot is already running")]
-    AlreadyRunning,
-    #[error("OneBot is not running")]
-    NotRunning,
+    #[error("OneBot is already started")]
+    AlreadyStarted,
+    #[error("OneBot is not started")]
+    NotStarted,
 
     // Extended
     #[error("ExtendedMap missed key: {0}")]

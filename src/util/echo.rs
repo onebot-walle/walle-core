@@ -1,4 +1,4 @@
-use super::{timestamp_nano, ExtendedMap};
+use super::{timestamp_nano, ValueMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -25,7 +25,7 @@ impl Serialize for EchoInner {
         match self {
             EchoInner::S(s) => s.serialize(serializer),
             EchoInner::Map(s) => {
-                let map: ExtendedMap = serde_json::from_str(s).unwrap();
+                let map: ValueMap = serde_json::from_str(s).unwrap();
                 map.serialize(serializer)
             }
         }
@@ -52,7 +52,7 @@ impl<'de> Visitor<'de> for EchoInnerVisitor {
     where
         M: serde::de::MapAccess<'de>,
     {
-        let mut s = ExtendedMap::new();
+        let mut s = ValueMap::new();
         while let Some(key) = map.next_key::<String>()? {
             s.insert(key, map.next_value()?);
         }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::{WalleError, WalleResult},
-    util::ExtendedValue,
+    util::Value,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -12,14 +12,14 @@ pub struct Resp {
     /// 返回码，必须符合返回码规则
     pub retcode: u32,
     /// 响应数据
-    pub data: ExtendedValue,
+    pub data: Value,
     /// 错误信息，当动作执行失败时，建议在此填写人类可读的错误信息，当执行成功时，应为空字符串
     pub message: String,
 }
 
 impl<T> From<T> for Resp
 where
-    T: Into<ExtendedValue>,
+    T: Into<Value>,
 {
     fn from(data: T) -> Self {
         Self {
@@ -48,14 +48,14 @@ impl From<RespError> for Resp {
         Self {
             status: "failed".to_string(),
             retcode: error.retcode,
-            data: ExtendedValue::Null,
+            data: Value::Null,
             message: error.message,
         }
     }
 }
 
 impl Resp {
-    pub fn as_result(self) -> WalleResult<ExtendedValue> {
+    pub fn as_result(self) -> WalleResult<Value> {
         if self.retcode != 0 {
             Err(WalleError::RespError(RespError {
                 retcode: self.retcode,
@@ -66,7 +66,7 @@ impl Resp {
         }
     }
 
-    pub fn as_resul_downcast<T: TryFrom<ExtendedValue, Error = WalleError>>(
+    pub fn as_resul_downcast<T: TryFrom<Value, Error = WalleError>>(
         self,
     ) -> WalleResult<T> {
         self.as_result().and_then(|v| v.try_into())

@@ -1,40 +1,40 @@
-use walle_macro::{_OneBot as OneBot, _PushToMap as PushToMap};
+use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct Status {
     pub good: bool,
     pub online: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, OneBot)]
 #[value]
 pub struct SendMessageResp {
     pub message_id: String,
     pub time: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct UserInfo {
     pub user_id: String,
     pub nickname: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct GroupInfo {
     pub group_id: String,
     pub group_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct FileId {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct File {
     pub name: String,
@@ -45,21 +45,21 @@ pub struct File {
     pub sha256: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct GuildInfo {
     pub guild_id: String,
     pub guild_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct ChannelInfo {
     pub channel_id: String,
     pub channel_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct Version {
     pub implt: String,
