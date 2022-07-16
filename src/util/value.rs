@@ -423,6 +423,55 @@ impl Value {
         }
     }
 
+    pub fn as_str_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Self::Str(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn as_f64_mut(&mut self) -> Option<&mut f64> {
+        match self {
+            Self::F64(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    pub fn as_i64_mut(&mut self) -> Option<&mut i64> {
+        match self {
+            Self::Int(i) => Some(i),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool_mut(&mut self) -> Option<&mut bool> {
+        match self {
+            Self::Bool(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    pub fn as_bytes_mut(&mut self) -> Option<&mut [u8]> {
+        match self {
+            Self::Bytes(b) => Some(&mut b.0),
+            _ => None,
+        }
+    }
+
+    pub fn as_map_mut(&mut self) -> Option<&mut ValueMap> {
+        match self {
+            Self::Map(m) => Some(m),
+            _ => None,
+        }
+    }
+
+    pub fn as_list_mut(&mut self) -> Option<&mut Vec<Value>> {
+        match self {
+            Self::List(l) => Some(l),
+            _ => None,
+        }
+    }
+
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
     }
