@@ -21,6 +21,39 @@ pub struct Event {
     pub extra: ValueMap,
 }
 
+impl ValueMapExt for Event {
+    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>,
+    {
+        self.extra.get_downcast(key)
+    }
+    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>,
+    {
+        self.extra.remove_downcast(key)
+    }
+    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>,
+    {
+        self.extra.try_get_downcast(key)
+    }
+    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>,
+    {
+        self.extra.try_remove_downcast(key)
+    }
+    fn push<T>(&mut self, value: T)
+    where
+        T: PushToValueMap,
+    {
+        value.push_to(&mut self.extra)
+    }
+}
+
 impl From<Event> for Value {
     fn from(e: Event) -> Self {
         let mut map = e.extra;
@@ -352,3 +385,10 @@ pub struct ChannelDelete {
     pub operator_id: String,
 }
 pub type ChannelDeleteEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelDelete, S, P, I>;
+
+#[derive(Debug, Clone, OneBot)]
+#[event(detail_type)]
+pub enum MessageDeatilTypes {
+    Group(Group),
+    Private(Private),
+}

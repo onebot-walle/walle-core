@@ -1,6 +1,8 @@
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Attribute, Data, DeriveInput, Error, Lit, Meta, NestedMeta, Result};
+use syn::{
+    Attribute, Data, DataEnum, DataStruct, DeriveInput, Error, Lit, Meta, NestedMeta, Result,
+};
 
 use super::{snake_case, try_from_idents};
 
@@ -126,17 +128,47 @@ pub(crate) fn event_internal(
     input: &DeriveInput,
     span: &TokenStream2,
 ) -> Result<TokenStream2> {
-    let mut info = EventTypeInfo {
-        name: input.ident.clone(),
-        ty: None,
-        detail_type: None,
-        sub_type: None,
-        implt: None,
-        platform: None,
-    };
-    let mut event = event_declare(attr, &mut info, span)?;
-    event.extend(event_impl(input, &info, span)?);
-    Ok(event)
+    match &input.data {
+        Data::Struct(data) => {
+            let mut info = EventTypeInfo {
+                name: input.ident.clone(),
+                ty: None,
+                detail_type: None,
+                sub_type: None,
+                implt: None,
+                platform: None,
+            };
+            let mut event = event_declare(attr, &mut info, span)?;
+            event.extend(event_struct_impl(data, &info, span)?);
+            Ok(event)
+        }
+        Data::Enum(data) => {
+            let mut ty = None;
+            if let Meta::List(l) = attr.parse_meta()? {
+                for nmeta in l.nested {
+                    match nmeta {
+                        NestedMeta::Meta(Meta::Path(p)) => {
+                            match p.get_ident().unwrap().to_string().as_str() {
+                                "type" => ty = Some(quote!(ty)),
+                                "detail_type" => ty = Some(quote!(detail_type)),
+                                "sub_type" => ty = Some(quote!(sub_type)),
+                                "platform" => ty = Some(quote!(platform)),
+                                "impl" => ty = Some(quote!(implt)),
+                                _ => return Err(Error::new(Span::call_site(), "unkown type")),
+                            }
+                        }
+                        _ => return Err(Error::new(Span::call_site(), "unsupport attributes")),
+                    }
+                }
+            }
+            if let Some(ty) = ty {
+                event_enum_impl(&input.ident, &data, span, ty)
+            } else {
+                Err(Error::new(Span::call_site(), "need a type attribute"))
+            }
+        }
+        _ => return Err(Error::new(Span::call_site(), "union not supported")),
+    }
 }
 
 fn event_declare(
@@ -179,26 +211,57 @@ fn event_declare(
     Ok(info.build_impl(span))
 }
 
-fn event_impl(
-    input: &DeriveInput,
+fn event_struct_impl(
+    data: &DataStruct,
     info: &EventTypeInfo,
     span: &TokenStream2,
 ) -> Result<TokenStream2> {
     let name = &info.name;
-    if let Data::Struct(data) = &input.data {
-        let idents = try_from_idents(&data.fields, quote!(e.extra))?;
-        let check = info.build_check(span);
-        Ok(quote!(
-            impl TryFrom<&mut #span ::event::Event> for #name {
-                type Error = #span ::error::WalleError;
-                fn try_from(e: &mut #span ::event::Event) -> Result<Self, Self::Error> {
-                    use #span ::util::value::ValueMapExt;
-                    #check
-                    Ok(Self #idents)
+    let idents = try_from_idents(&data.fields, quote!(e.extra))?;
+    let check = info.build_check(span);
+    Ok(quote!(
+        impl TryFrom<&mut #span ::event::Event> for #name {
+            type Error = #span ::error::WalleError;
+            fn try_from(e: &mut #span ::event::Event) -> Result<Self, Self::Error> {
+                use #span ::util::value::ValueMapExt;
+                #check
+                Ok(Self #idents)
+            }
+        }
+    ))
+}
+
+fn event_enum_impl(
+    name: &Ident,
+    data: &DataEnum,
+    span: &TokenStream2,
+    ty: TokenStream2,
+) -> Result<TokenStream2> {
+    let vars = data
+        .variants
+        .iter()
+        .map(|v| -> Result<TokenStream2> {
+            let ident = &v.ident;
+            let s = snake_case(ident.to_string());
+            let idents = try_from_idents(&v.fields, quote!(e))?;
+            Ok(quote!(
+                #s => Ok(Self::#ident #idents)
+            ))
+        })
+        .collect::<Result<Vec<TokenStream2>>>()?;
+    Ok(quote!(
+        impl TryFrom<&mut #span::event::Event> for #name {
+            type Error = #span::error::WalleError;
+            fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
+                use #span::util::value::ValueMapExt;
+                match e.#ty.as_str() {
+                    #(#vars,)*
+                    _ => Err(#span::error::WalleError::DeclareNotMatch(
+                        "event types",
+                        e.#ty.clone(),
+                    ))
                 }
             }
-        ))
-    } else {
-        Err(Error::new(Span::call_site(), "value only support struct"))
-    }
+        }
+    ))
 }
