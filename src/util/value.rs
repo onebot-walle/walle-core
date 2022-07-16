@@ -574,16 +574,16 @@ impl ValueMapExt for ValueMap {
 }
 
 #[macro_export]
-/// ExtendedValue 声明宏，类似于`serde_json::json!`
-macro_rules! extended_value {
+/// Value 声明宏，类似于`serde_json::json!`
+macro_rules! value {
     (null) => {
         $crate::util::Value::Null
     };
     ([$($tt:tt)*]) => {
-        $crate::util::Value::List($crate::extended_vec![$($tt)*])
+        $crate::util::Value::List($crate::value_vec![$($tt)*])
     };
     ({$($tt:tt)*}) => {
-        $crate::util::Value::Map($crate::extended_map!{$($tt)*})
+        $crate::util::Value::Map($crate::value_map!{$($tt)*})
     };
     ($s:expr) => {
         $s.to_owned().into()
@@ -591,71 +591,71 @@ macro_rules! extended_value {
 }
 
 #[macro_export]
-/// Vec<ExtendedValue> 声明宏
-macro_rules! extended_vec {
+/// Vec<Value> 声明宏
+macro_rules! value_vec {
     (@internal [$($elems:expr),*]) => {
         vec![$($elems),*]
     };
     (@internal [$($elems: expr,)*] null $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::util::Value::Null] $($rest)*]
+        $crate::value_vec![@internal [$($elems,)* $crate::util::Value::Null] $($rest)*]
     };
     (@internal [$($elems: expr,)*] [$($vec: tt)*] $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!([$($vec)*])] $($rest)*]
+        $crate::value_vec![@internal [$($elems,)* $crate::value!([$($vec)*])] $($rest)*]
     };
     (@internal [$($elems: expr,)*] {$($map: tt)*} $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!({$($map)*})] $($rest)*]
+        $crate::value_vec![@internal [$($elems,)* $crate::value!({$($map)*})] $($rest)*]
     };
     (@internal [$($elems: expr,)*] $t:expr, $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!($t),] $($rest)*]
+        $crate::value_vec![@internal [$($elems,)* $crate::value!($t),] $($rest)*]
     };
     (@internal [$($elems: expr,)*] $t:expr) => {
-        $crate::extended_vec![@internal [$($elems,)* $crate::extended_value!($t)]]
+        $crate::value_vec![@internal [$($elems,)* $crate::value!($t)]]
     };
     (@internal [$($elems:expr),*] , $($rest:tt)*) => {
-        $crate::extended_vec![@internal [$($elems,)*] $($rest)*]
+        $crate::value_vec![@internal [$($elems,)*] $($rest)*]
     };
     [$($tt: tt)*] => {
-        $crate::extended_vec!(@internal [] $($tt)*)
+        $crate::value_vec!(@internal [] $($tt)*)
     };
 }
 
 #[macro_export]
-/// ExtendedMap 声明宏
-macro_rules! extended_map {
+/// ValueMap 声明宏
+macro_rules! value_map {
     (@internal $map: ident {$key: expr} {$value: tt} ($($rest: tt)*)) => {
-        let _ = $map.insert($key.into(), $crate::extended_value!($value));
-        $crate::extended_map!(@internal $map () ($($rest)*));
+        let _ = $map.insert($key.into(), $crate::value!($value));
+        $crate::value_map!(@internal $map () ($($rest)*));
     };
     (@internal $map: ident {$key: expr} {$value: tt}) => {
-        let _ = $map.insert($key.into(), $crate::extended_value!($value));
+        let _ = $map.insert($key.into(), $crate::value!($value));
     };
     (@internal $map: ident {$key: expr} (: null $($rest:tt)*)) => {
-        $crate::extended_map!(@internal $map {$key} {null} ($($rest)*));
+        $crate::value_map!(@internal $map {$key} {null} ($($rest)*));
     };
     (@internal $map: ident {$key: expr} (: [$($vec: tt)*] $($rest:tt)*)) => {
-        $crate::extended_map!(@internal $map {$key} {[$($vec)*]} ($($rest)*));
+        $crate::value_map!(@internal $map {$key} {[$($vec)*]} ($($rest)*));
     };
     (@internal $map: ident {$key: expr} (: {$($submap: tt)*} $($rest:tt)*)) => {
-        $crate::extended_map!(@internal $map {$key} {{$($submap)*}} ($($rest)*));
+        $crate::value_map!(@internal $map {$key} {{$($submap)*}} ($($rest)*));
     };
     (@internal $map: ident {$key: expr} (: $value: expr , $($rest:tt)*)) => {
-        $crate::extended_map!(@internal $map {$key} {$value} ($($rest)*));
+        $crate::value_map!(@internal $map {$key} {$value} ($($rest)*));
     };
     (@internal $map: ident {$key: expr} (: $value: expr)) => {
-        $crate::extended_map!(@internal $map {$key} {$value});
+        $crate::value_map!(@internal $map {$key} {$value});
     };
     (@internal $map: ident () ($key: tt: $($rest:tt)*)) => {
-        $crate::extended_map!(@internal $map {$key} (: $($rest)*));
+        $crate::value_map!(@internal $map {$key} (: $($rest)*));
     };
     (@internal $map: ident () (, $($rest: tt)*)) => {
-        $crate::extended_map!(@internal $map () ($($rest)*));
+        $crate::value_map!(@internal $map () ($($rest)*));
     };
     (@internal $map: ident () ()) => {};
     {$($tt:tt)*} => {
         {
             #[allow(unused_mut)]
             let mut map = $crate::util::ValueMap::default();
-            $crate::extended_map!(@internal map () ($($tt)*));
+            $crate::value_map!(@internal map () ($($tt)*));
             map
         }
     };
@@ -663,16 +663,16 @@ macro_rules! extended_map {
 
 #[test]
 fn macro_test() {
-    println!("{:?}", extended_value!(null));
+    println!("{:?}", value!(null));
     println!(
         "{:?}",
-        extended_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, Value::Bytes(vec![1, 2, 3].into())]
+        value_vec![true, 1, "c", 3., [1, 2, 3], {"a": 1, "b": 2}, Value::Bytes(vec![1, 2, 3].into())]
     );
     let a = "a";
-    println!("{:?}", extended_value!([1, "c", 3.]));
+    println!("{:?}", value!([1, "c", 3.]));
     println!(
         "{:?}",
-        extended_map! {
+        value_map! {
             "a": a,
             "b": 2,
             "c": {

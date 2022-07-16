@@ -1,5 +1,5 @@
 use walle_core::event::{BaseEvent, Event};
-use walle_core::extended_map;
+use walle_core::value_map;
 use walle_core::segment::{Segments, MessageSegment};
 use walle_core::prelude::OneBot;
 
@@ -32,7 +32,7 @@ fn main() {
         ty: "message".to_string(),
         detail_type: "private".to_string(),
         sub_type: "".to_string(),
-        extra: extended_map! {
+        extra: value_map! {
             "message_id": "6283",
             "message": [
                 {
@@ -63,11 +63,11 @@ fn main() {
             message: vec![
                 MessageSegment {
                     ty: "text".to_string(),
-                    data: extended_map! {"text": "OneBot is not a bot"},
+                    data: value_map! {"text": "OneBot is not a bot"},
                 },
                 MessageSegment {
                     ty: "image".to_string(),
-                    data: extended_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
+                    data: value_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
                 },
             ],
             alt_message: "OneBot is not a bot[图片]".to_string(),
@@ -75,7 +75,7 @@ fn main() {
         },
         detail_type: (),
         sub_type: (),
-        extra: extended_map!(),
+        extra: value_map!(),
     };
     let tpme: BaseEvent<MessageE> = raw_pme.clone().try_into().unwrap();
     assert_eq!(tpme, pmbe);
@@ -88,7 +88,7 @@ fn main() {
         ty: "message".to_string(),
         detail_type: "group".to_string(),
         sub_type: "".to_string(),
-        extra: extended_map! {
+        extra: value_map! {
             "group_id": "group",
             "message_id": "6283",
             "message": [
@@ -120,11 +120,11 @@ fn main() {
             message: vec![
                 MessageSegment {
                     ty: "text".to_string(),
-                    data: extended_map! {"text": "OneBot is not a bot"},
+                    data: value_map! {"text": "OneBot is not a bot"},
                 },
                 MessageSegment {
                     ty: "image".to_string(),
-                    data: extended_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
+                    data: value_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
                 },
             ],
             alt_message: "OneBot is not a bot[图片]".to_string(),
@@ -134,7 +134,7 @@ fn main() {
             group_id: "group".to_string(),
         },
         sub_type: (),
-        extra: extended_map!(),
+        extra: value_map!(),
     };
     let tgme: BaseEvent<MessageE, Group> = raw_gme.clone().try_into().unwrap();
     assert_eq!(tgme, gmbe);

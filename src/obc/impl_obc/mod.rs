@@ -107,7 +107,7 @@ where
         ty: "meta".to_string(),
         detail_type: "heartbeat".to_string(),
         sub_type: "".to_string(),
-        extra: crate::extended_map! {
+        extra: crate::value_map! {
             "interval": interval,
             "status": status
         },

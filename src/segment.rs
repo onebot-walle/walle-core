@@ -1,5 +1,5 @@
 use crate::{
-    extended_map, extended_value,
+    value_map, value,
     prelude::WalleError,
     util::{Value, ValueMap, ValueMapExt},
 };
@@ -65,7 +65,7 @@ impl MessageSegment {
 
 impl From<MessageSegment> for Value {
     fn from(segment: MessageSegment) -> Self {
-        extended_value!({
+        value!({
             "type": segment.ty,
             "data": segment.data
         })
@@ -130,7 +130,7 @@ impl From<String> for MessageSegment {
     fn from(text: String) -> Self {
         MessageSegment {
             ty: "text".to_string(),
-            data: extended_map! { "text": text },
+            data: value_map! { "text": text },
         }
     }
 }
@@ -139,7 +139,7 @@ impl From<&str> for MessageSegment {
     fn from(text: &str) -> Self {
         MessageSegment {
             ty: "text".to_string(),
-            data: extended_map! { "text": text },
+            data: value_map! { "text": text },
         }
     }
 }

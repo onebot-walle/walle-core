@@ -2,7 +2,7 @@
 fn event() {
     use crate::alt::ColoredAlt;
     use crate::event::*;
-    use crate::extended_map;
+    use crate::value_map;
     use crate::prelude::WalleError;
 
     fn test<T>(event: (&str, Event, T))
@@ -55,7 +55,7 @@ fn event() {
             ty: "message".to_string(),
             detail_type: "private".to_string(),
             sub_type: "".to_string(),
-            extra: extended_map! {
+            extra: value_map! {
                 "message_id": "6283",
                 "message": [
                     {
@@ -83,13 +83,13 @@ fn event() {
                 message: vec![
                     crate::segment::MessageSegment {
                         ty: "text".to_string(),
-                        data: extended_map! {
+                        data: value_map! {
                             "text": "OneBot is not a bot"
                         },
                     },
                     crate::segment::MessageSegment {
                         ty: "image".to_string(),
-                        data: extended_map! {
+                        data: value_map! {
                             "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
                         },
                     },
@@ -102,7 +102,7 @@ fn event() {
             (),
             (),
             (),
-            extended_map!(),
+            value_map!(),
         ),
     ));
 }
@@ -247,7 +247,7 @@ fn message() {
     use crate::segment::*;
     use crate::prelude::WalleError;
     use crate::util::value::Value;
-    use crate::{extended_map, extended_value};
+    use crate::{value_map, value};
     fn test<T>(message: (Value, MessageSegment, T))
     where
         T: TryFrom<MessageSegment, Error = WalleError> + std::fmt::Debug + PartialEq,
@@ -258,14 +258,14 @@ fn message() {
     }
 
     test((
-        extended_value!({"type": "text",
+        value!({"type": "text",
             "data": {
                 "text": "这是一个纯文本消息段"
             }
         }),
         MessageSegment {
             ty: "text".to_string(),
-            data: extended_map! {
+            data: value_map! {
                 "text": "这是一个纯文本消息段"
             },
         },
@@ -274,7 +274,7 @@ fn message() {
         },
     ));
     test((
-        extended_value!({"type": "image",
+        value!({"type": "image",
             "data": {
                 "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16",
                 "url": "https://example.com"
@@ -282,7 +282,7 @@ fn message() {
         }),
         MessageSegment {
             ty: "image".to_string(),
-            data: extended_map! {
+            data: value_map! {
                 "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16",
                 "url": "https://example.com"
             },
@@ -291,7 +291,7 @@ fn message() {
             segment: Image {
                 file_id: "e30f9684-3d54-4f65-b2da-db291a477f16".to_string(),
             },
-            extra: extended_map! {
+            extra: value_map! {
                 "url": "https://example.com"
             },
         },
@@ -312,7 +312,7 @@ fn extendedmap_test() {
 #[test]
 fn enum_action() {
     use crate::action::*;
-    use crate::prelude::extended_map;
+    use crate::prelude::value_map;
     use crate::prelude::WalleResult;
     use walle_macro::_OneBot as OneBot;
     #[derive(Debug, OneBot)]
@@ -324,7 +324,7 @@ fn enum_action() {
 
     let raw_action = Action {
         action: "get_user_info".to_string(),
-        params: extended_map! {
+        params: value_map! {
             "user_id": "abab"
         },
     };

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    extended_map,
+    value_map,
     prelude::WalleError,
     util::{ValueMap, ValueMapExt, Value, PushToValueMap, SelfId},
 };
@@ -280,7 +280,7 @@ impl From<UploadFileFragmented> for Action {
             action: UploadFileFragmented::action().to_string(),
             params: {
                 match u {
-                    UploadFileFragmented::Prepare { name, total_size } => extended_map! {
+                    UploadFileFragmented::Prepare { name, total_size } => value_map! {
                         "stage": "prepare",
                         "name": name,
                         "total_size": total_size
@@ -290,14 +290,14 @@ impl From<UploadFileFragmented> for Action {
                         offset,
                         size,
                         data,
-                    } => extended_map! {
+                    } => value_map! {
                         "stage" : "transfer",
                         "file_id" : file_id,
                         "offset" : offset,
                         "size" : size,
                         "date" : data
                     },
-                    UploadFileFragmented::Finish { file_id, sha256 } => extended_map! {
+                    UploadFileFragmented::Finish { file_id, sha256 } => value_map! {
                         "stage" : "finish",
                         "file_id" : file_id,
                         "sha256" : sha256
@@ -365,7 +365,7 @@ impl From<GetFileFragmented> for Action {
         Self {
             action: GetFileFragmented::action().to_string(),
             params: match g {
-                GetFileFragmented::Prepare { file_id } => extended_map! {
+                GetFileFragmented::Prepare { file_id } => value_map! {
                     "stage": "prepare",
                     "file_id": file_id
                 },
@@ -373,7 +373,7 @@ impl From<GetFileFragmented> for Action {
                     file_id,
                     offset,
                     size,
-                } => extended_map! {
+                } => value_map! {
                     "stage": "transfer",
                     "file_id": file_id,
                     "offset": offset,
@@ -386,10 +386,10 @@ impl From<GetFileFragmented> for Action {
 
 #[test]
 fn action() {
-    use crate::{extended_map, WalleResult};
+    use crate::{value_map, WalleResult};
     let action = Action {
         action: "upload_file".to_string(),
-        params: extended_map! {
+        params: value_map! {
             "type": "type",
             "name": "name",
             "extra": "test"
