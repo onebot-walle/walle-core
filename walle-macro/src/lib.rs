@@ -80,47 +80,49 @@ fn value_internal(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStrea
 }
 
 fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> {
-    if let Fields::Named(v) = &fields {
-        let mut out = vec![];
-        for field in &v.named {
-            let ident = field.ident.clone().unwrap();
-            let mut s = ident.to_string();
-            match s.as_str() {
-                "ty" => s = "type".to_string(),
-                "implt" => s = "impl".to_string(),
-                _ => {}
-            }
-            if let Type::Path(p) = &field.ty {
-                if p.path
-                    .segments
-                    .first()
-                    .unwrap()
-                    .ident
-                    .to_string()
-                    .starts_with("Option")
-                {
-                    out.push(quote!(
-                        #ident: #head.try_remove_downcast(#s)?
-                    ));
-                    continue;
+    match &fields {
+        Fields::Named(v) => {
+            let mut out = vec![];
+            for field in &v.named {
+                let ident = field.ident.clone().unwrap();
+                let mut s = ident.to_string();
+                match s.as_str() {
+                    "ty" => s = "type".to_string(),
+                    "implt" => s = "impl".to_string(),
+                    _ => {}
                 }
+                if let Type::Path(p) = &field.ty {
+                    if p.path
+                        .segments
+                        .first()
+                        .unwrap()
+                        .ident
+                        .to_string()
+                        .starts_with("Option")
+                    {
+                        out.push(quote!(
+                            #ident: #head.try_remove_downcast(#s)?
+                        ));
+                        continue;
+                    }
+                }
+                out.push(quote!(
+                    #ident: #head.remove_downcast(#s)?
+                ));
             }
-            out.push(quote!(
-                #ident: #head.remove_downcast(#s)?
-            ));
+            Ok(quote!({#(#out),*}))
         }
-        Ok(quote!({#(#out),*}))
-    } else if let Fields::Unnamed(v) = &fields {
-        let mut out = vec![];
-        for field in &v.unnamed {
-            let ty = &field.ty;
-            out.push(quote!(
-                #ty::try_from(#head)?
-            ));
+        Fields::Unnamed(v) => {
+            let mut out = vec![];
+            for field in &v.unnamed {
+                let ty = &field.ty;
+                out.push(quote!(
+                    #ty::try_from(#head)?
+                ));
+            }
+            Ok(quote!((#(#out),*)))
         }
-        Ok(quote!((#(#out),*)))
-    } else {
-        Err(Error::new(Span::call_site(), "expect named struct"))
+        Fields::Unit => Ok(quote!()),
     }
 }
 

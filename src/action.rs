@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    value_map,
     prelude::WalleError,
-    util::{ValueMap, ValueMapExt, Value, PushToValueMap, SelfId},
+    util::{PushToValueMap, SelfId, Value, ValueMap, ValueMapExt},
+    value_map,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -58,7 +58,8 @@ pub struct BaseAction<T> {
 }
 
 pub trait ActionDeclare {
-    fn action() -> &'static str;
+    fn action(&self) -> &'static str;
+    fn check(action: &Action) -> bool;
 }
 
 impl<T> From<BaseAction<T>> for Action
@@ -67,7 +68,7 @@ where
 {
     fn from(mut action: BaseAction<T>) -> Self {
         Self {
-            action: T::action().to_string(),
+            action: action.action.action().to_string(),
             params: {
                 action.action.push_to(&mut action.extra);
                 action.extra
@@ -96,8 +97,11 @@ pub struct GetLatestEvents {
 }
 
 impl ActionDeclare for GetLatestEvents {
-    fn action() -> &'static str {
+    fn action(&self) -> &'static str {
         "get_latest_events"
+    }
+    fn check(action: &Action) -> bool {
+        action.action.as_str() == "get_latest_events"
     }
 }
 
@@ -119,9 +123,9 @@ impl Into<Value> for GetLatestEvents {
 impl TryFrom<&mut Action> for GetLatestEvents {
     type Error = WalleError;
     fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if action.action.as_str() != Self::action() {
+        if action.action.as_str() != "get_latest_events" {
             return Err(WalleError::DeclareNotMatch(
-                Self::action(),
+                "get_latest_events",
                 action.action.clone(),
             ));
         } else {
@@ -229,17 +233,20 @@ pub enum UploadFileFragmented {
 }
 
 impl ActionDeclare for UploadFileFragmented {
-    fn action() -> &'static str {
+    fn action(&self) -> &'static str {
         "upload_file_fragmented"
+    }
+    fn check(action: &Action) -> bool {
+        action.action.as_str() == "upload_file_fragmented"
     }
 }
 
 impl TryFrom<&mut Action> for UploadFileFragmented {
     type Error = WalleError;
     fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if action.action.as_str() != Self::action() {
+        if Self::check(&action) {
             Err(WalleError::DeclareNotMatch(
-                Self::action(),
+                "upload_file_fragmented",
                 action.action.clone(),
             ))
         } else {
@@ -277,7 +284,7 @@ impl TryFrom<Action> for UploadFileFragmented {
 impl From<UploadFileFragmented> for Action {
     fn from(u: UploadFileFragmented) -> Self {
         Self {
-            action: UploadFileFragmented::action().to_string(),
+            action: u.action().to_string(),
             params: {
                 match u {
                     UploadFileFragmented::Prepare { name, total_size } => value_map! {
@@ -321,17 +328,20 @@ pub enum GetFileFragmented {
 }
 
 impl ActionDeclare for GetFileFragmented {
-    fn action() -> &'static str {
+    fn action(&self) -> &'static str {
         "get_file_fragmented"
+    }
+    fn check(action: &Action) -> bool {
+        action.action.as_str() == "get_file_fragmented"
     }
 }
 
 impl TryFrom<&mut Action> for GetFileFragmented {
     type Error = WalleError;
     fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if action.action.as_str() != Self::action() {
+        if Self::check(action) {
             Err(WalleError::DeclareNotMatch(
-                Self::action(),
+                "get_file_fragmented",
                 action.action.clone(),
             ))
         } else {
@@ -363,7 +373,7 @@ impl TryFrom<Action> for GetFileFragmented {
 impl From<GetFileFragmented> for Action {
     fn from(g: GetFileFragmented) -> Self {
         Self {
-            action: GetFileFragmented::action().to_string(),
+            action: g.action().to_string(),
             params: match g {
                 GetFileFragmented::Prepare { file_id } => value_map! {
                     "stage": "prepare",

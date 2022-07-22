@@ -1,7 +1,7 @@
 use crate::{
-    value_map, value,
     prelude::WalleError,
     util::{Value, ValueMap, ValueMapExt},
+    value, value_map,
 };
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
@@ -145,7 +145,8 @@ impl From<&str> for MessageSegment {
 }
 
 pub trait SegmentDeclare {
-    fn ty() -> &'static str;
+    fn ty(&self) -> &'static str;
+    fn check(segment: &MessageSegment) -> bool;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]

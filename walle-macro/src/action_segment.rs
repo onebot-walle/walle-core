@@ -46,8 +46,11 @@ pub(crate) fn internal(
             )?;
             Ok(quote!(
                 impl #span::#declare for #name {
-                    fn #fn_name() -> &'static str {
+                    fn #fn_name(&self) -> &'static str {
                         #s
+                    }
+                    fn check(i: &#span::#from_ty) -> bool {
+                        i.#fn_name.as_str() == #s
                     }
                 }
 
@@ -55,14 +58,7 @@ pub(crate) fn internal(
                     type Error = #span::error::WalleError;
                     fn try_from(v: &mut #span::#from_ty) -> Result<Self, Self::Error> {
                         use #span::util::value::ValueMapExt;
-                        if v.#fn_name.as_str() != #s {
-                            Err(#span::error::WalleError::DeclareNotMatch(
-                                #s,
-                                v.#fn_name.clone(),
-                            ))
-                        } else {
-                            Ok(Self #idents)
-                        }
+                        Ok(Self #idents)
                     }
                 }
 

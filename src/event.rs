@@ -123,13 +123,13 @@ where
     fn from(mut event: BaseEvent<T, D, S, P, I>) -> Self {
         Self {
             id: event.id,
-            implt: I::implt().to_string(),
-            platform: P::platform().to_string(),
+            implt: event.implt.implt().to_string(),
+            platform: event.platform.platform().to_string(),
             self_id: event.self_id,
             time: event.time,
-            ty: T::ty().to_string(),
-            detail_type: D::detail_type().to_string(),
-            sub_type: S::sub_type().to_string(),
+            ty: event.ty.ty().to_string(),
+            detail_type: event.detail_type.detail_type().to_string(),
+            sub_type: event.sub_type.sub_type().to_string(),
             extra: {
                 let map = &mut event.extra;
                 event.implt.push_to(map);
@@ -176,49 +176,83 @@ where
     P: for<'a> TryFrom<&'a mut Event, Error = WalleError> + PlatformDeclare,
 {
     type Error = WalleError;
-    fn try_from(mut value: Event) -> Result<Self, Self::Error> {
-        let event = &mut value;
+    fn try_from(mut event: Event) -> Result<Self, Self::Error> {
+        if !T::check(&event) {
+            return Err(WalleError::DeclareNotMatch("type", event.ty.clone()));
+        } else if !D::check(&event) {
+            return Err(WalleError::DeclareNotMatch(
+                "detail_type",
+                event.detail_type.clone(),
+            ));
+        } else if !S::check(&event) {
+            return Err(WalleError::DeclareNotMatch(
+                "sub_type",
+                event.sub_type.clone(),
+            ));
+        } else if !P::check(&event) {
+            return Err(WalleError::DeclareNotMatch(
+                "platform",
+                event.platform.clone(),
+            ));
+        } else if !I::check(&event) {
+            return Err(WalleError::DeclareNotMatch("impl", event.implt.clone()));
+        }
         Ok(Self {
-            ty: T::try_from(event)?,
-            detail_type: D::try_from(event)?,
-            sub_type: S::try_from(event)?,
-            implt: I::try_from(event)?,
-            platform: P::try_from(event)?,
-            id: value.id,
-            self_id: value.self_id,
-            time: value.time,
-            extra: value.extra,
+            ty: T::try_from(&mut event)?,
+            detail_type: D::try_from(&mut event)?,
+            sub_type: S::try_from(&mut event)?,
+            implt: I::try_from(&mut event)?,
+            platform: P::try_from(&mut event)?,
+            id: event.id,
+            self_id: event.self_id,
+            time: event.time,
+            extra: event.extra,
         })
     }
 }
 
 pub trait ImplDeclare {
-    fn implt() -> &'static str {
+    fn implt(&self) -> &'static str {
         ""
+    }
+    fn check(event: &Event) -> bool {
+        event.implt.as_str() == ""
     }
 }
 
 pub trait PlatformDeclare {
-    fn platform() -> &'static str {
+    fn platform(&self) -> &'static str {
         ""
+    }
+    fn check(event: &Event) -> bool {
+        event.platform.as_str() == ""
     }
 }
 
 pub trait SubTypeDeclare {
-    fn sub_type() -> &'static str {
+    fn sub_type(&self) -> &'static str {
         ""
+    }
+    fn check(event: &Event) -> bool {
+        event.sub_type.as_str() == ""
     }
 }
 
 pub trait DetailTypeDeclare {
-    fn detail_type() -> &'static str {
+    fn detail_type(&self) -> &'static str {
         ""
+    }
+    fn check(event: &Event) -> bool {
+        event.detail_type.as_str() == ""
     }
 }
 
 pub trait TypeDeclare {
-    fn ty() -> &'static str {
+    fn ty(&self) -> &'static str {
         ""
+    }
+    fn check(event: &Event) -> bool {
+        event.ty.as_str() == ""
     }
 }
 
