@@ -530,11 +530,12 @@ impl ValueMapExt for ValueMap {
         T: TryFrom<Value, Error = WalleError>,
     {
         self.remove(key)
-            .map(|v| {
-                v.try_into().map_err(|v| {
+            .and_then(|v| match v {
+                Value::Null => None,
+                v => Some(v.try_into().map_err(|v| {
                     let msg = format!("{:?}", v);
                     WalleError::ValueTypeNotMatch(std::any::type_name::<T>().to_string(), msg)
-                })
+                })),
             })
             .transpose()
     }
@@ -550,11 +551,12 @@ impl ValueMapExt for ValueMap {
         T: TryFrom<Value, Error = WalleError>,
     {
         self.get(key)
-            .map(|v| {
-                v.clone().try_into().map_err(|v| {
+            .and_then(|v| match v {
+                Value::Null => None,
+                v => Some(v.clone().try_into().map_err(|v| {
                     let msg = format!("{:?}", v);
                     WalleError::ValueTypeNotMatch(std::any::type_name::<T>().to_string(), msg)
-                })
+                })),
             })
             .transpose()
     }
