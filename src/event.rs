@@ -215,8 +215,8 @@ pub trait ImplDeclare {
     fn implt(&self) -> &'static str {
         ""
     }
-    fn check(event: &Event) -> bool {
-        event.implt.as_str() == ""
+    fn check(_event: &Event) -> bool {
+        true
     }
 }
 
@@ -224,8 +224,8 @@ pub trait PlatformDeclare {
     fn platform(&self) -> &'static str {
         ""
     }
-    fn check(event: &Event) -> bool {
-        event.platform.as_str() == ""
+    fn check(_event: &Event) -> bool {
+        true
     }
 }
 
@@ -233,8 +233,8 @@ pub trait SubTypeDeclare {
     fn sub_type(&self) -> &'static str {
         ""
     }
-    fn check(event: &Event) -> bool {
-        event.sub_type.as_str() == ""
+    fn check(_event: &Event) -> bool {
+        true
     }
 }
 
@@ -242,8 +242,8 @@ pub trait DetailTypeDeclare {
     fn detail_type(&self) -> &'static str {
         ""
     }
-    fn check(event: &Event) -> bool {
-        event.detail_type.as_str() == ""
+    fn check(_event: &Event) -> bool {
+        true
     }
 }
 
@@ -251,8 +251,8 @@ pub trait TypeDeclare {
     fn ty(&self) -> &'static str {
         ""
     }
-    fn check(event: &Event) -> bool {
-        event.ty.as_str() == ""
+    fn check(_event: &Event) -> bool {
+        true
     }
 }
 
