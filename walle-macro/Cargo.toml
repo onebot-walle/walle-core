@@ -1,7 +1,11 @@
 [package]
 name = "walle-macro"
-version = "0.1.0"
+version = "0.6.0"
 edition = "2021"
+license = "MIT"
+authors = ["Abrahum<307887491@qq.com>"]
+homepage = "https://github.com/abrahum/Walle-core"
+description = "macro for walle-core"
 
 [lib]
 proc-macro = true

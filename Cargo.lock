@@ -1232,7 +1232,7 @@ dependencies = [
 
 [[package]]
 name = "walle-macro"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "proc-macro2",
  "quote",
