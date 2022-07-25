@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{info, warn};
 
 #[cfg(feature = "http")]
 mod app_http;
@@ -26,9 +26,9 @@ pub(crate) type BotMap<A> = Arc<DashMap<String, Vec<mpsc::UnboundedSender<Echo<A
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
-    pub(crate) echos: EchoMap<R>,
-    pub(crate) seq: AtomicU64,
-    pub bots: BotMap<A>,
+    pub(crate) echos: EchoMap<R>, // echo channel sender 暂存 Map
+    pub(crate) seq: AtomicU64,    // 用于生成 echo
+    pub bots: BotMap<A>,          // Bot action channel map
 }
 
 impl<A, R> AppOBC<A, R> {
@@ -129,16 +129,32 @@ pub trait BotMapExt<A> {
 
 impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
     fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
-        self.entry(bot_id.to_string()).or_default().push(tx.clone())
+        let mut refmut = self.entry(bot_id.to_string()).or_default();
+        for x in refmut.value() {
+            if tx.same_channel(&x) {
+                return;
+            }
+        }
+        refmut.push(tx.clone());
+        info!(target: super::OBC, "New Bot connected: {}", bot_id);
     }
     fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        let mut empty = false;
         if let Some(mut txs) = self.get_mut(bot_id) {
             for i in 0..txs.len() {
                 if tx.same_channel(&txs[i]) {
                     txs.remove(i);
+                    break;
                 }
             }
+            if txs.value().is_empty() {
+                empty = true;
+            }
         };
+        if empty {
+            self.remove(bot_id);
+            info!(target: super::OBC, "Bot disconnected: {}", bot_id);
+        }
     }
     fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
         self.get(bot_id).as_deref().cloned()

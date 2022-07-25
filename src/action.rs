@@ -406,5 +406,5 @@ fn action() {
         },
     };
     let uf: WalleResult<BaseAction<UploadFile>> = action.try_into();
-    println!("{:?}", uf)
+    println!("{:?}", uf);
 }
