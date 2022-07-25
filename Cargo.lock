@@ -1206,7 +1206,7 @@ dependencies = [
 
 [[package]]
 name = "walle-core"
-version = "0.6.0-a1"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "base64",
@@ -1227,12 +1227,23 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "walle-macro",
+ "walle-macro 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "walle-macro"
 version = "0.6.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "walle-macro"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d64344e11cb0c28304f674a4fbe1b3ef024aaf35d0d8408654e0c2815aead064"
 dependencies = [
  "proc-macro2",
  "quote",
