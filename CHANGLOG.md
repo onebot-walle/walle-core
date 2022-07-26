@@ -1,6 +1,9 @@
-# 0.6.0 (unrelease)
+# 0.6.1
 
-- new OneBot and OBC
+- fix Impl-OBC self_id won't update error
+
+# 0.6.0
+
 - remove action.kick_group_member
 - remove action.ban_group_member
 - remove action.unban_group_member
@@ -10,6 +13,7 @@
 - remvoe notice.group_member_unban
 - remove notice.group_admin_set
 - remove notice.group_admin_unset
+- new OneBot and all models
 
 # 0.5.4
 
