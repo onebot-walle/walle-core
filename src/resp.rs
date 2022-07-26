@@ -66,7 +66,7 @@ impl Resp {
         }
     }
 
-    pub fn as_resul_downcast<T: TryFrom<Value, Error = WalleError>>(
+    pub fn as_result_downcast<T: TryFrom<Value, Error = WalleError>>(
         self,
     ) -> WalleResult<T> {
         self.as_result().and_then(|v| v.try_into())
