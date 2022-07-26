@@ -1,7 +1,7 @@
 use crate::{
     error::{WalleError, WalleResult},
     resp::{resp_error, Resp},
-    util::{AuthReqHeaderExt, Echo, ValueMap, ProtocolItem},
+    util::{AuthReqHeaderExt, Echo, ProtocolItem, ValueMap},
     ActionHandler, EventHandler, OneBot,
 };
 use crate::{
@@ -86,13 +86,6 @@ where
         for wsr in config {
             let platform = self.platform.clone();
             let r#impl = self.implt.clone();
-            let self_id = ob
-                .action_handler
-                .self_ids()
-                .await
-                .first()
-                .cloned()
-                .unwrap_or_default();
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
             let mut signal_rx = ob.get_signal_rx()?;
@@ -108,7 +101,15 @@ where
                         .header("X-OneBot-Version", 12.to_string())
                         .header("X-Platform", platform.clone())
                         .header("X-Impl", r#impl.clone())
-                        .header("X-Self-ID", self_id.clone())
+                        .header(
+                            "X-Self-ID",
+                            ob.action_handler
+                                .self_ids()
+                                .await
+                                .first()
+                                .cloned()
+                                .unwrap_or_default(),
+                        )
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token);
                     match try_connect(&wsr, req).await {
