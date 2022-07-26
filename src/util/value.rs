@@ -223,6 +223,13 @@ impl TryFrom<Value> for OneBotBytes {
     }
 }
 
+impl TryFrom<Value> for () {
+    type Error = WalleError;
+    fn try_from(_: Value) -> Result<Self, Self::Error> {
+        Ok(())
+    }
+}
+
 fn null_serialize<S>(serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
