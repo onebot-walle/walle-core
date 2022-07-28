@@ -109,32 +109,6 @@ impl std::fmt::Display for ContentType {
     }
 }
 
-/// 定义 extra strcut
-///
-/// ```rust
-/// extra_struct!(DeleteMessage, message_id: String);
-/// ```
-/// generate code:
-/// ```rust
-/// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-/// pub struct DeleteMessage {
-///     pub message_id: String,
-///     #[serde(flatten)]
-///     pub extra: ExtendedMap,
-/// }
-/// ```
-#[macro_export]
-macro_rules! extra_struct {
-    ($action_name: ident, $($field_name: ident: $field_ty: ty),*) => {
-        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-        pub struct $action_name {
-            $(pub $field_name: $field_ty,)*
-            #[serde(flatten)]
-            pub extra: ExtendedMap,
-        }
-    };
-}
-
 pub(crate) trait AuthReqHeaderExt {
     fn header_auth_token(self, token: &Option<String>) -> Self;
 }
