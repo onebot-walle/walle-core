@@ -98,6 +98,9 @@ where
         info!(target: WALLE_CORE, "{}", action.colored_alt());
         Ok(resp_error::unsupported_action("").into())
     }
+    async fn shutdown(&self) {
+        info!(target: WALLE_CORE, "Shutting down TracingHandler")
+    }
 }
 
 #[async_trait]
@@ -122,5 +125,8 @@ where
     async fn call(&self, event: E) -> WalleResult<()> {
         info!(target: WALLE_CORE, "{}", event.colored_alt());
         Ok(())
+    }
+    async fn shutdown(&self) {
+        info!(target: WALLE_CORE, "Shutting down TracingHandler")
     }
 }

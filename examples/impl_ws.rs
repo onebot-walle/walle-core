@@ -13,7 +13,6 @@ async fn main() {
     let ob = Arc::new(OneBot::new_12(
         TracingHandler::<Event, Action, Resp>::default(),
         ImplOBC::new(
-            "self_id".to_string(),
             "impl".to_string(),
             "platform".to_string(),
         ),

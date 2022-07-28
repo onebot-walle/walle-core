@@ -10,8 +10,8 @@ pub mod alt;
 pub mod config;
 pub mod error;
 pub mod event;
-pub mod segment;
 pub mod resp;
+pub mod segment;
 pub mod structs;
 pub mod util;
 
@@ -26,13 +26,13 @@ pub mod obc;
 mod test;
 
 pub mod prelude {
-    pub use crate::segment::{IntoMessage, Segments, MessageExt, MessageSegment};
     pub use crate::resp::{resp_error, Resp};
+    pub use crate::segment::{IntoMessage, MessageExt, MessageSegment, Segments};
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
-    pub use crate::util::{Echo, ValueMap, ValueMapExt, Value, OneBotBytes, SelfId};
-    pub use crate::{value_map, value, value_vec, extra_struct};
+    pub use crate::util::{Echo, OneBotBytes, SelfId, Value, ValueMap, ValueMapExt};
+    pub use crate::{extra_struct, value, value_map, value_vec};
     pub use async_trait::async_trait;
     pub use walle_macro::{OneBot, PushToValueMap};
 }
