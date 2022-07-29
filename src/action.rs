@@ -93,6 +93,7 @@ where
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[action]
 pub struct GetLatestEvents {
     pub limit: i64,
     pub timeout: i64,

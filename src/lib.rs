@@ -22,7 +22,7 @@ pub use eh::EventHandler;
 
 #[cfg(any(feature = "impl-obc", feature = "app-obc"))]
 pub mod obc;
-
+#[cfg(test)]
 mod test;
 
 pub mod prelude {

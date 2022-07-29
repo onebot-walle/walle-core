@@ -36,7 +36,7 @@ impl ColoredAlt for Action {
         format!(
             "[{}] {}",
             self.action.bright_yellow(),
-            serde_json::to_string(&self.params).unwrap()
+            &self.params.colored_alt()
         )
     }
 }
