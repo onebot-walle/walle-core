@@ -90,54 +90,13 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 pub struct GetLatestEvents {
     pub limit: i64,
     pub timeout: i64,
 }
-
-impl ActionDeclare for GetLatestEvents {
-    fn action(&self) -> &'static str {
-        "get_latest_events"
-    }
-    fn check(action: &Action) -> bool {
-        action.action.as_str() == "get_latest_events"
-    }
-}
-
-impl PushToValueMap for GetLatestEvents {
-    fn push_to(self, map: &mut ValueMap) {
-        map.insert("limit".to_owned(), self.limit.into());
-        map.insert("timeout".to_owned(), self.timeout.into());
-    }
-}
-
-impl Into<Value> for GetLatestEvents {
-    fn into(self) -> Value {
-        let mut map = ValueMap::default();
-        self.push_to(&mut map);
-        Value::Map(map)
-    }
-}
-
-impl TryFrom<&mut Action> for GetLatestEvents {
-    type Error = WalleError;
-    fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if action.action.as_str() != "get_latest_events" {
-            return Err(WalleError::DeclareNotMatch(
-                "get_latest_events",
-                action.action.clone(),
-            ));
-        } else {
-            Ok(Self {
-                limit: action.params.remove_downcast("limit")?,
-                timeout: action.params.remove_downcast("timeout")?,
-            })
-        }
-    }
-}
-
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[action]
