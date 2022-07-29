@@ -63,6 +63,10 @@ impl MessageSegment {
     }
 }
 
+pub fn alt(segments: &Segments) -> String {
+    segments.iter().map(|seg| seg.alt()).collect()
+}
+
 impl From<MessageSegment> for Value {
     fn from(segment: MessageSegment) -> Self {
         value!({

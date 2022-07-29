@@ -8,7 +8,7 @@ use crate::action::Action;
 use crate::event::Event;
 use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
-use crate::util::SelfIds;
+use crate::util::{SelfIds, Value, ValueMap};
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
 /// 命令行着色输出，可以用于 log
@@ -27,11 +27,7 @@ impl ColoredAlt for Event {
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
         .join(".");
-        format!(
-            "[{}] {}",
-            h.bright_blue(),
-            serde_json::to_string(&self.extra).unwrap()
-        )
+        format!("[{}] {}", h.bright_blue(), &self.extra.colored_alt())
     }
 }
 
@@ -42,6 +38,47 @@ impl ColoredAlt for Action {
             self.action.bright_yellow(),
             serde_json::to_string(&self.params).unwrap()
         )
+    }
+}
+
+impl ColoredAlt for ValueMap {
+    fn colored_alt(&self) -> String {
+        self.iter()
+            .map(|(k, v)| {
+                if k == "message" && v.is_list() {
+                    use crate::segment::{alt, Segments};
+                    if let Ok(segs) = Segments::try_from(v.clone()) {
+                        return format!("{}: \"{}\"", k, alt(&segs));
+                    }
+                }
+                format!("{}: {}", k, v.colored_alt())
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+impl ColoredAlt for Vec<Value> {
+    fn colored_alt(&self) -> String {
+        self.iter()
+            .map(|v| v.colored_alt())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+impl ColoredAlt for Value {
+    fn colored_alt(&self) -> String {
+        match self {
+            Value::Bool(b) => b.to_string(),
+            Value::Bytes(_) => "<bytes>".to_string(),
+            Value::Str(s) => format!("\"{}\"", s),
+            Value::Int(i) => i.to_string(),
+            Value::F64(f) => f.to_string(),
+            Value::Map(m) => m.colored_alt(),
+            Value::List(l) => l.colored_alt(),
+            Value::Null => "null".to_string(),
+        }
     }
 }
 
