@@ -27,7 +27,7 @@ pub struct ImplOBC<E> {
 }
 
 #[async_trait]
-impl<E, A, R> EventHandler<E, A, R, 12> for ImplOBC<E>
+impl<E, A, R> EventHandler<E, A, R> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,
     A: ProtocolItem,
@@ -40,8 +40,8 @@ where
         config: crate::config::ImplConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]

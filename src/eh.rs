@@ -7,7 +7,7 @@ use crate::ActionHandler;
 use crate::OneBot;
 
 #[async_trait]
-pub trait EventHandler<E, A, R, const V: u8>: Sync {
+pub trait EventHandler<E, A, R>: Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
@@ -15,8 +15,8 @@ pub trait EventHandler<E, A, R, const V: u8>: Sync {
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use directly, use OneBot.handle_event instead.
     async fn call(&self, event: E) -> WalleResult<()>;
     async fn before_call_action(&self, action: A) -> WalleResult<A>
@@ -36,7 +36,7 @@ pub trait EventHandler<E, A, R, const V: u8>: Sync {
 
 use crate::ah::JoinedHandler;
 
-pub trait EHExt<E, A, R, const V: u8> {
+pub trait EHExt<E, A, R> {
     fn join<EH1>(self, event_handler: EH1) -> JoinedHandler<Self, EH1>
     where
         Self: Sized,
@@ -45,14 +45,14 @@ pub trait EHExt<E, A, R, const V: u8> {
     }
 }
 
-impl<T: EventHandler<E, A, R, V>, E, A, R, const V: u8> EHExt<E, A, R, V> for T {}
+impl<T: EventHandler<E, A, R>, E, A, R> EHExt<E, A, R> for T {}
 
 #[async_trait]
-impl<EH0, EH1, E, A, R, const V: u8> EventHandler<E, A, R, V> for JoinedHandler<EH0, EH1>
+impl<EH0, EH1, E, A, R> EventHandler<E, A, R> for JoinedHandler<EH0, EH1>
 where
-    EH0: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    EH0: EventHandler<E, A, R> + Send + Sync + 'static,
     EH0::Config: Send + Sync + 'static,
-    EH1: EventHandler<E, A, R, V> + Send + Sync + 'static,
+    EH1: EventHandler<E, A, R> + Send + Sync + 'static,
     EH1::Config: Send + Sync + 'static,
     E: Clone + Send + Sync + 'static,
 {
@@ -63,8 +63,8 @@ where
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let mut joins = self.0.start(ob, config.0).await?;
         joins.extend(self.1.start(ob, config.1).await?.into_iter());

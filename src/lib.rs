@@ -58,7 +58,7 @@ impl<AH, EH> OneBot<AH, EH> {
             signal: std::sync::Mutex::new(None),
         }
     }
-    pub async fn start<E, A, R, const V: u8>(
+    pub async fn start<E, A, R>(
         self: &Arc<Self>,
         ah_config: AH::Config,
         eh_config: EH::Config,
@@ -68,8 +68,8 @@ impl<AH, EH> OneBot<AH, EH> {
         E: Send + Sync + 'static,
         A: Send + Sync + 'static,
         R: Send + Sync + 'static,
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let mut signal = self.signal.lock().unwrap();
         if signal.is_none() {
@@ -111,13 +111,13 @@ impl<AH, EH> OneBot<AH, EH> {
             .ok_or(WalleError::NotStarted)?
             .subscribe())
     }
-    pub async fn shutdown<E, A, R, const V: u8>(&self) -> WalleResult<()>
+    pub async fn shutdown<E, A, R>(&self) -> WalleResult<()>
     where
         E: Send + Sync + 'static,
         A: Send + Sync + 'static,
         R: Send + Sync + 'static,
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let tx = self
             .signal
@@ -130,10 +130,10 @@ impl<AH, EH> OneBot<AH, EH> {
         self.event_handler.shutdown().await;
         Ok(())
     }
-    pub async fn handle_event<E, A, R, const V: u8>(self: &Arc<Self>, event: E) -> WalleResult<()>
+    pub async fn handle_event<E, A, R>(self: &Arc<Self>, event: E) -> WalleResult<()>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
         E: Send + 'static,
     {
         self.event_handler
@@ -141,10 +141,10 @@ impl<AH, EH> OneBot<AH, EH> {
             .await?;
         self.action_handler.after_call_event().await
     }
-    pub async fn handle_action<E, A, R, const V: u8>(self: &Arc<Self>, action: A) -> WalleResult<R>
+    pub async fn handle_action<E, A, R>(self: &Arc<Self>, action: A) -> WalleResult<R>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
         A: Send + 'static,
         R: Send + 'static,
     {

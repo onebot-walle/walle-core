@@ -58,7 +58,7 @@ impl<A, R> AppOBC<A, R> {
 }
 
 #[async_trait]
-impl<E, A, R> ActionHandler<E, A, R, 12> for AppOBC<A, R>
+impl<E, A, R> ActionHandler<E, A, R> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem + SelfId,
@@ -71,8 +71,8 @@ where
         config: crate::config::AppConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let mut tasks = vec![];
         #[cfg(feature = "websocket")]

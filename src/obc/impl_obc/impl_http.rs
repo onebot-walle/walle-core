@@ -58,8 +58,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for http in config {
             let ob_ = ob.clone();
@@ -172,8 +172,8 @@ where
         E: ProtocolItem + Clone,
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let client = Arc::new(HyperClient::new());
         let ob = ob.clone();
@@ -220,8 +220,8 @@ async fn webhook_push<E, A, R, AH, EH>(
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     let date = event.json_encode();
     for webhook in config {

@@ -32,8 +32,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for webhook in config {
             let bot_map = self.bots.clone();
@@ -132,8 +132,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {

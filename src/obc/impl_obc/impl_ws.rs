@@ -34,8 +34,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -80,8 +80,8 @@ where
     where
         A: ProtocolItem,
         R: ProtocolItem,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wsr in config {
             let platform = self.platform.clone();
@@ -146,8 +146,8 @@ async fn ws_loop<E, A, R, AH, EH>(
     E: ProtocolItem + Clone,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -232,8 +232,8 @@ where
     E: ProtocolItem,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     let err_handle = |a: Echo<ValueMap>, msg: String| -> Echo<Resp> {
         let (_, echo_s) = a.unpack();

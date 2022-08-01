@@ -113,7 +113,7 @@ impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R> {
 }
 
 #[async_trait]
-impl<E, A, R, const V: u8> ActionHandler<E, A, R, V> for TracingHandler<E, A, R>
+impl<E, A, R> ActionHandler<E, A, R> for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
     A: ColoredAlt + Send + Sync + 'static,
@@ -126,8 +126,8 @@ where
         _config: (),
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         Ok(vec![])
     }
@@ -141,7 +141,7 @@ where
 }
 
 #[async_trait]
-impl<E, A, R, const V: u8> EventHandler<E, A, R, V> for TracingHandler<E, A, R>
+impl<E, A, R> EventHandler<E, A, R> for TracingHandler<E, A, R>
 where
     E: ColoredAlt + Send + Sync + 'static,
     A: Send + Sync + 'static,
@@ -154,8 +154,8 @@ where
         _config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         Ok(vec![])
     }

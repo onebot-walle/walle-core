@@ -9,7 +9,7 @@ use crate::EventHandler;
 use crate::OneBot;
 
 #[async_trait]
-pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds + Sync {
+pub trait ActionHandler<E, A, R>: GetStatus + SelfIds + Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
@@ -17,8 +17,8 @@ pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds + Sync {
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use call directly, use OneBot.handle_action instead.
     async fn call(&self, action: A) -> WalleResult<R>;
     async fn before_call_event(&self, event: E) -> WalleResult<E>
@@ -39,7 +39,7 @@ pub trait GetStatus {
 
 pub struct JoinedHandler<H0, H1>(pub H0, pub H1);
 
-pub trait AHExt<E, A, R, const V: u8> {
+pub trait AHExt<E, A, R> {
     fn join<AH1>(self, action_handler: AH1) -> JoinedHandler<Self, AH1>
     where
         Self: Sized,
@@ -48,7 +48,7 @@ pub trait AHExt<E, A, R, const V: u8> {
     }
 }
 
-impl<T: ActionHandler<E, A, R, V>, E, A, R, const V: u8> AHExt<E, A, R, V> for T {}
+impl<T: ActionHandler<E, A, R>, E, A, R> AHExt<E, A, R> for T {}
 
 #[async_trait]
 impl<H0, H1> SelfIds for JoinedHandler<H0, H1>
@@ -74,11 +74,11 @@ where
 }
 
 #[async_trait]
-impl<AH0, AH1, E, A, R, const V: u8> ActionHandler<E, A, R, V> for JoinedHandler<AH0, AH1>
+impl<AH0, AH1, E, A, R> ActionHandler<E, A, R> for JoinedHandler<AH0, AH1>
 where
-    AH0: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+    AH0: ActionHandler<E, A, R> + Send + Sync + 'static,
     AH0::Config: Send + Sync + 'static,
-    AH1: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+    AH1: ActionHandler<E, A, R> + Send + Sync + 'static,
     AH1::Config: Send + Sync + 'static,
     A: SelfId + Send + Sync + 'static,
     R: From<crate::resp::RespError>,
@@ -90,8 +90,8 @@ where
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
-        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let mut joins = self.0.start(ob, config.0).await?;
         joins.extend(self.1.start(ob, config.1).await?.into_iter());

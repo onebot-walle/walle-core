@@ -37,8 +37,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wsc in config {
             info!(target: super::OBC, "Start try connect to {}", wsc.url);
@@ -82,8 +82,8 @@ where
     ) -> WalleResult<()>
     where
         E: ProtocolItem + SelfId + Clone,
-        AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-        EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wss in config {
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
@@ -129,8 +129,8 @@ async fn ws_loop<E, A, R, AH, EH>(
     E: ProtocolItem + SelfId + Clone,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
@@ -182,8 +182,8 @@ where
     E: ProtocolItem + Clone + SelfId,
     A: ProtocolItem,
     R: ProtocolItem,
-    AH: ActionHandler<E, A, R, 12> + Send + Sync + 'static,
-    EH: EventHandler<E, A, R, 12> + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+    EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
     #[derive(Debug, Deserialize, Serialize)]
     #[serde(untagged)]
