@@ -84,7 +84,7 @@ where
                             let (action_tx, mut action_rx) = mpsc::unbounded_channel();
                             let self_id = event.self_id();
                             bot_map.ensure_bot(&self_id, &action_tx);
-                            if let Err(e) = ob.event_handler.call(event).await {
+                            if let Err(e) = ob.handle_event(event).await {
                                 warn!(target: super::OBC, "{}", e);
                             }
                             if let Ok(Some(a)) = tokio::time::timeout(

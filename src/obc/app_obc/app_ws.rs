@@ -199,7 +199,7 @@ where
                 bot_map.ensure_bot(&self_id, &action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();
-                tokio::spawn(async move { ob.event_handler.call(event).await });
+                tokio::spawn(async move { ob.handle_event(event).await });
             }
             Ok(ReceiveItem::Resp(resp)) => {
                 let (r, echos) = resp.unpack();

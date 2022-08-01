@@ -17,7 +17,20 @@ pub trait EventHandler<E, A, R, const V: u8>: Sync {
     where
         AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
         EH: EventHandler<E, A, R, V> + Send + Sync + 'static;
+    /// do not use directly, use OneBot.handle_event instead.
     async fn call(&self, event: E) -> WalleResult<()>;
+    async fn before_call_action(&self, action: A) -> WalleResult<A>
+    where
+        A: Send + 'static,
+    {
+        Ok(action)
+    }
+    async fn after_call_action(&self, resp: R) -> WalleResult<R>
+    where
+        R: Send + 'static,
+    {
+        Ok(resp)
+    }
     async fn shutdown(&self) {}
 }
 

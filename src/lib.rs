@@ -130,4 +130,30 @@ impl<AH, EH> OneBot<AH, EH> {
         self.event_handler.shutdown().await;
         Ok(())
     }
+    pub async fn handle_event<E, A, R, const V: u8>(self: &Arc<Self>, event: E) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        E: Send + 'static,
+    {
+        self.event_handler
+            .call(self.action_handler.before_call_event(event).await?)
+            .await?;
+        self.action_handler.after_call_event().await
+    }
+    pub async fn handle_action<E, A, R, const V: u8>(self: &Arc<Self>, action: A) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R, V> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R, V> + Send + Sync + 'static,
+        A: Send + 'static,
+        R: Send + 'static,
+    {
+        self.event_handler
+            .after_call_action(
+                self.action_handler
+                    .call(self.event_handler.before_call_action(action).await?)
+                    .await?,
+            )
+            .await
+    }
 }

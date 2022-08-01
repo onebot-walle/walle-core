@@ -253,7 +253,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.action_handler.call(action).await {
+                        match ob.handle_action(action).await {
                             Ok(r) => {
                                 tx.send(echos.pack(r)).ok();
                             }
@@ -287,7 +287,7 @@ where
                 let ob = ob.clone();
                 tokio::spawn(async move {
                     tokio::time::timeout(Duration::from_secs(10), async move {
-                        match ob.action_handler.call(action).await {
+                        match ob.handle_action(action).await {
                             Ok(r) => {
                                 tx.send(echos.pack(r)).ok();
                             }
