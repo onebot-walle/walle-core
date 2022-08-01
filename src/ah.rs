@@ -13,7 +13,7 @@ pub trait ActionHandler<E, A, R, const V: u8>: GetStatus + SelfIds + Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
@@ -76,7 +76,7 @@ where
     type Config = (AH0::Config, AH1::Config);
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where

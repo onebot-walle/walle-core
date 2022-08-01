@@ -31,7 +31,7 @@ where
 {
     pub(crate) async fn ws<E, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<WebSocketClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -76,7 +76,7 @@ where
     }
     pub(crate) async fn wsr<E, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<WebSocketServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -121,7 +121,7 @@ where
 }
 
 async fn ws_loop<E, A, R, AH, EH>(
-    ob: Arc<OneBot<AH, EH, 12>>,
+    ob: Arc<OneBot<AH, EH>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
@@ -171,7 +171,7 @@ async fn ws_loop<E, A, R, AH, EH>(
 
 async fn ws_recv<E, A, R, AH, EH>(
     msg: WsMsg,
-    ob: &Arc<OneBot<AH, EH, 12>>,
+    ob: &Arc<OneBot<AH, EH>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,

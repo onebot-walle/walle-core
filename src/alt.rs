@@ -122,7 +122,7 @@ where
     type Config = ();
     async fn start<AH, EH>(
         &self,
-        _ob: &Arc<OneBot<AH, EH, V>>,
+        _ob: &Arc<OneBot<AH, EH>>,
         _config: (),
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
@@ -150,7 +150,7 @@ where
     type Config = ();
     async fn start<AH, EH>(
         &self,
-        _ob: &Arc<OneBot<AH, EH, V>>,
+        _ob: &Arc<OneBot<AH, EH>>,
         _config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where

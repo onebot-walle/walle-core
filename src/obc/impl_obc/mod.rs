@@ -36,7 +36,7 @@ where
     type Config = crate::config::ImplConfig;
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: crate::config::ImplConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
@@ -87,8 +87,8 @@ impl<E> ImplOBC<E> {
     }
 }
 
-fn build_hb<AH, EH, const V: u8>(
-    ob: &OneBot<AH, EH, V>,
+fn build_hb<AH, EH>(
+    ob: &OneBot<AH, EH>,
     self_id: &str,
     implt: &str,
     platform: &str,
@@ -114,8 +114,8 @@ where
     }
 }
 
-fn start_hb<AH, EH, const V: u8>(
-    ob: &Arc<OneBot<AH, EH, V>>,
+fn start_hb<AH, EH>(
+    ob: &Arc<OneBot<AH, EH>>,
     implt: String,
     platform: String,
     interval: u32,

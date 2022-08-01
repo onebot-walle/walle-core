@@ -51,7 +51,7 @@ where
 {
     pub(crate) async fn http<A, R, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<HttpServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -164,7 +164,7 @@ where
 
     pub(crate) async fn webhook<A, R, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<HttpClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -208,7 +208,7 @@ where
 }
 
 async fn webhook_push<E, A, R, AH, EH>(
-    ob: &Arc<OneBot<AH, EH, 12>>,
+    ob: &Arc<OneBot<AH, EH>>,
     event: E,
     self_id: &str,
     r#impl: &str,

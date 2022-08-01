@@ -10,7 +10,7 @@ use walle_core::OneBot;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let ob = Arc::new(OneBot::new_12(
+    let ob = Arc::new(OneBot::new(
         AppOBC::new(),
         TracingHandler::<Event, Action, Resp>::default(),
     ));

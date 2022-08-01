@@ -39,7 +39,7 @@ pub mod prelude {
 
 /// AH: EventConstructor + ActionHandler
 /// EH: EventHandler + ActionConstructor
-pub struct OneBot<AH, EH, const V: u8> {
+pub struct OneBot<AH, EH> {
     pub action_handler: AH,
     pub event_handler: EH,
     // Some for running, None for stopped
@@ -50,7 +50,7 @@ use std::sync::Arc;
 
 use crate::error::{WalleError, WalleResult};
 
-impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
+impl<AH, EH> OneBot<AH, EH> {
     pub fn new(action_handler: AH, event_handler: EH) -> Self {
         Self {
             action_handler,
@@ -58,7 +58,7 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             signal: std::sync::Mutex::new(None),
         }
     }
-    pub async fn start<E, A, R>(
+    pub async fn start<E, A, R, const V: u8>(
         self: &Arc<Self>,
         ah_config: AH::Config,
         eh_config: EH::Config,
@@ -111,7 +111,7 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
             .ok_or(WalleError::NotStarted)?
             .subscribe())
     }
-    pub async fn shutdown<E, A, R>(&self) -> WalleResult<()>
+    pub async fn shutdown<E, A, R, const V: u8>(&self) -> WalleResult<()>
     where
         E: Send + Sync + 'static,
         A: Send + Sync + 'static,
@@ -129,11 +129,5 @@ impl<AH, EH, const V: u8> OneBot<AH, EH, V> {
         self.action_handler.shutdown().await;
         self.event_handler.shutdown().await;
         Ok(())
-    }
-}
-
-impl<AH, EH> OneBot<AH, EH, 12> {
-    pub fn new_12(action_handler: AH, event_handler: EH) -> Self {
-        Self::new(action_handler, event_handler)
     }
 }

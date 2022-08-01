@@ -27,7 +27,7 @@ where
 {
     pub(crate) async fn ws<A, R, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<crate::config::WebSocketServer>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -73,7 +73,7 @@ where
 
     pub(crate) async fn wsr<A, R, AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Vec<crate::config::WebSocketClient>,
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
@@ -138,7 +138,7 @@ where
 }
 
 async fn ws_loop<E, A, R, AH, EH>(
-    ob: Arc<OneBot<AH, EH, 12>>,
+    ob: Arc<OneBot<AH, EH>>,
     mut event_rx: broadcast::Receiver<E>,
     mut hb_rx: broadcast::Receiver<Event>,
     mut ws_stream: WebSocketStream<TcpStream>,
@@ -223,7 +223,7 @@ async fn ws_loop<E, A, R, AH, EH>(
 
 pub(crate) async fn ws_recv<E, A, R, AH, EH>(
     ws_msg: WsMsg,
-    ob: &Arc<OneBot<AH, EH, 12>>,
+    ob: &Arc<OneBot<AH, EH>>,
     ws_stream: &mut WebSocketStream<TcpStream>,
     json_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,
     rmp_resp_sender: &tokio::sync::mpsc::UnboundedSender<Echo<R>>,

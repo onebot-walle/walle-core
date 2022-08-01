@@ -11,7 +11,7 @@ pub trait EventHandler<E, A, R, const V: u8>: Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
@@ -46,7 +46,7 @@ where
     type Config = (EH0::Config, EH1::Config);
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, V>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
     ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where

@@ -67,7 +67,7 @@ where
     type Config = crate::config::AppConfig;
     async fn start<AH, EH>(
         &self,
-        ob: &Arc<OneBot<AH, EH, 12>>,
+        ob: &Arc<OneBot<AH, EH>>,
         config: crate::config::AppConfig,
     ) -> WalleResult<Vec<JoinHandle<()>>>
     where
