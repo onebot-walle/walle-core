@@ -3,9 +3,9 @@ name = "walle-core"
 version = "0.6.1"
 edition = "2021"
 license = "MIT"
-description = "Onebot Lib in Rust"
+description = "OneBot lib in Rust"
 authors = ["Abrahum<307887491@qq.com>"]
-homepage = "https://github.com/abrahum/Walle-core"
+homepage = "https://github.com/onebot-walle/Walle-core"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -58,4 +58,4 @@ name = "app_ws"
 required-features = ["app-obc", "websocket", "tokio-rt"]
 
 [workspace]
-members = ["walle-py", "walle-v11", "walle-macro"]
+members = ["walle-macro"]
