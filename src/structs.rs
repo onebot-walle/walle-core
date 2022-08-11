@@ -18,7 +18,9 @@ pub struct SendMessageResp {
 #[value]
 pub struct UserInfo {
     pub user_id: String,
-    pub nickname: String,
+    pub user_name: String,
+    pub user_displayname: String,
+    pub user_remark: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
