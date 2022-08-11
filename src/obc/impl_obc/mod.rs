@@ -56,7 +56,7 @@ where
         }
         if config.heartbeat.enabled {
             tasks.push(start_hb(
-                &ob,
+                ob,
                 self.implt.clone(),
                 self.platform.clone(),
                 config.heartbeat.interval,
@@ -134,7 +134,7 @@ where
             if self_ids.is_empty() {
                 self_ids = ob.action_handler.self_ids().await;
             }
-            if let Ok(_) = signal.try_recv() {
+            if signal.try_recv().is_ok() {
                 break;
             }
             hb_tx

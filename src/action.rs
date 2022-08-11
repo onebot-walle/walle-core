@@ -204,7 +204,7 @@ impl ActionDeclare for UploadFileFragmented {
 impl TryFrom<&mut Action> for UploadFileFragmented {
     type Error = WalleError;
     fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if Self::check(&action) {
+        if Self::check(action) {
             Err(WalleError::DeclareNotMatch(
                 "upload_file_fragmented",
                 action.action.clone(),

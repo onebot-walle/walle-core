@@ -196,7 +196,7 @@ where
         match item {
             Ok(ReceiveItem::Event(event)) => {
                 let self_id = event.self_id();
-                bot_map.ensure_bot(&self_id, &action_tx);
+                bot_map.ensure_bot(&self_id, action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();
                 tokio::spawn(async move { ob.handle_event(event).await });

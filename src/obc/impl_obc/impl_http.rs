@@ -230,9 +230,9 @@ async fn webhook_push<E, A, R, AH, EH>(
             .uri(&webhook.url)
             .header(CONTENT_TYPE, "application/json")
             .header("X-OneBot-Version", 12.to_string())
-            .header("X-Impl", r#impl.clone())
-            .header("X-Platform", platform.clone())
-            .header("X-Self-ID", self_id.clone())
+            .header("X-Impl", r#impl.to_owned())
+            .header("X-Platform", platform.to_owned())
+            .header("X-Self-ID", self_id.to_owned())
             .header_auth_token(&webhook.access_token)
             .body(date.clone().into())
             .unwrap();

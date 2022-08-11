@@ -131,7 +131,7 @@ impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
     fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
         let mut refmut = self.entry(bot_id.to_string()).or_default();
         for x in refmut.value() {
-            if tx.same_channel(&x) {
+            if tx.same_channel(x) {
                 return;
             }
         }

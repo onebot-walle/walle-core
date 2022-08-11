@@ -44,16 +44,19 @@ impl ColoredAlt for Action {
 impl ColoredAlt for ValueMap {
     fn colored_alt(&self) -> String {
         self.iter()
-            .map(|(k, v)| {
+            .filter_map(|(k, v)| {
                 if k == "message" && v.is_list() {
                     use crate::segment::{alt, Segments};
                     if let Ok(segs) = Segments::try_from(v.clone()) {
-                        return format!("{}: \"{}\"", k, alt(&segs));
+                        return Some(format!("{}: \"{}\"", k, alt(&segs)));
                     }
                 }
-                format!("{}: {}", k, v.colored_alt())
+                if k == "alt_message" {
+                    return None;
+                }
+                Some(format!("{}: {}", k, v.colored_alt()))
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<String>>()
             .join(", ")
     }
 }

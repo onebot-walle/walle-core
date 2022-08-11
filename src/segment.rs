@@ -50,15 +50,13 @@ impl MessageSegment {
     pub fn alt(&self) -> String {
         if self.ty == "text" {
             self.data.get_downcast("text").unwrap_or_default()
+        } else if self.data.is_empty() {
+            format!("[{}]", self.ty)
         } else {
-            if self.data.is_empty() {
-                format!("[{}]", self.ty)
-            } else {
-                let mut content = serde_json::to_string(&self.data).unwrap_or_default();
-                content.pop();
-                content.remove(0);
-                format!("[{},{}]", self.ty, content)
-            }
+            let mut content = serde_json::to_string(&self.data).unwrap_or_default();
+            content.pop();
+            content.remove(0);
+            format!("[{},{}]", self.ty, content)
         }
     }
 }
@@ -84,7 +82,7 @@ impl TryFrom<Value> for MessageSegment {
                 ty: map.remove_downcast("type")?,
                 data: map
                     .remove("data")
-                    .ok_or(WalleError::MapMissedKey("data".to_string()))?
+                    .ok_or_else(|| WalleError::MapMissedKey("data".to_string()))?
                     .downcast_map()?,
             })
         } else {
