@@ -86,11 +86,7 @@ fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> 
             for field in &v.named {
                 let ident = field.ident.clone().unwrap();
                 let mut s = ident.to_string();
-                match s.as_str() {
-                    "ty" => s = "type".to_string(),
-                    "implt" => s = "impl".to_string(),
-                    _ => {}
-                }
+                escape(&mut s);
                 if let Type::Path(p) = &field.ty {
                     if p.path
                         .segments
@@ -172,11 +168,7 @@ fn push_idents(input: &DeriveInput) -> Result<Vec<TokenStream2>> {
             for field in &v.named {
                 let i = field.ident.clone().unwrap();
                 let mut s = i.to_string();
-                match s.as_str() {
-                    "ty" => s = "type".to_string(),
-                    "implt" => s = "impl".to_string(),
-                    _ => {}
-                }
+                escape(&mut s);
                 out.push(quote!(
                     map.insert(#s.to_string(), self.#i.into());
                 ));
@@ -203,4 +195,13 @@ fn snake_case(s: String) -> String {
         }
     }
     out
+}
+
+fn escape(s: &mut String) {
+    match s.as_str() {
+        "ty" => *s = "type".to_string(),
+        "implt" => *s = "impl".to_string(),
+        "selft" => *s = "self".to_string(),
+        _ => {}
+    }
 }

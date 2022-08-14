@@ -66,9 +66,7 @@ impl Resp {
         }
     }
 
-    pub fn as_result_downcast<T: TryFrom<Value, Error = WalleError>>(
-        self,
-    ) -> WalleResult<T> {
+    pub fn as_result_downcast<T: TryFrom<Value, Error = WalleError>>(self) -> WalleResult<T> {
         self.as_result().and_then(|v| v.try_into())
     }
 }
@@ -115,6 +113,7 @@ pub mod resp_error {
     error_type!(unsupported_segment, 10005, "不支持的消息段类型");
     error_type!(bad_segment_data, 10006, "无效的消息段参数");
     error_type!(unsupported_segment_data, 10007, "不支持的消息段参数");
+    error_type!(who_am_i, 10101, "Who Am I");
 
     error_type!(bad_handler, 20001, "动作处理器实现错误");
     error_type!(internal_handler, 20002, "动作处理器运行时抛出异常");

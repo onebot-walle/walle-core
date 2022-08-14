@@ -49,6 +49,13 @@ impl ContentType {
             ContentType::Impl => quote!(implt),
         }
     }
+    pub(crate) fn traiti(&self) -> TokenStream2 {
+        if let Self::Platform = self {
+            quote!(platform().unwrap_or_default())
+        } else {
+            self.traitf()
+        }
+    }
     pub(crate) fn struct_declare(
         &self,
         name: &Ident,
@@ -57,13 +64,14 @@ impl ContentType {
     ) -> TokenStream2 {
         let t = self.traitt(span);
         let f = self.traitf();
+        let i = self.traiti();
         quote!(
             impl #t for #name {
                 fn #f(&self) -> &'static str {
                     #s
                 }
                 fn check(event: &#span::event::Event) -> bool {
-                    event.#f.as_str() == #s
+                    event.#i.as_str() == #s
                 }
             }
         )
@@ -117,6 +125,7 @@ fn enum_declare(
         }
         let t = content.traitt(span);
         let f = content.traitf();
+        let i = content.traiti();
         Ok(quote!(
             impl #t for #name {
                 fn #f(&self) -> &'static str {
@@ -125,7 +134,7 @@ fn enum_declare(
                     }
                 }
                 fn check(event: &#span::event::Event) -> bool {
-                    match event.#f.as_str() {
+                    match event.#i.as_str() {
                         #(#strs => true,)*
                         _ => false,
                     }
@@ -162,7 +171,6 @@ fn struct_declare(
     attr: &Attribute,
     span: &TokenStream2,
 ) -> Result<TokenStream2> {
-    let mut stream = TokenStream2::new();
     if let Meta::List(l) = attr.parse_meta()? {
         if l.nested.len() != 1 {
             return Err(Error::new(Span::call_site(), "only support one nested"));
@@ -180,11 +188,11 @@ fn struct_declare(
             _ => return Err(Error::new(Span::call_site(), "unsupport attributes")),
         };
         let content = ContentType::try_from(path.get_ident().unwrap().to_string().as_str())?;
-        stream.extend(content.struct_declare(name, span, &s));
+        let mut stream = content.struct_declare(name, span, &s);
 
         let idents = try_from_idents(&data.fields, quote!(e.extra))?;
         let t = content.traitt(span);
-        let f = content.traitf();
+        let i = content.traiti();
         stream.extend(quote!(
             impl TryFrom<&mut #span::event::Event> for #name {
                 type Error = #span::error::WalleError;
@@ -202,7 +210,7 @@ fn struct_declare(
                     } else {
                         Err(#span::error::WalleError::DeclareNotMatch(
                             #s,
-                            e.#f.clone()
+                            e.#i.clone()
                         ))
                     }
                 }

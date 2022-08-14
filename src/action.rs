@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::WalleError,
-    util::{PushToValueMap, SelfId, Value, ValueMap, ValueMapExt},
+    structs::Selft,
+    util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
     value_map,
 };
 
@@ -10,6 +11,8 @@ use crate::{
 pub struct Action {
     pub action: String,
     pub params: ValueMap,
+    #[serde(rename = "self")]
+    pub selft: Option<Selft>,
 }
 
 impl ValueMapExt for Action {
@@ -45,8 +48,8 @@ impl ValueMapExt for Action {
     }
 }
 
-impl SelfId for Action {
-    fn self_id(&self) -> String {
+impl GetSelf for Action {
+    fn get_self(&self) -> Selft {
         self.params.get_downcast("self_id").unwrap_or_default()
     }
 }
@@ -54,6 +57,7 @@ impl SelfId for Action {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseAction<T> {
     pub action: T,
+    pub selft: Option<Selft>,
     pub extra: ValueMap,
 }
 
@@ -69,6 +73,7 @@ where
     fn from(mut action: BaseAction<T>) -> Self {
         Self {
             action: action.action.action().to_string(),
+            selft: action.selft,
             params: {
                 action.action.push_to(&mut action.extra);
                 action.extra
@@ -85,6 +90,7 @@ where
     fn try_from(mut value: Action) -> Result<Self, Self::Error> {
         Ok(Self {
             action: T::try_from(&mut value)?,
+            selft: value.selft,
             extra: value.params,
         })
     }
@@ -245,6 +251,7 @@ impl From<UploadFileFragmented> for Action {
     fn from(u: UploadFileFragmented) -> Self {
         Self {
             action: u.action().to_string(),
+            selft: None,
             params: {
                 match u {
                     UploadFileFragmented::Prepare { name, total_size } => value_map! {
@@ -334,6 +341,7 @@ impl From<GetFileFragmented> for Action {
     fn from(g: GetFileFragmented) -> Self {
         Self {
             action: g.action().to_string(),
+            selft: None,
             params: match g {
                 GetFileFragmented::Prepare { file_id } => value_map! {
                     "stage": "prepare",
@@ -359,6 +367,7 @@ fn action() {
     use crate::{value_map, WalleResult};
     let action = Action {
         action: "upload_file".to_string(),
+        selft: None,
         params: value_map! {
             "type": "type",
             "name": "name",

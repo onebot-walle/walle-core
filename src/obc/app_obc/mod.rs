@@ -1,7 +1,8 @@
 use std::sync::{atomic::AtomicU64, Arc};
 
 use super::OBC;
-use crate::util::{Echo, EchoInner, EchoS, ProtocolItem, SelfId, SelfIds};
+use crate::structs::Selft;
+use crate::util::{Echo, EchoInner, EchoS, GetSelf, GetSelfs, ProtocolItem};
 use crate::{ActionHandler, EventHandler, GetStatus, OneBot};
 use crate::{WalleError, WalleResult};
 
@@ -17,7 +18,7 @@ mod app_http;
 mod app_ws;
 
 pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
-pub(crate) type BotMap<A> = Arc<DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>>>;
+pub(crate) type BotMap<A> = Arc<DashMap<Selft, Vec<mpsc::UnboundedSender<Echo<A>>>>>;
 
 /// OneBotConnect 应用端实现
 ///
@@ -60,8 +61,8 @@ impl<A, R> AppOBC<A, R> {
 #[async_trait]
 impl<E, A, R> ActionHandler<E, A, R> for AppOBC<A, R>
 where
-    E: ProtocolItem + Clone + SelfId,
-    A: ProtocolItem + SelfId,
+    E: ProtocolItem + Clone + GetSelf,
+    A: ProtocolItem + GetSelf,
     R: ProtocolItem,
 {
     type Config = crate::config::AppConfig;
@@ -88,7 +89,7 @@ where
         Ok(tasks)
     }
     async fn call(&self, action: A) -> WalleResult<R> {
-        match self.bots.get_bot(&action.self_id()) {
+        match self.bots.get_bot(&action.get_self()) {
             Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();
                 let seq = self.next_seg();
@@ -122,23 +123,23 @@ where
 }
 
 pub trait BotMapExt<A> {
-    fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>);
-    fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>);
-    fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>>;
+    fn ensure_bot(&self, bot_id: &Selft, tx: &mpsc::UnboundedSender<Echo<A>>);
+    fn remove_bot(&self, bot_id: &Selft, tx: &mpsc::UnboundedSender<Echo<A>>);
+    fn get_bot(&self, bot_id: &Selft) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>>;
 }
 
-impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
-    fn ensure_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
-        let mut refmut = self.entry(bot_id.to_string()).or_default();
+impl<A> BotMapExt<A> for BotMap<A> {
+    fn ensure_bot(&self, bot_id: &Selft, tx: &mpsc::UnboundedSender<Echo<A>>) {
+        let mut refmut = self.entry(bot_id.clone()).or_default();
         for x in refmut.value() {
             if tx.same_channel(x) {
                 return;
             }
         }
         refmut.push(tx.clone());
-        info!(target: super::OBC, "New Bot connected: {}", bot_id);
+        info!(target: super::OBC, "New Bot connected: {}", bot_id.user_id);
     }
-    fn remove_bot(&self, bot_id: &str, tx: &mpsc::UnboundedSender<Echo<A>>) {
+    fn remove_bot(&self, bot_id: &Selft, tx: &mpsc::UnboundedSender<Echo<A>>) {
         let mut empty = false;
         if let Some(mut txs) = self.get_mut(bot_id) {
             for i in 0..txs.len() {
@@ -153,30 +154,32 @@ impl<A> BotMapExt<A> for DashMap<String, Vec<mpsc::UnboundedSender<Echo<A>>>> {
         };
         if empty {
             self.remove(bot_id);
-            info!(target: super::OBC, "Bot disconnected: {}", bot_id);
+            info!(target: super::OBC, "Bot disconnected: {}", bot_id.user_id);
         }
     }
-    fn get_bot(&self, bot_id: &str) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
+    fn get_bot(&self, bot_id: &Selft) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
         self.get(bot_id).as_deref().cloned()
     }
 }
 
 #[async_trait]
-impl<A, R> SelfIds for AppOBC<A, R>
+impl<A, R> GetSelfs for AppOBC<A, R>
 where
-    A: Send + 'static,
-    R: Send + 'static,
+    A: Send + Sync,
+    R: Send + Sync,
 {
-    async fn self_ids(&self) -> Vec<String> {
-        self.bots.iter().map(|r| r.key().clone()).collect()
+    async fn get_selfs(&self) -> Vec<Selft> {
+        self.bots.iter().map(|i| i.key().clone()).collect()
     }
 }
 
-impl<A, R> GetStatus for AppOBC<A, R> {
-    fn get_status(&self) -> crate::structs::Status {
-        crate::structs::Status {
-            good: true,
-            online: true,
-        }
+#[async_trait]
+impl<A, R> GetStatus for AppOBC<A, R>
+where
+    A: Send + Sync,
+    R: Send + Sync,
+{
+    async fn is_good(&self) -> bool {
+        true
     }
 }

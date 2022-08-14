@@ -19,12 +19,13 @@ pub(crate) fn internal(
         },
         _ => return Err(Error::new(Span::call_site(), "expect NameValue for action")),
     };
-    let (declare, fn_name, from_ty, extra) = if action {
+    let (declare, fn_name, from_ty, extra, maybe_self) = if action {
         (
             quote!(action::ActionDeclare),
             quote!(action),
             quote!(action::Action),
             quote!(params),
+            quote!(selft: None,),
         )
     } else {
         (
@@ -32,6 +33,7 @@ pub(crate) fn internal(
             quote!(ty),
             quote!(segment::MessageSegment),
             quote!(data),
+            quote!(),
         )
     };
     match &input.data {
@@ -81,6 +83,7 @@ pub(crate) fn internal(
                     fn from(v: #name) -> Self {
                         Self {
                             #fn_name: #s.to_string(),
+                            #maybe_self
                             #extra: v.into(),
                         }
                     }

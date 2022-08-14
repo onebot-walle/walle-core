@@ -26,13 +26,13 @@ pub fn new_uuid() -> String {
     uuid::Uuid::from_u128(timestamp_nano()).to_string()
 }
 
-pub trait SelfId: Sized {
-    fn self_id(&self) -> String;
+pub trait GetSelf: Sized {
+    fn get_self(&self) -> Selft;
 }
 
 #[async_trait::async_trait]
-pub trait SelfIds {
-    async fn self_ids(&self) -> Vec<String>;
+pub trait GetSelfs {
+    async fn get_selfs(&self) -> Vec<Selft>;
 }
 
 #[doc(hidden)]
@@ -117,6 +117,8 @@ pub(crate) trait AuthReqHeaderExt {
 use hyper::http::{header::AUTHORIZATION, request::Builder};
 #[cfg(all(feature = "websocket", not(feature = "http")))]
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, request::Builder};
+
+use crate::structs::Selft;
 
 #[cfg(any(feature = "websocket", feature = "http"))]
 impl AuthReqHeaderExt for Builder {

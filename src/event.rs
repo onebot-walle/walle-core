@@ -1,6 +1,7 @@
 use crate::{
     prelude::WalleError,
-    util::{PushToValueMap, SelfId, Value, ValueMap, ValueMapExt},
+    structs::Selft,
+    util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
 };
 
 use serde::{Deserialize, Serialize};
@@ -10,8 +11,6 @@ pub struct Event {
     pub id: String,
     #[serde(rename = "impl")]
     pub implt: String,
-    pub platform: String,
-    pub self_id: String,
     pub time: f64,
     #[serde(rename = "type")]
     pub ty: String,
@@ -19,6 +18,18 @@ pub struct Event {
     pub sub_type: String,
     #[serde(flatten)]
     pub extra: ValueMap,
+}
+
+impl Event {
+    pub fn selft(&self) -> Option<Selft> {
+        self.extra.get_downcast("self").ok()
+    }
+    pub fn self_id(&self) -> Option<String> {
+        self.selft().map(|s| s.user_id)
+    }
+    pub fn platform(&self) -> Option<String> {
+        self.selft().map(|s| s.platform)
+    }
 }
 
 impl ValueMapExt for Event {
@@ -60,8 +71,6 @@ impl From<Event> for Value {
         map.insert("id".to_string(), e.id.into());
         map.insert("impl".to_string(), e.implt.into());
         map.insert("time".to_string(), e.time.into());
-        map.insert("self_id".to_string(), e.self_id.into());
-        map.insert("platform".to_string(), e.platform.into());
         map.insert("type".to_string(), e.ty.into());
         map.insert("detail_type".to_string(), e.detail_type.into());
         map.insert("sub_type".to_string(), e.sub_type.into());
@@ -76,9 +85,7 @@ impl TryFrom<Value> for Event {
             Ok(Self {
                 id: map.remove_downcast("id")?,
                 implt: map.remove_downcast("impl")?,
-                platform: map.remove_downcast("platform")?,
                 time: map.remove_downcast("time")?,
-                self_id: map.remove_downcast("self_id")?,
                 ty: map.remove_downcast("type")?,
                 detail_type: map.remove_downcast("detail_type")?,
                 sub_type: map.remove_downcast("sub_type")?,
@@ -93,16 +100,15 @@ impl TryFrom<Value> for Event {
     }
 }
 
-impl SelfId for Event {
-    fn self_id(&self) -> String {
-        self.self_id.to_string()
+impl GetSelf for Event {
+    fn get_self(&self) -> Selft {
+        self.selft().unwrap_or_default()
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
     pub id: String,
-    pub self_id: String,
     pub time: f64,
     pub implt: I,
     pub platform: P,
@@ -124,8 +130,6 @@ where
         Self {
             id: event.id,
             implt: event.implt.implt().to_string(),
-            platform: event.platform.platform().to_string(),
-            self_id: event.self_id,
             time: event.time,
             ty: event.ty.ty().to_string(),
             detail_type: event.detail_type.detail_type().to_string(),
@@ -146,7 +150,6 @@ where
 pub fn new_event<T, D, S, P, I>(
     id: String,
     time: f64,
-    self_id: String,
     ty: T,
     detail_type: D,
     sub_type: S,
@@ -157,7 +160,6 @@ pub fn new_event<T, D, S, P, I>(
     BaseEvent::<T, D, S, P, I> {
         id,
         time,
-        self_id,
         ty,
         detail_type,
         sub_type,
@@ -192,7 +194,7 @@ where
         } else if !P::check(&event) {
             return Err(WalleError::DeclareNotMatch(
                 "platform",
-                event.platform.clone(),
+                event.platform().unwrap_or_default(),
             ));
         } else if !I::check(&event) {
             return Err(WalleError::DeclareNotMatch("impl", event.implt.clone()));
@@ -204,7 +206,6 @@ where
             implt: I::try_from(&mut event)?,
             platform: P::try_from(&mut event)?,
             id: event.id,
-            self_id: event.self_id,
             time: event.time,
             extra: event.extra,
         })
@@ -274,6 +275,7 @@ use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 #[derive(Debug, Clone, PartialEq, OneBot, PushToValueMap)]
 #[event(type)]
 pub struct Message {
+    pub selft: Selft,
     pub message_id: String,
     pub message: crate::segment::Segments,
     pub alt_message: String,
@@ -283,12 +285,16 @@ pub type MessageEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Message, D, S,
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
-pub struct Notice {}
+pub struct Notice {
+    pub selft: Selft,
+}
 pub type NoticeEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Notice, D, S, P, I>;
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
-pub struct Request {}
+pub struct Request {
+    pub selft: Selft,
+}
 pub type RequestEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Request, D, S, P, I>;
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]

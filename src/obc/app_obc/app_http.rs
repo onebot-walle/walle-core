@@ -3,7 +3,8 @@ use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 use crate::{
     config::{HttpClient, HttpServer},
     error::{WalleError, WalleResult},
-    util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
+    structs::Selft,
+    util::{AuthReqHeaderExt, Echo, GetSelf, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
 use hyper::{
@@ -31,7 +32,7 @@ where
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
-        E: ProtocolItem + SelfId + Clone,
+        E: ProtocolItem + GetSelf + Clone,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
@@ -82,7 +83,7 @@ where
                     match E::json_decode(&body) {
                         Ok(event) => {
                             let (action_tx, mut action_rx) = mpsc::unbounded_channel();
-                            let self_id = event.self_id();
+                            let self_id = event.get_self();
                             bot_map.ensure_bot(&self_id, &action_tx);
                             if let Err(e) = ob.handle_event(event).await {
                                 warn!(target: super::OBC, "{}", e);
@@ -131,14 +132,20 @@ where
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
-        E: ProtocolItem + SelfId + Clone,
+        E: ProtocolItem + GetSelf + Clone,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
             let (tx, mut rx) = mpsc::unbounded_channel();
-            self.bots.ensure_bot(&bot_id, &tx);
+            self.bots.ensure_bot(
+                &Selft {
+                    platform: http.platform.clone().unwrap_or_default(),
+                    user_id: bot_id.clone(),
+                },
+                &tx,
+            );
             let ob = ob.clone();
             let cli = client.clone();
             let echo_map = self.echos.clone();

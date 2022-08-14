@@ -102,6 +102,7 @@ impl Default for HttpServer {
 /// OneBot Impl Http Webhook 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HttpClient {
+    pub platform: Option<String>,
     pub url: String,
     pub access_token: Option<String>,
     pub timeout: u64,
@@ -110,6 +111,7 @@ pub struct HttpClient {
 impl Default for HttpClient {
     fn default() -> Self {
         Self {
+            platform: None,
             url: "http://127.0.0.1:6700".to_owned(),
             access_token: None,
             timeout: 4,

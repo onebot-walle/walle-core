@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::vec;
 
 use async_trait::async_trait;
 use colored::*;
@@ -8,7 +9,8 @@ use crate::action::Action;
 use crate::event::Event;
 use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
-use crate::util::{SelfIds, Value, ValueMap};
+use crate::structs::Selft;
+use crate::util::{GetSelfs, Value, ValueMap};
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
 /// 命令行着色输出，可以用于 log
@@ -94,24 +96,27 @@ impl<E, A, R> Default for TracingHandler<E, A, R> {
     }
 }
 
-#[async_trait::async_trait]
-impl<E, A, R> SelfIds for TracingHandler<E, A, R>
+#[async_trait]
+impl<E, A, R> GetSelfs for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
     A: Send + Sync + 'static,
     R: Send + Sync + 'static,
 {
-    async fn self_ids(&self) -> Vec<String> {
+    async fn get_selfs(&self) -> Vec<Selft> {
         vec![]
     }
 }
 
-impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R> {
-    fn get_status(&self) -> crate::structs::Status {
-        crate::structs::Status {
-            good: true,
-            online: true,
-        }
+#[async_trait]
+impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R>
+where
+    E: Send + Sync + 'static,
+    A: Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    async fn is_good(&self) -> bool {
+        true
     }
 }
 

@@ -1,11 +1,13 @@
 use walle_core::event::{BaseEvent, Event};
-use walle_core::value_map;
-use walle_core::segment::{Segments, MessageSegment};
 use walle_core::prelude::OneBot;
+use walle_core::segment::{MessageSegment, Segments};
+use walle_core::structs::Selft;
+use walle_core::value_map;
 
 #[derive(Debug, OneBot, PartialEq)]
 #[event(type = "message")]
 pub struct MessageE {
+    pub selft: Selft,
     pub message_id: String,
     pub message: Segments,
     pub alt_message: String,
@@ -26,13 +28,15 @@ fn main() {
     let raw_pme = Event {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
         implt: "go_onebot_qq".to_owned(),
-        platform: "qq".to_owned(),
-        self_id: "123234".to_owned(),
         time: 1632847927.0,
         ty: "message".to_string(),
         detail_type: "private".to_string(),
         sub_type: "".to_string(),
         extra: value_map! {
+            "self": {
+                "user_id": "123234",
+                "platform": "qq"
+            },
             "message_id": "6283",
             "message": [
                 {
@@ -54,11 +58,14 @@ fn main() {
     };
     let pmbe = BaseEvent::<MessageE> {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-        self_id: "123234".to_string(),
         time: 1632847927.0,
         implt: (),
         platform: (),
         ty: MessageE {
+            selft: Selft {
+                platform: "qq".to_owned(),
+                user_id: "123234".to_owned(),
+            },
             message_id: "6283".to_string(),
             message: vec![
                 MessageSegment {
@@ -82,13 +89,15 @@ fn main() {
     let raw_gme = Event {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
         implt: "go_onebot_qq".to_owned(),
-        platform: "qq".to_owned(),
-        self_id: "123234".to_owned(),
         time: 1632847927.0,
         ty: "message".to_string(),
         detail_type: "group".to_string(),
         sub_type: "".to_string(),
         extra: value_map! {
+            "self": {
+                "user_id": "123234",
+                "platform": "qq"
+            },
             "group_id": "group",
             "message_id": "6283",
             "message": [
@@ -111,11 +120,14 @@ fn main() {
     };
     let gmbe = BaseEvent::<MessageE, Group> {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-        self_id: "123234".to_string(),
         time: 1632847927.0,
         implt: (),
         platform: (),
         ty: MessageE {
+            selft: Selft {
+                platform: "qq".to_owned(),
+                user_id: "123234".to_owned(),
+            },
             message_id: "6283".to_string(),
             message: vec![
                 MessageSegment {

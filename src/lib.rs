@@ -31,7 +31,7 @@ pub mod prelude {
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
-    pub use crate::util::{Echo, OneBotBytes, SelfId, Value, ValueMap, ValueMapExt};
+    pub use crate::util::{Echo, OneBotBytes, GetSelf, Value, ValueMap, ValueMapExt};
     pub use crate::{value, value_map, value_vec};
     pub use async_trait::async_trait;
     pub use walle_macro::{OneBot, PushToValueMap};

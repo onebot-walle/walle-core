@@ -1,10 +1,27 @@
+use serde::{Deserialize, Serialize};
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot, Hash, Serialize, Deserialize, Default,
+)]
+#[value]
+pub struct Selft {
+    pub platform: String,
+    pub user_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
+#[value]
+pub struct Bot {
+    pub selft: Selft,
+    pub online: bool,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
 pub struct Status {
     pub good: bool,
-    pub online: bool,
+    pub bots: Vec<Bot>,
 }
 
 #[derive(Debug, Clone, PartialEq, PushToValueMap, OneBot)]

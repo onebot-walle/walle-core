@@ -84,7 +84,6 @@ where
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wsr in config {
-            let platform = self.platform.clone();
             let r#impl = self.implt.clone();
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
@@ -96,20 +95,10 @@ where
                     let req = Request::builder()
                         .header(
                             USER_AGENT,
-                            format!("OneBot/{} ({}) Walle/{}", 12, platform, crate::VERSION),
+                            format!("OneBot/{} Walle/{}", 12, crate::VERSION),
                         )
                         .header("X-OneBot-Version", 12.to_string())
-                        .header("X-Platform", platform.clone())
                         .header("X-Impl", r#impl.clone())
-                        .header(
-                            "X-Self-ID",
-                            ob.action_handler
-                                .self_ids()
-                                .await
-                                .first()
-                                .cloned()
-                                .unwrap_or_default(),
-                        )
                         .header("X-Client-Role", "Universal".to_string()) // for v11
                         .header_auth_token(&wsr.access_token);
                     match try_connect(&wsr, req).await {

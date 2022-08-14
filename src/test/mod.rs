@@ -4,7 +4,7 @@ use crate::{
     error::WalleError,
     event::*,
     segment::*,
-    structs::Status,
+    structs::{Bot, Selft, Status},
     util::{Value, ValueMap},
     value, value_map,
 };
@@ -24,13 +24,14 @@ fn event() {
         assert_eq!(T::try_from(event.1.clone()).unwrap(), event.2);
         println!("{}", event.1.colored_alt());
     }
+    #[derive(Debug, PushToValueMap, OneBot)]
+    #[event(platform)]
+    struct GoOnebotQq {}
 
     test((
         r#"{
             "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
             "impl": "go_onebot_qq",
-            "platform": "qq",
-            "self_id": "123234",
             "time": 1632847927.599013,
             "type": "meta",
             "detail_type": "heartbeat",
@@ -38,14 +39,18 @@ fn event() {
             "interval": 5000,
             "status": {
                 "good": true,
-                "online": true
+                "bots": [{
+                    "self": {
+                        "user_id": "123234",
+                        "platform": "walle"
+                    },
+                    "online": true
+                }]
             }
         }"#,
         Event {
             id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
             implt: "go_onebot_qq".to_string(),
-            platform: "qq".to_string(),
-            self_id: "123234".to_string(),
             time: 1632847927.599013,
             ty: "meta".to_string(),
             detail_type: "heartbeat".to_string(),
@@ -54,20 +59,31 @@ fn event() {
                 "interval": 5000,
                 "status": {
                     "good": true,
-                    "online": true
+                    "bots": [{
+                        "self": {
+                            "user_id": "123234",
+                            "platform": "walle"
+                        },
+                        "online": true
+                    }]
                 }
             },
         },
         new_event(
             "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
             1632847927.599013,
-            "123234".to_string(),
             Meta {},
             Heartbeat {
                 interval: 5000,
                 status: Status {
                     good: true,
-                    online: true,
+                    bots: vec![Bot {
+                        selft: Selft {
+                            user_id: "123234".to_string(),
+                            platform: "walle".to_string(),
+                        },
+                        online: true,
+                    }],
                 },
             },
             (),
@@ -80,8 +96,10 @@ fn event() {
         r#"{
             "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
             "impl": "go_onebot_qq",
-            "platform": "qq",
-            "self_id": "123234",
+            "self": {
+                "user_id": "123234",
+                "platform": "qq"
+            },
             "time": 1632847927,
             "type": "message",
             "detail_type": "private",
@@ -107,13 +125,15 @@ fn event() {
         Event {
             id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
             implt: "go_onebot_qq".to_string(),
-            platform: "qq".to_string(),
-            self_id: "123234".to_string(),
             time: 1632847927.0,
             ty: "message".to_string(),
             detail_type: "private".to_string(),
             sub_type: "".to_string(),
             extra: value_map! {
+                "self": {
+                    "platform": "qq",
+                    "user_id": "123234"
+                },
                 "message_id": "6283",
                 "message": [
                     {
@@ -136,7 +156,6 @@ fn event() {
         new_event(
             "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
             1632847927.0,
-            "123234".to_string(),
             Message {
                 message: vec![
                     crate::segment::MessageSegment {
@@ -155,6 +174,10 @@ fn event() {
                 message_id: "6283".to_string(),
                 alt_message: "OneBot is not a bot[图片]".to_string(),
                 user_id: "123456788".to_string(),
+                selft: Selft {
+                    platform: "qq".to_owned(),
+                    user_id: "123234".to_owned(),
+                },
             },
             Private {},
             (),
@@ -190,6 +213,7 @@ fn action() {
         }"#,
         Action {
             action: "get_latest_events".to_string(),
+            selft: None,
             params: value_map! {
                 "limit": 100,
                 "timeout": 0
@@ -218,6 +242,7 @@ fn action() {
         }"#,
         Action {
             action: "send_message".to_string(),
+            selft: None,
             params: value_map! {
                 "detail_type": "group",
                 "group_id": "12467",
@@ -323,6 +348,7 @@ fn enum_action() {
 
     let raw_action = Action {
         action: "get_user_info".to_string(),
+        selft: None,
         params: value_map! {
             "user_id": "abab"
         },

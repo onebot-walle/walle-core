@@ -1,7 +1,8 @@
 use crate::{
     config::{WebSocketClient, WebSocketServer},
     error::{WalleError, WalleResult},
-    util::{AuthReqHeaderExt, Echo, ProtocolItem, SelfId},
+    structs::Selft,
+    util::{AuthReqHeaderExt, Echo, GetSelf, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
 use crate::{
@@ -36,7 +37,7 @@ where
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
-        E: ProtocolItem + SelfId + Clone,
+        E: ProtocolItem + GetSelf + Clone,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
@@ -81,7 +82,7 @@ where
         tasks: &mut Vec<JoinHandle<()>>,
     ) -> WalleResult<()>
     where
-        E: ProtocolItem + SelfId + Clone,
+        E: ProtocolItem + GetSelf + Clone,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
@@ -126,7 +127,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     echo_map: EchoMap<R>,
     bot_map: BotMap<A>,
 ) where
-    E: ProtocolItem + SelfId + Clone,
+    E: ProtocolItem + GetSelf + Clone,
     A: ProtocolItem,
     R: ProtocolItem,
     AH: ActionHandler<E, A, R> + Send + Sync + 'static,
@@ -176,10 +177,10 @@ async fn ws_recv<E, A, R, AH, EH>(
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
     action_tx: &mpsc::UnboundedSender<Echo<A>>,
-    bot_set: &mut HashSet<String>,
+    bot_set: &mut HashSet<Selft>,
 ) -> bool
 where
-    E: ProtocolItem + Clone + SelfId,
+    E: ProtocolItem + Clone + GetSelf,
     A: ProtocolItem,
     R: ProtocolItem,
     AH: ActionHandler<E, A, R> + Send + Sync + 'static,
@@ -195,7 +196,7 @@ where
     let handle_ok = |item: Result<ReceiveItem<E, R>, String>| async move {
         match item {
             Ok(ReceiveItem::Event(event)) => {
-                let self_id = event.self_id();
+                let self_id = event.get_self();
                 bot_map.ensure_bot(&self_id, action_tx);
                 bot_set.insert(self_id);
                 let ob = ob.clone();

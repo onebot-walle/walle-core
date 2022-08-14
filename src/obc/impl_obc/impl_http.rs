@@ -179,15 +179,7 @@ where
         let ob = ob.clone();
         let mut event_rx = self.event_tx.subscribe();
         let mut signal_rx = ob.get_signal_rx()?;
-        let self_id = ob
-            .action_handler
-            .self_ids()
-            .await
-            .first()
-            .cloned()
-            .unwrap_or_default();
         let r#impl = self.implt.clone();
-        let platform = self.platform.clone();
         tasks.push(tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -195,9 +187,7 @@ where
                     Ok(event) = event_rx.recv() => webhook_push(
                         &ob,
                         event,
-                        &self_id,
                         &r#impl,
-                        &platform,
                         &config,
                         &client
                     ).await
@@ -211,9 +201,7 @@ where
 async fn webhook_push<E, A, R, AH, EH>(
     ob: &Arc<OneBot<AH, EH>>,
     event: E,
-    self_id: &str,
     r#impl: &str,
-    platform: &str,
     config: &Vec<HttpClient>,
     client: &Arc<HyperClient<HttpConnector, Body>>,
 ) where
@@ -231,8 +219,6 @@ async fn webhook_push<E, A, R, AH, EH>(
             .header(CONTENT_TYPE, "application/json")
             .header("X-OneBot-Version", 12.to_string())
             .header("X-Impl", r#impl.to_owned())
-            .header("X-Platform", platform.to_owned())
-            .header("X-Self-ID", self_id.to_owned())
             .header_auth_token(&webhook.access_token)
             .body(date.clone().into())
             .unwrap();
