@@ -77,23 +77,28 @@ pub(crate) async fn upgrade_websocket(
     };
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
+        use crate::obc::check_query;
         let headers = req.headers();
         if let Some(token) = access_token {
-            match headers.get("Authorization").and_then(|a| a.to_str().ok()) {
-                Some(auth) => {
-                    if auth.strip_prefix("Bearer ") != Some(token) {
-                        return Err(HttpRespBuilder::new()
-                            .status(403)
-                            .body(Some("Authorization Header is invalid".to_string()))
-                            .unwrap());
-                    }
-                }
-                None => {
+            if let Some(auth) = headers.get("Authorization").and_then(|a| a.to_str().ok()) {
+                if auth.strip_prefix("Bearer ") != Some(token) {
                     return Err(HttpRespBuilder::new()
                         .status(403)
-                        .body(Some("Missing Authorization Header".to_string()))
-                        .unwrap())
+                        .body(Some("Authorization Header is invalid".to_string()))
+                        .unwrap());
                 }
+            } else if let Some(auth) = check_query(req.uri()) {
+                if auth != token {
+                    return Err(HttpRespBuilder::new()
+                        .status(403)
+                        .body(Some("Authorization Query is invalid".to_string()))
+                        .unwrap());
+                }
+            } else {
+                return Err(HttpRespBuilder::new()
+                    .status(403)
+                    .body(Some("Missing Authorization Header".to_string()))
+                    .unwrap());
             }
         }
         info!(

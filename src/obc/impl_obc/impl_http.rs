@@ -73,10 +73,11 @@ where
                 let access_token = access_token.clone();
                 let ob = ob_.clone();
                 async move {
+                    use crate::obc::check_query;
                     if req.method() != Method::POST {
                         return Ok::<Response<Body>, Infallible>(empty_error_response(405));
                     }
-                    if req.uri() != "/" {
+                    if req.uri().path() != "/" {
                         return Ok(empty_error_response(404));
                     }
                     let content_type = match req
@@ -97,6 +98,10 @@ where
                         {
                             if header_token != format!("Bearer {}", token).as_str() {
                                 return Ok(error_response(403, "Authorization Header is invalid"));
+                            }
+                        } else if let Some(query_token) = check_query(req.uri()) {
+                            if token != query_token {
+                                return Ok(error_response(403, "Authorization Query is invalid"));
                             }
                         } else {
                             return Ok(error_response(403, "Missing Authorization Header"));
