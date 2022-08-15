@@ -299,12 +299,21 @@ pub type RequestEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Request, D, S,
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
-pub struct Meta {}
+pub struct Meta;
 pub type MetaEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Meta, D, S, P, I>;
+
+#[derive(Debug, Clone, OneBot, PushToValueMap)]
+#[event(type)]
+pub enum EventType {
+    Meta,
+    Message(Message),
+    Request(Request),
+    Notice(Notice),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(detail_type)]
-pub struct Private {}
+pub struct Private;
 pub type PrivateMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Private, S, P, I>;
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
