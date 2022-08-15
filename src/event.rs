@@ -283,6 +283,12 @@ pub struct Message {
 }
 pub type MessageEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Message, D, S, P, I>;
 
+impl GetSelf for Message {
+    fn get_self(&self) -> Selft {
+        self.selft.clone()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
 pub struct Notice {
@@ -290,12 +296,24 @@ pub struct Notice {
 }
 pub type NoticeEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Notice, D, S, P, I>;
 
+impl GetSelf for Notice {
+    fn get_self(&self) -> Selft {
+        self.selft.clone()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
 pub struct Request {
     pub selft: Selft,
 }
 pub type RequestEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Request, D, S, P, I>;
+
+impl GetSelf for Request {
+    fn get_self(&self) -> Selft {
+        self.selft.clone()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(type)]
