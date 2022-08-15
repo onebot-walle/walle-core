@@ -51,6 +51,7 @@ where
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
             let ob = ob.clone();
+            let implt = self.implt.clone();
             tasks.push(tokio::spawn(async move {
             loop { tokio::select! {
                     Ok((stream, addr)) = tcp_listener.accept() => {
@@ -58,6 +59,7 @@ where
                             info!(target: super::OBC, "New websocket connection from {}", addr);
                             tokio::spawn(ws_loop(
                                 ob.clone(),
+                                implt.clone(),
                                 event_rx.resubscribe(),
                                 hb_rx.resubscribe(),
                                 ws_stream,
@@ -89,6 +91,7 @@ where
             let hb_rx = self.hb_tx.subscribe();
             let mut signal_rx = ob.get_signal_rx()?;
             let ob = ob.clone();
+            let implt = self.implt.clone();
             tasks.push(tokio::spawn(async move {
                 info!(target: super::OBC, "Start try connect to {}", wsr.url);
                 while signal_rx.try_recv().is_err() {
@@ -105,6 +108,7 @@ where
                         Some(ws_stream) => {
                             ws_loop(
                                 ob.clone(),
+                                implt.clone(),
                                 event_rx.resubscribe(),
                                 hb_rx.resubscribe(),
                                 ws_stream,
@@ -128,6 +132,7 @@ where
 
 async fn ws_loop<E, A, R, AH, EH>(
     ob: Arc<OneBot<AH, EH>>,
+    implt: String,
     mut event_rx: broadcast::Receiver<E>,
     mut hb_rx: broadcast::Receiver<Event>,
     mut ws_stream: WebSocketStream<TcpStream>,
@@ -141,6 +146,17 @@ async fn ws_loop<E, A, R, AH, EH>(
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
+    let status = ob.action_handler.get_status().await;
+    let event = Event {
+        id: "".to_string(),
+        implt: implt.to_string(),
+        time: crate::util::timestamp_nano_f64(),
+        ty: "meta".to_string(),
+        detail_type: "status_update".to_string(),
+        sub_type: "".to_string(),
+        extra: status.into(),
+    };
+    ws_stream.send(WsMsg::Text(event.json_encode())).await.ok();
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,

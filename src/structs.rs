@@ -19,6 +19,7 @@ pub struct Bot {
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
 #[value]
+#[event(detail_type = "status_update")]
 pub struct Status {
     pub good: bool,
     pub bots: Vec<Bot>,

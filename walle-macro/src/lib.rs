@@ -45,7 +45,7 @@ fn flatten(input: Result<TokenStream2>) -> TokenStream2 {
 fn value_internal(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStream2> {
     let name = &input.ident;
     if let Data::Struct(data) = &input.data {
-        let idents = try_from_idents(&data.fields, quote!(map))?;
+        let idents = try_from_idents(&data.fields, quote!(map), false)?;
         Ok(quote!(
             impl TryFrom<&mut #span::util::value::ValueMap> for #name {
                 type Error = #span::error::WalleError;
@@ -79,7 +79,7 @@ fn value_internal(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStrea
     }
 }
 
-fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> {
+fn try_from_idents(fields: &Fields, head: TokenStream2, sub: bool) -> Result<TokenStream2> {
     match &fields {
         Fields::Named(v) => {
             let mut out = vec![];
@@ -112,9 +112,15 @@ fn try_from_idents(fields: &Fields, head: TokenStream2) -> Result<TokenStream2> 
             let mut out = vec![];
             for field in &v.unnamed {
                 let ty = &field.ty;
-                out.push(quote!(
-                    #ty::try_from(#head)?
-                ));
+                if sub {
+                    out.push(quote!(
+                        #ty::try_from(&mut #head)?
+                    ));
+                } else {
+                    out.push(quote!(
+                        #ty::try_from(#head)?
+                    ));
+                }
             }
             Ok(quote!((#(#out),*)))
         }
@@ -170,8 +176,9 @@ fn push_idents(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStream2>
                 let mut i = 0;
                 let mut vars = vec![];
                 for _ in &unnamed.unnamed {
+                    let index = syn::Index::from(i);
                     vars.push(quote!(
-                        self.#i.push_to(map);
+                        self.#index.push_to(map);
                     ));
                     i += 1;
                 }

@@ -1,6 +1,6 @@
 use crate::{
     prelude::WalleError,
-    structs::Selft,
+    structs::{Selft, Status},
     util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
 };
 
@@ -330,6 +330,8 @@ pub struct Heartbeat {
     pub status: crate::structs::Status,
 }
 pub type HeartbeatEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Heartbeat, S, P, I>;
+
+pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Status, S, P, I>;
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(detail_type)]

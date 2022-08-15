@@ -119,7 +119,7 @@ fn enum_declare(
                 Fields::Unnamed(_) => quote!(Self::#ident(..) => #s),
                 Fields::Unit => quote!(Self::#ident => #s),
             });
-            let idents = try_from_idents(&var.fields, quote!(e))?;
+            let idents = try_from_idents(&var.fields, quote!(e), false)?;
             try_from_vars.push(quote!(#s => Ok(Self::#ident #idents)));
             strs.push(s);
         }
@@ -190,29 +190,29 @@ fn struct_declare(
         let content = ContentType::try_from(path.get_ident().unwrap().to_string().as_str())?;
         let mut stream = content.struct_declare(name, span, &s);
 
-        let idents = try_from_idents(&data.fields, quote!(e.extra))?;
+        let idents = try_from_idents(&data.fields, quote!(e.extra), true)?;
         let t = content.traitt(span);
         let i = content.traiti();
         stream.extend(quote!(
             impl TryFrom<&mut #span::event::Event> for #name {
                 type Error = #span::error::WalleError;
-                fn try_from(e: &mut #span ::event::Event) -> Result<Self, Self::Error> {
-                    use #span ::util::value::ValueMapExt;
-                    Ok(Self #idents)
-                }
-            }
-            impl TryFrom<#span::event::Event> for #name {
-                type Error = #span::error::WalleError;
-                fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
+                fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
+                    use #span::util::value::ValueMapExt;
                     use #t;
-                    if Self::check(&e) {
-                        Self::try_from(&mut e)
+                    if Self::check(e) {
+                        Ok(Self #idents)
                     } else {
                         Err(#span::error::WalleError::DeclareNotMatch(
                             #s,
                             e.#i.clone()
                         ))
                     }
+                }
+            }
+            impl TryFrom<#span::event::Event> for #name {
+                type Error = #span::error::WalleError;
+                fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
+                    Self::try_from(&mut e)
                 }
             }
         ));

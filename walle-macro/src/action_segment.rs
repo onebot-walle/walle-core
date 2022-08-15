@@ -45,6 +45,7 @@ pub(crate) fn internal(
                 } else {
                     quote!(v.data)
                 },
+                true,
             )?;
             Ok(quote!(
                 impl #span::#declare for #name {
@@ -96,7 +97,7 @@ pub(crate) fn internal(
                 // todo attr
                 let ident = &var.ident;
                 let s = snake_case(ident.to_string());
-                let idents = try_from_idents(&var.fields, quote!(v))?;
+                let idents = try_from_idents(&var.fields, quote!(v), false)?;
                 vars.push(quote!(
                     #s => Ok(Self::#ident #idents)
                 ));

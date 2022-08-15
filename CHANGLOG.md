@@ -1,3 +1,8 @@
+# 1.0.0(a1)
+
+- refactor handler trait
+- support OneBot rfc #180 #181 #204
+
 # 0.6.1
 
 - fix Impl-OBC self_id won't update error
