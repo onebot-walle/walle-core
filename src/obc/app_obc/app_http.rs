@@ -1,4 +1,9 @@
-use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Infallible,
+    sync::Arc,
+    time::Duration,
+};
 
 use crate::{
     config::{HttpClient, HttpServer},
@@ -15,10 +20,10 @@ use hyper::{
     service::service_fn,
     Body, Client as HyperClient, Method, Request, Response,
 };
-use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
+use tokio::{net::TcpListener, task::JoinHandle};
 use tracing::{info, warn};
 
-use super::{AppOBC, BotMapExt, EchoMap};
+use super::{AppOBC, EchoMap};
 
 impl<A, R> AppOBC<A, R>
 where
@@ -82,9 +87,9 @@ where
                     .unwrap();
                     match E::json_decode(&body) {
                         Ok(event) => {
-                            let (action_tx, mut action_rx) = mpsc::unbounded_channel();
-                            let self_id = event.get_self();
-                            bot_map.ensure_bot(&self_id, &action_tx);
+                            let (seq, mut action_rx) = bot_map.new_connect();
+                            let selft = event.get_self();
+                            bot_map.connect_update(&seq, HashSet::from([selft]));
                             if let Err(e) = ob.handle_event(event).await {
                                 warn!(target: super::OBC, "{}", e);
                             }
@@ -96,7 +101,7 @@ where
                             {
                                 let echo_s = a.get_echo();
                                 echo_map.remove(&echo_s);
-                                bot_map.remove_bot(&self_id, &action_tx);
+                                bot_map.connect_closs(&seq);
                                 return Ok(Response::new(a.json_encode().into()));
                             }
                         }
@@ -138,13 +143,14 @@ where
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
-            let (tx, mut rx) = mpsc::unbounded_channel();
-            self.bots.ensure_bot(
-                &Selft {
+            let (seq, mut rx) = self.bots.new_connect();
+            // let (tx, mut rx) = mpsc::unbounded_channel();
+            self.bots.connect_update(
+                &seq,
+                HashSet::from([Selft {
                     platform: http.platform.clone().unwrap_or_default(),
                     user_id: bot_id.clone(),
-                },
-                &tx,
+                }]),
             );
             let ob = ob.clone();
             let cli = client.clone();

@@ -1,25 +1,25 @@
 use crate::{
     config::{WebSocketClient, WebSocketServer},
     error::{WalleError, WalleResult},
-    structs::Selft,
+    event::{Event, MetaDetailEvent, MetaTypes},
     util::{AuthReqHeaderExt, Echo, GetSelf, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
 };
 use crate::{
     obc::{
         ws_util::{try_connect, upgrade_websocket},
-        AppOBC, BotMap, BotMapExt, EchoMap,
+        AppOBC, BotMap, EchoMap,
     },
     util::ContentType,
 };
 
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
-use tokio::{net::TcpListener, sync::mpsc};
 use tokio_tungstenite::tungstenite::http::{header::USER_AGENT, Request};
 use tokio_tungstenite::tungstenite::Message as WsMsg;
 use tokio_tungstenite::WebSocketStream;
@@ -125,7 +125,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     ob: Arc<OneBot<AH, EH>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
-    bot_map: BotMap<A>,
+    bot_map: Arc<BotMap<A>>,
 ) where
     E: ProtocolItem + GetSelf + Clone,
     A: ProtocolItem,
@@ -133,9 +133,8 @@ async fn ws_loop<E, A, R, AH, EH>(
     AH: ActionHandler<E, A, R> + Send + Sync + 'static,
     EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
-    let (action_tx, mut action_rx) = mpsc::unbounded_channel::<Echo<A>>();
+    let (seq, mut action_rx) = bot_map.new_connect();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
-    let mut bot_set = HashSet::default();
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
@@ -152,8 +151,7 @@ async fn ws_loop<E, A, R, AH, EH>(
                         &mut ws_stream,
                         &echo_map,
                         &bot_map,
-                        &action_tx,
-                        &mut bot_set,
+                        &seq,
                     ).await {
                         break;
                     },
@@ -165,9 +163,7 @@ async fn ws_loop<E, A, R, AH, EH>(
         }
     }
     ws_stream.send(WsMsg::Close(None)).await.ok();
-    for bot in bot_set {
-        bot_map.remove_bot(&bot, &action_tx);
-    }
+    bot_map.connect_closs(&seq);
 }
 
 async fn ws_recv<E, A, R, AH, EH>(
@@ -176,8 +172,7 @@ async fn ws_recv<E, A, R, AH, EH>(
     ws_stream: &mut WebSocketStream<TcpStream>,
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
-    action_tx: &mpsc::UnboundedSender<Echo<A>>,
-    bot_set: &mut HashSet<Selft>,
+    seq: &usize,
 ) -> bool
 where
     E: ProtocolItem + Clone + GetSelf,
@@ -196,9 +191,6 @@ where
     let handle_ok = |item: Result<ReceiveItem<E, R>, String>| async move {
         match item {
             Ok(ReceiveItem::Event(event)) => {
-                let self_id = event.get_self();
-                bot_map.ensure_bot(&self_id, action_tx);
-                bot_set.insert(self_id);
                 let ob = ob.clone();
                 tokio::spawn(async move { ob.handle_event(event).await });
             }
@@ -212,9 +204,32 @@ where
         }
     };
 
+    let meta_process = |meta: Result<Event, String>| async move {
+        if let Ok(event) = meta.and_then(|e: Event| {
+            <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.to_string())
+        }) {
+            if let MetaTypes::StatusUpdate(status) = event.detail_type {
+                bot_map.connect_update(
+                    seq,
+                    status
+                        .bots
+                        .into_iter()
+                        .filter_map(|bot| if bot.online { Some(bot.selft) } else { None })
+                        .collect(),
+                );
+            }
+        }
+    };
+
     match msg {
-        WsMsg::Text(text) => handle_ok(ProtocolItem::json_decode(&text)).await,
-        WsMsg::Binary(bin) => handle_ok(ProtocolItem::rmp_decode(&bin)).await,
+        WsMsg::Text(text) => {
+            meta_process(ProtocolItem::json_decode(&text)).await;
+            handle_ok(ProtocolItem::json_decode(&text)).await;
+        }
+        WsMsg::Binary(b) => {
+            meta_process(ProtocolItem::rmp_decode(&b)).await;
+            handle_ok(ProtocolItem::rmp_decode(&b)).await;
+        }
         WsMsg::Ping(b) => {
             if ws_stream.send(WsMsg::Pong(b)).await.is_err() {
                 return true;

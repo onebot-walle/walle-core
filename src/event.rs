@@ -353,6 +353,14 @@ pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Status, S, 
 
 #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
 #[event(detail_type)]
+pub enum MetaTypes {
+    Heartbeat(Heartbeat),
+    StatusUpdate(Status),
+}
+pub type MetaDetailEvent<S = (), P = (), I = ()> = BaseEvent<Meta, MetaTypes, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[event(detail_type)]
 pub struct GroupMemberIncrease {
     pub group_id: String,
     pub user_id: String,
