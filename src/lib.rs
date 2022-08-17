@@ -16,7 +16,7 @@ pub mod structs;
 pub mod util;
 
 mod ah;
-pub use ah::{ActionHandler, GetStatus};
+pub use ah::{ActionHandler, GetSelfs, GetStatus};
 mod eh;
 pub use eh::EventHandler;
 
@@ -31,7 +31,7 @@ pub mod prelude {
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
-    pub use crate::util::{Echo, OneBotBytes, GetSelf, Value, ValueMap, ValueMapExt};
+    pub use crate::util::{Echo, GetSelf, OneBotBytes, Value, ValueMap, ValueMapExt};
     pub use crate::{value, value_map, value_vec};
     pub use async_trait::async_trait;
     pub use walle_macro::{OneBot, PushToValueMap};
