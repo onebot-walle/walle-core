@@ -50,7 +50,7 @@ impl ValueMapExt for Action {
 
 impl GetSelf for Action {
     fn get_self(&self) -> Selft {
-        self.params.get_downcast("self_id").unwrap_or_default()
+        self.selft.clone().unwrap_or_default()
     }
 }
 
