@@ -31,7 +31,6 @@ fn event() {
     test((
         r#"{
             "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
-            "impl": "go_onebot_qq",
             "time": 1632847927.599013,
             "type": "meta",
             "detail_type": "heartbeat",
@@ -50,7 +49,6 @@ fn event() {
         }"#,
         Event {
             id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-            implt: "go_onebot_qq".to_string(),
             time: 1632847927.599013,
             ty: "meta".to_string(),
             detail_type: "heartbeat".to_string(),
@@ -95,7 +93,6 @@ fn event() {
     test((
         r#"{
             "id": "b6e65187-5ac0-489c-b431-53078e9d2bbb",
-            "impl": "go_onebot_qq",
             "self": {
                 "user_id": "123234",
                 "platform": "qq"
@@ -124,7 +121,6 @@ fn event() {
         }"#,
         Event {
             id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-            implt: "go_onebot_qq".to_string(),
             time: 1632847927.0,
             ty: "message".to_string(),
             detail_type: "private".to_string(),

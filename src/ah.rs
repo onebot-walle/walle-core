@@ -3,10 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::error::WalleResult;
-use crate::structs::Bot;
-use crate::structs::Status;
+use crate::structs::{Bot, Selft, Status};
 use crate::util::GetSelf;
-use crate::util::GetSelfs;
 use crate::EventHandler;
 use crate::OneBot;
 
@@ -33,6 +31,12 @@ pub trait ActionHandler<E, A, R>: GetStatus + Sync {
         Ok(())
     }
     async fn shutdown(&self) {}
+}
+
+#[async_trait]
+pub trait GetSelfs {
+    async fn get_selfs(&self) -> Vec<Selft>;
+    async fn get_impl(&self, selft: &Selft) -> String;
 }
 
 #[async_trait]
@@ -81,6 +85,13 @@ where
         let mut r = self.0.get_selfs().await;
         r.extend(self.1.get_selfs().await.into_iter());
         r
+    }
+    async fn get_impl(&self, selft: &Selft) -> String {
+        if self.0.get_selfs().await.contains(selft) {
+            self.0.get_impl(selft).await
+        } else {
+            self.1.get_impl(selft).await
+        }
     }
 }
 

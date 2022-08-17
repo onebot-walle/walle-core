@@ -6,11 +6,12 @@ use colored::*;
 use tracing::info;
 
 use crate::action::Action;
+use crate::ah::GetSelfs;
 use crate::event::Event;
 use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
 use crate::structs::Selft;
-use crate::util::{GetSelfs, Value, ValueMap};
+use crate::util::{Value, ValueMap};
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
 /// 命令行着色输出，可以用于 log
@@ -105,6 +106,9 @@ where
 {
     async fn get_selfs(&self) -> Vec<Selft> {
         vec![]
+    }
+    async fn get_impl(&self, _selft: &Selft) -> String {
+        String::default()
     }
 }
 

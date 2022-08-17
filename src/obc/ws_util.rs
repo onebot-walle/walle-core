@@ -67,7 +67,7 @@ pub(crate) async fn try_connect(
 pub(crate) async fn upgrade_websocket(
     access_token: &Option<String>,
     stream: TcpStream,
-) -> Option<WebSocketStream<TcpStream>> {
+) -> Option<(WebSocketStream<TcpStream>, String)> {
     let addr = match stream.peer_addr() {
         Ok(addr) => addr,
         Err(e) => {
@@ -75,6 +75,8 @@ pub(crate) async fn upgrade_websocket(
             return None;
         }
     };
+    let mut implt = String::default();
+    let ref_implt = &mut implt;
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         use crate::obc::check_query;
@@ -101,6 +103,15 @@ pub(crate) async fn upgrade_websocket(
                     .unwrap());
             }
         }
+        if let Some(Some((version, implt))) = headers
+            .get("Sec-WebSocket-Protocol")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.split_once('.'))
+        {
+            if version == "12" {
+                *ref_implt = implt.to_owned();
+            }
+        }
         info!(
             target: OBC,
             "Websocket connectted with {}",
@@ -112,7 +123,7 @@ pub(crate) async fn upgrade_websocket(
     match accept_hdr_async(stream, callback).await {
         Ok(s) => {
             info!(target: OBC, "New websocket client connected from {}", addr);
-            Some(s)
+            Some((s, implt))
         }
         Err(e) => {
             info!(target: OBC, "Upgrade websocket from {} failed: {}", addr, e);

@@ -9,8 +9,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub id: String,
-    #[serde(rename = "impl")]
-    pub implt: String,
     pub time: f64,
     #[serde(rename = "type")]
     pub ty: String,
@@ -69,7 +67,6 @@ impl From<Event> for Value {
     fn from(e: Event) -> Self {
         let mut map = e.extra;
         map.insert("id".to_string(), e.id.into());
-        map.insert("impl".to_string(), e.implt.into());
         map.insert("time".to_string(), e.time.into());
         map.insert("type".to_string(), e.ty.into());
         map.insert("detail_type".to_string(), e.detail_type.into());
@@ -84,7 +81,6 @@ impl TryFrom<Value> for Event {
         if let Value::Map(mut map) = value {
             Ok(Self {
                 id: map.remove_downcast("id")?,
-                implt: map.remove_downcast("impl")?,
                 time: map.remove_downcast("time")?,
                 ty: map.remove_downcast("type")?,
                 detail_type: map.remove_downcast("detail_type")?,
@@ -129,7 +125,6 @@ where
     fn from(mut event: BaseEvent<T, D, S, P, I>) -> Self {
         Self {
             id: event.id,
-            implt: event.implt.implt().to_string(),
             time: event.time,
             ty: event.ty.ty().to_string(),
             detail_type: event.detail_type.detail_type().to_string(),
@@ -196,8 +191,6 @@ where
                 "platform",
                 event.platform().unwrap_or_default(),
             ));
-        } else if !I::check(&event) {
-            return Err(WalleError::DeclareNotMatch("impl", event.implt.clone()));
         }
         Ok(Self {
             ty: T::try_from(&mut event)?,
@@ -215,9 +208,6 @@ where
 pub trait ImplDeclare {
     fn implt(&self) -> &'static str {
         ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
     }
 }
 

@@ -3,8 +3,9 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use super::OBC;
+use crate::ah::GetSelfs;
 use crate::structs::Selft;
-use crate::util::{Echo, EchoInner, EchoS, GetSelf, GetSelfs, ProtocolItem};
+use crate::util::{Echo, EchoInner, EchoS, GetSelf, ProtocolItem};
 use crate::{ActionHandler, EventHandler, GetStatus, OneBot};
 use crate::{WalleError, WalleResult};
 
@@ -126,7 +127,7 @@ where
 #[derive(Debug)]
 pub(crate) struct BotMap<A> {
     pub(crate) tx_seq: AtomicUsize,
-    pub(crate) bots: DashMap<Selft, Vec<mpsc::UnboundedSender<Echo<A>>>>,
+    pub(crate) bots: DashMap<Selft, (String, Vec<mpsc::UnboundedSender<Echo<A>>>)>,
     pub(crate) txs: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
 }
 
@@ -152,15 +153,16 @@ impl<A> BotMap<A> {
             for selft in selfts.1 .1 {
                 let mut bot = self.bots.get_mut(&selft).unwrap();
                 bot.value_mut()
+                    .1
                     .retain(|htx| !htx.same_channel(&selfts.1 .0));
-                if bot.value().is_empty() {
+                if bot.value().1.is_empty() {
                     drop(bot);
                     self.bots.remove(&selft);
                 }
             }
         }
     }
-    fn connect_update(&self, tx_seq: &usize, mut selfts: HashSet<Selft>) {
+    fn connect_update(&self, tx_seq: &usize, mut selfts: HashSet<Selft>, implt: &str) {
         let mut get_selfts = self.txs.get_mut(tx_seq).unwrap();
         let mut need_remove = vec![];
         let tx = get_selfts.value().0.clone();
@@ -174,8 +176,8 @@ impl<A> BotMap<A> {
         for selft in need_remove {
             get_selfts.1.remove(&selft);
             if let Some(mut bots) = self.bots.get_mut(&selft) {
-                bots.value_mut().retain(|htx| !htx.same_channel(&tx));
-                if bots.is_empty() {
+                bots.value_mut().1.retain(|htx| !htx.same_channel(&tx));
+                if bots.1.is_empty() {
                     drop(bots);
                     self.bots.remove(&selft);
                 }
@@ -186,7 +188,11 @@ impl<A> BotMap<A> {
             );
         }
         for selft in selfts {
-            self.bots.entry(selft.clone()).or_default().push(tx.clone());
+            self.bots
+                .entry(selft.clone())
+                .or_insert((implt.to_owned(), vec![]))
+                .1
+                .push(tx.clone());
             get_selfts.1.insert(selft.clone());
             info!(
                 target: OBC,
@@ -195,7 +201,7 @@ impl<A> BotMap<A> {
         }
     }
     fn get_bot(&self, bot: &Selft) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
-        self.bots.get(bot).as_deref().cloned()
+        self.bots.get(bot).as_deref().cloned().map(|v| v.1)
     }
     fn selfts(&self) -> Vec<Selft> {
         self.bots.iter().map(|i| i.key().clone()).collect()
@@ -210,6 +216,13 @@ where
 {
     async fn get_selfs(&self) -> Vec<Selft> {
         self.bots.selfts()
+    }
+    async fn get_impl(&self, selft: &Selft) -> String {
+        self.bots
+            .bots
+            .get(selft)
+            .map(|v| v.value().0.clone())
+            .unwrap_or_default()
     }
 }
 
@@ -246,12 +259,12 @@ fn test_bot_map() {
         platform: "".to_owned(),
         user_id: "1".to_owned(),
     };
-    map.connect_update(&0, HashSet::from([self0.clone()]));
-    assert_eq!(map.bots.get(&self0).unwrap().len(), 1);
+    map.connect_update(&0, HashSet::from([self0.clone()]), "");
+    assert_eq!(map.bots.get(&self0).unwrap().1.len(), 1);
     assert!(map.txs.get(&0).unwrap().1.len() == 1);
-    map.connect_update(&0, HashSet::from([self1.clone()]));
+    map.connect_update(&0, HashSet::from([self1.clone()]), "");
     assert!(map.bots.get(&self0).is_none());
     assert!(map.txs.get(&0).unwrap().1.len() == 1);
-    assert_eq!(map.bots.get(&self1).unwrap().len(), 1);
+    assert_eq!(map.bots.get(&self1).unwrap().1.len(), 1);
     assert!(map.get_bot(&self1).is_some());
 }

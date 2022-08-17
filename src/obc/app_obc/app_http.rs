@@ -78,6 +78,12 @@ where
                                 .unwrap());
                         }
                     }
+                    let implt = req
+                        .headers()
+                        .get("X-Impl")
+                        .and_then(|v| v.to_str().ok())
+                        .map(|s| s.to_owned())
+                        .unwrap_or_default();
                     let body = String::from_utf8(
                         hyper::body::to_bytes(req.into_body())
                             .await
@@ -89,7 +95,7 @@ where
                         Ok(event) => {
                             let (seq, mut action_rx) = bot_map.new_connect();
                             let selft = event.get_self();
-                            bot_map.connect_update(&seq, HashSet::from([selft]));
+                            bot_map.connect_update(&seq, HashSet::from([selft]), &implt);
                             if let Err(e) = ob.handle_event(event).await {
                                 warn!(target: super::OBC, "{}", e);
                             }
@@ -144,6 +150,7 @@ where
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
             let (seq, mut rx) = self.bots.new_connect();
+            let implt = http.implt.clone().unwrap_or_default();
             // let (tx, mut rx) = mpsc::unbounded_channel();
             self.bots.connect_update(
                 &seq,
@@ -151,6 +158,7 @@ where
                     platform: http.platform.clone().unwrap_or_default(),
                     user_id: bot_id.clone(),
                 }]),
+                &implt,
             );
             let ob = ob.clone();
             let cli = client.clone();

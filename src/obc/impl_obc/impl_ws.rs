@@ -51,15 +51,13 @@ where
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
             let ob = ob.clone();
-            let implt = self.implt.clone();
             tasks.push(tokio::spawn(async move {
             loop { tokio::select! {
                     Ok((stream, addr)) = tcp_listener.accept() => {
-                        if let Some(ws_stream) = upgrade_websocket(&access_token, stream).await {
+                        if let Some((ws_stream, _)) = upgrade_websocket(&access_token, stream).await {
                             info!(target: super::OBC, "New websocket connection from {}", addr);
                             tokio::spawn(ws_loop(
                                 ob.clone(),
-                                implt.clone(),
                                 event_rx.resubscribe(),
                                 hb_rx.resubscribe(),
                                 ws_stream,
@@ -86,7 +84,6 @@ where
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wsr in config {
-            let r#impl = self.implt.clone();
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
             let mut signal_rx = ob.get_signal_rx()?;
@@ -100,15 +97,12 @@ where
                             USER_AGENT,
                             format!("OneBot/{} Walle/{}", 12, crate::VERSION),
                         )
-                        .header("X-OneBot-Version", 12.to_string())
-                        .header("X-Impl", r#impl.clone())
-                        .header("X-Client-Role", "Universal".to_string()) // for v11
+                        .header("Sec-WebSocket-Protocol", format!("{}.{}", 12, implt))
                         .header_auth_token(&wsr.access_token);
                     match try_connect(&wsr, req).await {
                         Some(ws_stream) => {
                             ws_loop(
                                 ob.clone(),
-                                implt.clone(),
                                 event_rx.resubscribe(),
                                 hb_rx.resubscribe(),
                                 ws_stream,
@@ -132,7 +126,6 @@ where
 
 async fn ws_loop<E, A, R, AH, EH>(
     ob: Arc<OneBot<AH, EH>>,
-    implt: String,
     mut event_rx: broadcast::Receiver<E>,
     mut hb_rx: broadcast::Receiver<Event>,
     mut ws_stream: WebSocketStream<TcpStream>,
@@ -149,7 +142,6 @@ async fn ws_loop<E, A, R, AH, EH>(
     let status = ob.action_handler.get_status().await;
     let event = Event {
         id: "".to_string(),
-        implt: implt.to_string(),
         time: crate::util::timestamp_nano_f64(),
         ty: "meta".to_string(),
         detail_type: "status_update".to_string(),

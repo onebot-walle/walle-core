@@ -54,12 +54,7 @@ where
             self.webhook(ob, config.http_webhook, &mut tasks).await?;
         }
         if config.heartbeat.enabled {
-            tasks.push(start_hb(
-                ob,
-                self.implt.clone(),
-                config.heartbeat.interval,
-                self.hb_tx.clone(),
-            ))
+            tasks.push(start_hb(ob, config.heartbeat.interval, self.hb_tx.clone()))
         }
         Ok(tasks)
     }
@@ -84,14 +79,13 @@ impl<E> ImplOBC<E> {
     }
 }
 
-async fn build_hb<AH, EH>(ob: &OneBot<AH, EH>, implt: &str, interval: u32) -> crate::event::Event
+async fn build_hb<AH, EH>(ob: &OneBot<AH, EH>, interval: u32) -> crate::event::Event
 where
     AH: GetStatus + Send + Sync,
 {
     let status = ob.action_handler.get_status().await;
     crate::event::Event {
         id: crate::util::new_uuid(),
-        implt: implt.to_string(),
         time: crate::util::timestamp_nano_f64(),
         ty: "meta".to_string(),
         detail_type: "heartbeat".to_string(),
@@ -105,7 +99,6 @@ where
 
 fn start_hb<AH, EH>(
     ob: &Arc<OneBot<AH, EH>>,
-    implt: String,
     interval: u32,
     hb_tx: broadcast::Sender<Event>,
 ) -> JoinHandle<()>
@@ -121,7 +114,7 @@ where
             if signal.try_recv().is_ok() {
                 break;
             }
-            hb_tx.send(build_hb(&ob, &implt, interval).await).ok();
+            hb_tx.send(build_hb(&ob, interval).await).ok();
             tokio::time::sleep(std::time::Duration::from_secs(interval as u64)).await;
         }
     })

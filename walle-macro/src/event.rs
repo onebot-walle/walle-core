@@ -64,6 +64,15 @@ impl ContentType {
     ) -> TokenStream2 {
         let t = self.traitt(span);
         let f = self.traitf();
+        if let Self::Impl = self {
+            return quote!(
+                impl #t for #name {
+                    fn #f(&self) -> &'static str {
+                        #s
+                    }
+                }
+            );
+        }
         let i = self.traiti();
         quote!(
             impl #t for #name {
@@ -126,6 +135,16 @@ fn enum_declare(
         let t = content.traitt(span);
         let f = content.traitf();
         let i = content.traiti();
+        let check = if let ContentType::Impl = content {
+            quote!()
+        } else {
+            quote!(fn check(event: &#span::event::Event) -> bool {
+                match event.#i.as_str() {
+                    #(#strs => true,)*
+                    _ => false,
+                }
+            })
+        };
         Ok(quote!(
             impl #t for #name {
                 fn #f(&self) -> &'static str {
@@ -133,19 +152,14 @@ fn enum_declare(
                         #(#declare_vars,)*
                     }
                 }
-                fn check(event: &#span::event::Event) -> bool {
-                    match event.#i.as_str() {
-                        #(#strs => true,)*
-                        _ => false,
-                    }
-                }
+                #check
             }
             impl TryFrom<&mut #span::event::Event> for #name {
                 type Error = #span::error::WalleError;
                 fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
                     use #span::util::value::ValueMapExt;
                     match e.#f.as_str() {
-                        #(#try_from_vars,)*
+                        #(#try_from_vars,)* // todo
                         _ => Err(#span::error::WalleError::DeclareNotMatch(
                             "event types",
                             e.#f.clone(),
@@ -193,20 +207,26 @@ fn struct_declare(
         let idents = try_from_idents(&data.fields, quote!(e.extra), true)?;
         let t = content.traitt(span);
         let i = content.traiti();
+        let check_block = if let ContentType::Impl = content {
+            quote!()
+        } else {
+            quote!(
+                use #t;
+                if !Self::check(e) {
+                    return Err(#span::error::WalleError::DeclareNotMatch(
+                        #s,
+                        e.#i.clone()
+                    ));
+                }
+            )
+        };
         stream.extend(quote!(
             impl TryFrom<&mut #span::event::Event> for #name {
                 type Error = #span::error::WalleError;
                 fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
                     use #span::util::value::ValueMapExt;
-                    use #t;
-                    if Self::check(e) {
-                        Ok(Self #idents)
-                    } else {
-                        Err(#span::error::WalleError::DeclareNotMatch(
-                            #s,
-                            e.#i.clone()
-                        ))
-                    }
+                    #check_block
+                    Ok(Self #idents)
                 }
             }
             impl TryFrom<#span::event::Event> for #name {

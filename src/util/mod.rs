@@ -30,11 +30,6 @@ pub trait GetSelf: Sized {
     fn get_self(&self) -> Selft;
 }
 
-#[async_trait::async_trait]
-pub trait GetSelfs {
-    async fn get_selfs(&self) -> Vec<Selft>;
-}
-
 #[doc(hidden)]
 pub trait ProtocolItem:
     Serialize + for<'de> Deserialize<'de> + Debug + Send + Sync + 'static

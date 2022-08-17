@@ -24,10 +24,21 @@ pub struct Group {
     pub group_id: String,
 }
 
+#[derive(Debug, OneBot, PartialEq)]
+#[event(impl)]
+pub struct Walle;
+
+// todo
+// #[derive(Debug, OneBot, PartialEq)]
+// #[event(impl)]
+// pub enum Impls {
+//     Gocq,
+//     Walle,
+// }
+
 fn main() {
     let raw_pme = Event {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
-        implt: "go_onebot_qq".to_owned(),
         time: 1632847927.0,
         ty: "message".to_string(),
         detail_type: "private".to_string(),
@@ -88,7 +99,6 @@ fn main() {
     assert_eq!(tpme, pmbe);
     let raw_gme = Event {
         id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_owned(),
-        implt: "go_onebot_qq".to_owned(),
         time: 1632847927.0,
         ty: "message".to_string(),
         detail_type: "group".to_string(),
