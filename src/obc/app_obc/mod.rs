@@ -253,4 +253,5 @@ fn test_bot_map() {
     assert!(map.bots.get(&self0).is_none());
     assert!(map.txs.get(&0).unwrap().1.len() == 1);
     assert_eq!(map.bots.get(&self1).unwrap().len(), 1);
+    assert!(map.get_bot(&self1).is_some());
 }

@@ -82,6 +82,16 @@ where
     }
 }
 
+impl<T: ActionDeclare + Into<ValueMap>> From<(T, Selft)> for Action {
+    fn from(v: (T, Selft)) -> Self {
+        Self {
+            action: v.0.action().to_owned(),
+            params: v.0.into(),
+            selft: Some(v.1),
+        }
+    }
+}
+
 impl<T> TryFrom<Action> for BaseAction<T>
 where
     T: for<'a> TryFrom<&'a mut Action, Error = WalleError>,
