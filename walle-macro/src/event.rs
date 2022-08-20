@@ -61,20 +61,37 @@ impl ContentType {
         name: &Ident,
         span: &TokenStream2,
         s: &str,
-    ) -> TokenStream2 {
+        fields: &Fields,
+    ) -> Result<TokenStream2> {
+        let idents = try_from_idents(&fields, quote!(e.extra), true)?;
         let t = self.traitt(span);
         let f = self.traitf();
         if let Self::Impl = self {
-            return quote!(
+            return Ok(quote!(
                 impl #t for #name {
                     fn #f(&self) -> &'static str {
                         #s
                     }
+                    fn check(implt: &str) -> bool {
+                        implt == #s
+                    }
+                    fn from_event(event: &mut #span::event::Event, implt: &str) -> Result<Self, #span::error::WalleError>
+                        where Self: Sized
+                    {
+                        if implt == #s {
+                            Ok(Self #idents)
+                        } else {
+                            return Err(#span::error::WalleError::DeclareNotMatch(
+                                #s,
+                                implt.to_owned()
+                            ));
+                        }
+                    }
                 }
-            );
+            ));
         }
         let i = self.traiti();
-        quote!(
+        Ok(quote!(
             impl #t for #name {
                 fn #f(&self) -> &'static str {
                     #s
@@ -83,7 +100,27 @@ impl ContentType {
                     event.#i.as_str() == #s
                 }
             }
-        )
+            impl TryFrom<&mut #span::event::Event> for #name {
+                type Error = #span::error::WalleError;
+                fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
+                    use #span::util::value::ValueMapExt;
+                    use #t;
+                    if !Self::check(e) {
+                        return Err(#span::error::WalleError::DeclareNotMatch(
+                            #s,
+                            e.#i.clone()
+                        ));
+                    }
+                    Ok(Self #idents)
+                }
+            }
+            impl TryFrom<#span::event::Event> for #name {
+                type Error = #span::error::WalleError;
+                fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
+                    Self::try_from(&mut e)
+                }
+            }
+        ))
     }
 }
 
@@ -96,6 +133,35 @@ pub(crate) fn event_internal(
         Data::Struct(data) => struct_declare(&input.ident, data, attr, span),
         Data::Enum(data) => enum_declare(&input.ident, data, attr, span),
         _ => return Err(Error::new(Span::call_site(), "union not supported")),
+    }
+}
+
+fn struct_declare(
+    name: &Ident,
+    data: &DataStruct,
+    attr: &Attribute,
+    span: &TokenStream2,
+) -> Result<TokenStream2> {
+    if let Meta::List(l) = attr.parse_meta()? {
+        if l.nested.len() != 1 {
+            return Err(Error::new(Span::call_site(), "only support one nested"));
+        }
+        let nmeta = l.nested.first().unwrap();
+        let (s, path) = match &nmeta {
+            NestedMeta::Meta(Meta::NameValue(v)) => {
+                if let Lit::Str(s) = &v.lit {
+                    (s.value(), &v.path)
+                } else {
+                    return Err(Error::new(Span::call_site(), "unsupport attributes"));
+                }
+            }
+            NestedMeta::Meta(Meta::Path(p)) => (snake_case(name.to_string()), p),
+            _ => return Err(Error::new(Span::call_site(), "unsupport attributes")),
+        };
+        let content = ContentType::try_from(path.get_ident().unwrap().to_string().as_str())?;
+        content.struct_declare(name, span, &s, &data.fields)
+    } else {
+        Err(Error::new(Span::call_site(), "not metalist attributes"))
     }
 }
 
@@ -135,109 +201,71 @@ fn enum_declare(
         let t = content.traitt(span);
         let f = content.traitf();
         let i = content.traiti();
-        let check = if let ContentType::Impl = content {
-            quote!()
+        if let ContentType::Impl = content {
+            Ok(quote!(
+                impl #t for #name {
+                    fn #f(&self) -> &'static str {
+                        match self {
+                            #(#declare_vars,)*
+                        }
+                    }
+                    fn check(implt: &str) -> bool {
+                        match implt {
+                            #(#strs => true,)*
+                            _ => false,
+                        }
+                    }
+                    fn from_event(e: &mut Event, implt: &str) -> Result<Self, #span::error::WalleError>
+                    where Self: Sized
+                    {
+                        use #span::util::value::ValueMapExt;
+                        match implt {
+                            #(#try_from_vars,)* // todo
+                            _ => Err(#span::error::WalleError::DeclareNotMatch(
+                                "event types",
+                                implt.to_owned(),
+                            ))
+                        }
+                    }
+                }
+            ))
         } else {
-            quote!(fn check(event: &#span::event::Event) -> bool {
-                match event.#i.as_str() {
-                    #(#strs => true,)*
-                    _ => false,
-                }
-            })
-        };
-        Ok(quote!(
-            impl #t for #name {
-                fn #f(&self) -> &'static str {
-                    match self {
-                        #(#declare_vars,)*
+            Ok(quote!(
+                impl #t for #name {
+                    fn #f(&self) -> &'static str {
+                        match self {
+                            #(#declare_vars,)*
+                        }
+                    }
+                    fn check(event: &#span::event::Event) -> bool {
+                        match event.#i.as_str() {
+                            #(#strs => true,)*
+                            _ => false,
+                        }
                     }
                 }
-                #check
-            }
-            impl TryFrom<&mut #span::event::Event> for #name {
-                type Error = #span::error::WalleError;
-                fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
-                    use #span::util::value::ValueMapExt;
-                    match e.#f.as_str() {
-                        #(#try_from_vars,)* // todo
-                        _ => Err(#span::error::WalleError::DeclareNotMatch(
-                            "event types",
-                            e.#f.clone(),
-                        ))
+                impl TryFrom<&mut #span::event::Event> for #name {
+                    type Error = #span::error::WalleError;
+                    fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
+                        use #span::util::value::ValueMapExt;
+                        match e.#f.as_str() {
+                            #(#try_from_vars,)* // todo
+                            _ => Err(#span::error::WalleError::DeclareNotMatch(
+                                "event types",
+                                e.#f.clone(),
+                            ))
+                        }
                     }
                 }
-            }
-            impl TryFrom<#span::event::Event> for #name {
-                type Error = #span::error::WalleError;
-                fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
-                    Self::try_from(&mut e)
+                impl TryFrom<#span::event::Event> for #name {
+                    type Error = #span::error::WalleError;
+                    fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
+                        Self::try_from(&mut e)
+                    }
                 }
-            }
-        ))
+            ))
+        }
     } else {
         Err(Error::new(Span::call_site(), "not metapath attributes"))
-    }
-}
-
-fn struct_declare(
-    name: &Ident,
-    data: &DataStruct,
-    attr: &Attribute,
-    span: &TokenStream2,
-) -> Result<TokenStream2> {
-    if let Meta::List(l) = attr.parse_meta()? {
-        if l.nested.len() != 1 {
-            return Err(Error::new(Span::call_site(), "only support one nested"));
-        }
-        let nmeta = l.nested.first().unwrap();
-        let (s, path) = match &nmeta {
-            NestedMeta::Meta(Meta::NameValue(v)) => {
-                if let Lit::Str(s) = &v.lit {
-                    (s.value(), &v.path)
-                } else {
-                    return Err(Error::new(Span::call_site(), "unsupport attributes"));
-                }
-            }
-            NestedMeta::Meta(Meta::Path(p)) => (snake_case(name.to_string()), p),
-            _ => return Err(Error::new(Span::call_site(), "unsupport attributes")),
-        };
-        let content = ContentType::try_from(path.get_ident().unwrap().to_string().as_str())?;
-        let mut stream = content.struct_declare(name, span, &s);
-
-        let idents = try_from_idents(&data.fields, quote!(e.extra), true)?;
-        let t = content.traitt(span);
-        let i = content.traiti();
-        let check_block = if let ContentType::Impl = content {
-            quote!()
-        } else {
-            quote!(
-                use #t;
-                if !Self::check(e) {
-                    return Err(#span::error::WalleError::DeclareNotMatch(
-                        #s,
-                        e.#i.clone()
-                    ));
-                }
-            )
-        };
-        stream.extend(quote!(
-            impl TryFrom<&mut #span::event::Event> for #name {
-                type Error = #span::error::WalleError;
-                fn try_from(e: &mut #span::event::Event) -> Result<Self, Self::Error> {
-                    use #span::util::value::ValueMapExt;
-                    #check_block
-                    Ok(Self #idents)
-                }
-            }
-            impl TryFrom<#span::event::Event> for #name {
-                type Error = #span::error::WalleError;
-                fn try_from(mut e: #span::event::Event) -> Result<Self, Self::Error> {
-                    Self::try_from(&mut e)
-                }
-            }
-        ));
-        Ok(stream)
-    } else {
-        Err(Error::new(Span::call_site(), "not metalist attributes"))
     }
 }

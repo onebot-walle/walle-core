@@ -164,16 +164,19 @@ pub fn new_event<T, D, S, P, I>(
     }
 }
 
-impl<T, D, S, P, I> TryFrom<Event> for BaseEvent<T, D, S, P, I>
+pub trait ParseEvent: Sized {
+    fn parse(event: Event, implt: &str) -> Result<Self, WalleError>;
+}
+
+impl<T, D, S, P, I> ParseEvent for BaseEvent<T, D, S, P, I>
 where
+    I: ImplDeclare,
     T: for<'a> TryFrom<&'a mut Event, Error = WalleError> + TypeDeclare,
     D: for<'a> TryFrom<&'a mut Event, Error = WalleError> + DetailTypeDeclare,
     S: for<'a> TryFrom<&'a mut Event, Error = WalleError> + SubTypeDeclare,
-    I: for<'a> TryFrom<&'a mut Event, Error = WalleError> + ImplDeclare,
     P: for<'a> TryFrom<&'a mut Event, Error = WalleError> + PlatformDeclare,
 {
-    type Error = WalleError;
-    fn try_from(mut event: Event) -> Result<Self, Self::Error> {
+    fn parse(mut event: Event, implt: &str) -> Result<Self, WalleError> {
         if !T::check(&event) {
             return Err(WalleError::DeclareNotMatch("type", event.ty.clone()));
         } else if !D::check(&event) {
@@ -191,12 +194,14 @@ where
                 "platform",
                 event.platform().unwrap_or_default(),
             ));
+        } else if !I::check(implt) {
+            return Err(WalleError::DeclareNotMatch("impl", implt.to_owned()));
         }
         Ok(Self {
             ty: T::try_from(&mut event)?,
             detail_type: D::try_from(&mut event)?,
             sub_type: S::try_from(&mut event)?,
-            implt: I::try_from(&mut event)?,
+            implt: I::from_event(&mut event, implt)?,
             platform: P::try_from(&mut event)?,
             id: event.id,
             time: event.time,
@@ -205,40 +210,48 @@ where
     }
 }
 
-pub trait ImplDeclare {
-    fn implt(&self) -> &'static str {
-        ""
+impl<T, D, S, P> TryFrom<Event> for BaseEvent<T, D, S, P>
+where
+    T: for<'a> TryFrom<&'a mut Event, Error = WalleError> + TypeDeclare,
+    D: for<'a> TryFrom<&'a mut Event, Error = WalleError> + DetailTypeDeclare,
+    S: for<'a> TryFrom<&'a mut Event, Error = WalleError> + SubTypeDeclare,
+    P: for<'a> TryFrom<&'a mut Event, Error = WalleError> + PlatformDeclare,
+{
+    type Error = WalleError;
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
+        Self::parse(event, "")
     }
+}
+
+pub trait ImplDeclare {
+    fn implt(&self) -> &'static str;
+    fn check(implt: &str) -> bool;
+    fn from_event(event: &mut Event, implt: &str) -> Result<Self, WalleError>
+    where
+        Self: Sized;
 }
 
 pub trait PlatformDeclare {
-    fn platform(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
+    fn platform(&self) -> &'static str;
+    fn check(event: &Event) -> bool;
 }
 
 pub trait SubTypeDeclare {
-    fn sub_type(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
+    fn sub_type(&self) -> &'static str;
+    fn check(event: &Event) -> bool;
 }
 
 pub trait DetailTypeDeclare {
-    fn detail_type(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
+    fn detail_type(&self) -> &'static str;
+    fn check(_event: &Event) -> bool;
 }
 
 pub trait TypeDeclare {
+    fn ty(&self) -> &'static str;
+    fn check(_event: &Event) -> bool;
+}
+
+impl TypeDeclare for () {
     fn ty(&self) -> &'static str {
         ""
     }
@@ -246,12 +259,44 @@ pub trait TypeDeclare {
         true
     }
 }
-
-impl TypeDeclare for () {}
-impl DetailTypeDeclare for () {}
-impl SubTypeDeclare for () {}
-impl PlatformDeclare for () {}
-impl ImplDeclare for () {}
+impl DetailTypeDeclare for () {
+    fn detail_type(&self) -> &'static str {
+        ""
+    }
+    fn check(_event: &Event) -> bool {
+        true
+    }
+}
+impl SubTypeDeclare for () {
+    fn sub_type(&self) -> &'static str {
+        ""
+    }
+    fn check(_event: &Event) -> bool {
+        true
+    }
+}
+impl PlatformDeclare for () {
+    fn platform(&self) -> &'static str {
+        ""
+    }
+    fn check(_event: &Event) -> bool {
+        true
+    }
+}
+impl ImplDeclare for () {
+    fn implt(&self) -> &'static str {
+        ""
+    }
+    fn check(_implt: &str) -> bool {
+        true
+    }
+    fn from_event(_event: &mut Event, _implt: &str) -> Result<Self, WalleError>
+    where
+        Self: Sized,
+    {
+        Ok(())
+    }
+}
 impl PushToValueMap for () {}
 impl TryFrom<&mut Event> for () {
     type Error = WalleError;

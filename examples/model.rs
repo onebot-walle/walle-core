@@ -28,13 +28,12 @@ pub struct Group {
 #[event(impl)]
 pub struct Walle;
 
-// todo
-// #[derive(Debug, OneBot, PartialEq)]
-// #[event(impl)]
-// pub enum Impls {
-//     Gocq,
-//     Walle,
-// }
+#[derive(Debug, OneBot, PartialEq)]
+#[event(impl)]
+pub enum Impls {
+    Gocq,
+    Walle,
+}
 
 fn main() {
     let raw_pme = Event {
