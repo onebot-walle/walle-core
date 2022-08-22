@@ -75,9 +75,10 @@ impl ContentType {
                     fn check(implt: &str) -> bool {
                         implt == #s
                     }
-                    fn from_event(event: &mut #span::event::Event, implt: &str) -> Result<Self, #span::error::WalleError>
+                    fn from_event(e: &mut #span::event::Event, implt: &str) -> Result<Self, #span::error::WalleError>
                         where Self: Sized
                     {
+                        use #span::util::value::ValueMapExt;
                         if implt == #s {
                             Ok(Self #idents)
                         } else {

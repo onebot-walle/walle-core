@@ -26,13 +26,21 @@ pub struct Group {
 
 #[derive(Debug, OneBot, PartialEq)]
 #[event(impl)]
-pub struct Walle;
+pub struct GoCqhttp;
+
+#[derive(Debug, OneBot, PartialEq)]
+#[event(impl)]
+pub struct Walle {
+    xxx: String,
+    yyy: i64,
+}
 
 #[derive(Debug, OneBot, PartialEq)]
 #[event(impl)]
 pub enum Impls {
     Gocq,
-    Walle,
+    Walle { xxx: String, yyy: i64 },
+    // XX(YY), unsupportted
 }
 
 fn main() {
