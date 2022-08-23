@@ -39,6 +39,33 @@ pub trait GetSelfs {
     async fn get_impl(&self, selft: &Selft) -> String;
 }
 
+impl<T: GetSelfs> GetSelfs for Arc<T> {
+    fn get_impl<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        selft: &'life1 Selft,
+    ) -> core::pin::Pin<
+        Box<dyn core::future::Future<Output = String> + core::marker::Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.as_ref().get_impl(selft)
+    }
+    fn get_selfs<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> core::pin::Pin<
+        Box<dyn core::future::Future<Output = Vec<Selft>> + core::marker::Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.as_ref().get_selfs()
+    }
+}
+
 #[async_trait]
 pub trait GetStatus: GetSelfs {
     async fn is_good(&self) -> bool;
