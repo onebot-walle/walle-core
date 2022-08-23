@@ -40,8 +40,8 @@ pub mod prelude {
 /// AH: EventConstructor + ActionHandler
 /// EH: EventHandler + ActionConstructor
 pub struct OneBot<AH, EH> {
-    pub action_handler: AH,
-    pub event_handler: EH,
+    action_handler: AH,
+    event_handler: EH,
     // Some for running, None for stopped
     signal: std::sync::Mutex<Option<tokio::sync::broadcast::Sender<()>>>,
 }
@@ -111,7 +111,7 @@ impl<AH, EH> OneBot<AH, EH> {
             .ok_or(WalleError::NotStarted)?
             .subscribe())
     }
-    pub async fn shutdown<E, A, R>(&self) -> WalleResult<()>
+    pub async fn shutdown<E, A, R>(&self, ah_first: bool) -> WalleResult<()>
     where
         E: Send + Sync + 'static,
         A: Send + Sync + 'static,
@@ -126,8 +126,13 @@ impl<AH, EH> OneBot<AH, EH> {
             .take()
             .ok_or(WalleError::NotStarted)?;
         tx.send(()).ok();
-        self.action_handler.shutdown().await;
-        self.event_handler.shutdown().await;
+        if ah_first {
+            self.action_handler.shutdown().await;
+            self.event_handler.shutdown().await;
+        } else {
+            self.event_handler.shutdown().await;
+            self.action_handler.shutdown().await;
+        }
         Ok(())
     }
     pub async fn handle_event<E, A, R>(self: &Arc<Self>, event: E) -> WalleResult<()>
@@ -155,5 +160,68 @@ impl<AH, EH> OneBot<AH, EH> {
                     .await?,
             )
             .await
+    }
+}
+
+impl<AH, EH> GetStatus for OneBot<AH, EH>
+where
+    AH: GetStatus + Sync,
+{
+    fn get_status<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> core::pin::Pin<
+        Box<dyn core::future::Future<Output = structs::Status> + core::marker::Send + 'async_trait>,
+    >
+    where
+        Self: Sized,
+        'life0: 'async_trait,
+        Self: core::marker::Sync + 'async_trait,
+    {
+        self.action_handler.get_status()
+    }
+    fn is_good<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> core::pin::Pin<
+        Box<dyn core::future::Future<Output = bool> + core::marker::Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.action_handler.is_good()
+    }
+}
+
+impl<AH, EH> GetSelfs for OneBot<AH, EH>
+where
+    AH: GetSelfs,
+{
+    fn get_impl<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        selft: &'life1 structs::Selft,
+    ) -> core::pin::Pin<
+        Box<dyn core::future::Future<Output = String> + core::marker::Send + 'async_trait>,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.action_handler.get_impl(selft)
+    }
+    fn get_selfs<'life0, 'async_trait>(
+        &'life0 self,
+    ) -> core::pin::Pin<
+        Box<
+            dyn core::future::Future<Output = Vec<structs::Selft>>
+                + core::marker::Send
+                + 'async_trait,
+        >,
+    >
+    where
+        'life0: 'async_trait,
+        Self: 'async_trait,
+    {
+        self.action_handler.get_selfs()
     }
 }
