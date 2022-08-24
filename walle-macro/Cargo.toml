@@ -1,6 +1,6 @@
 [package]
 name = "walle-macro"
-version = "0.6.0"
+version = "0.7.0-a1"
 edition = "2021"
 license = "MIT"
 authors = ["Abrahum<307887491@qq.com>"]

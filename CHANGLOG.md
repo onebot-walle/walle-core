@@ -1,4 +1,4 @@
-# 1.0.0(a1)
+# 0.7.0(a1)
 
 - refactor handler trait
 - support OneBot rfc #180 #181 #204
