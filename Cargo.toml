@@ -1,6 +1,6 @@
 [package]
 name = "walle-core"
-version = "0.6.1"
+version = "0.7.0-a1"
 edition = "2021"
 license = "MIT"
 description = "OneBot lib in Rust"
@@ -42,8 +42,8 @@ base64 = "0.13"
 hex = "0.4"
 
 [dependencies.walle-macro]
-path = "./walle-macro"
-# version = "0.6"
+# path = "./walle-macro"
+version = "0.7.0-a1"
 
 [dev-dependencies]
 tracing-subscriber = "0.3"
