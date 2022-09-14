@@ -58,7 +58,11 @@ where
         }
         Ok(tasks)
     }
-    async fn call(&self, event: E) -> WalleResult<()> {
+    async fn call<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
         self.event_tx.send(event).ok();
         Ok(())
     }

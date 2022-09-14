@@ -143,7 +143,11 @@ where
     {
         Ok(vec![])
     }
-    async fn call(&self, action: A) -> WalleResult<R> {
+    async fn call<AH, EH>(&self, action: A, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
         info!(target: WALLE_CORE, "{}", action.colored_alt());
         Ok(resp_error::unsupported_action("").into())
     }
@@ -171,7 +175,11 @@ where
     {
         Ok(vec![])
     }
-    async fn call(&self, event: E) -> WalleResult<()> {
+    async fn call<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
         info!(target: WALLE_CORE, "{}", event.colored_alt());
         Ok(())
     }

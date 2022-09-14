@@ -18,16 +18,27 @@ pub trait EventHandler<E, A, R>: Sync {
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use directly, use OneBot.handle_event instead.
-    async fn call(&self, event: E) -> WalleResult<()>;
-    async fn before_call_action(&self, action: A) -> WalleResult<A>
+    async fn call<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static;
+    async fn before_call_action<AH, EH>(
+        &self,
+        action: A,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> WalleResult<A>
     where
         A: Send + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         Ok(action)
     }
-    async fn after_call_action(&self, resp: R) -> WalleResult<R>
+    async fn after_call_action<AH, EH>(&self, resp: R, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
     where
         R: Send + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         Ok(resp)
     }
@@ -70,9 +81,13 @@ where
         joins.extend(self.1.start(ob, config.1).await?.into_iter());
         Ok(joins)
     }
-    async fn call(&self, event: E) -> WalleResult<()> {
-        self.0.call(event.clone()).await?;
-        self.1.call(event).await
+    async fn call<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        self.0.call(event.clone(), ob).await?;
+        self.1.call(event, ob).await
     }
     async fn shutdown(&self) {
         self.0.shutdown().await;

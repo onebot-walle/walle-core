@@ -9,6 +9,8 @@ use crate::{
     value, value_map,
 };
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+mod event;
+mod value;
 
 #[test]
 fn event() {

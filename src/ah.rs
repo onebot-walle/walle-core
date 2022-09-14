@@ -20,14 +20,23 @@ pub trait ActionHandler<E, A, R>: GetStatus + Sync {
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use call directly, use OneBot.handle_action instead.
-    async fn call(&self, action: A) -> WalleResult<R>;
-    async fn before_call_event(&self, event: E) -> WalleResult<E>
+    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static;
+    async fn before_call_event<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<E>
     where
         E: Send + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         Ok(event)
     }
-    async fn after_call_event(&self) -> WalleResult<()> {
+    async fn after_call_event<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
         Ok(())
     }
     async fn shutdown(&self) {}
@@ -158,11 +167,15 @@ where
         joins.extend(self.1.start(ob, config.1).await?.into_iter());
         Ok(joins)
     }
-    async fn call(&self, action: A) -> WalleResult<R> {
+    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
         if self.0.get_selfs().await.contains(&action.get_self()) {
-            self.0.call(action).await
+            self.0.call(action, ob).await
         } else if self.1.get_selfs().await.contains(&action.get_self()) {
-            self.1.call(action).await
+            self.1.call(action, ob).await
         } else {
             Ok(crate::resp::resp_error::who_am_i("").into())
         }

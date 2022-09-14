@@ -135,18 +135,21 @@ impl<AH, EH> OneBot<AH, EH> {
         }
         Ok(())
     }
-    pub async fn handle_event<E, A, R>(&self, event: E) -> WalleResult<()>
+    pub async fn handle_event<E, A, R>(self: &Arc<Self>, event: E) -> WalleResult<()>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
         E: Send + 'static,
     {
         self.event_handler
-            .call(self.action_handler.before_call_event(event).await?)
+            .call(
+                self.action_handler.before_call_event(event, self).await?,
+                self,
+            )
             .await?;
-        self.action_handler.after_call_event().await
+        self.action_handler.after_call_event(self).await
     }
-    pub async fn handle_action<E, A, R>(&self, action: A) -> WalleResult<R>
+    pub async fn handle_action<E, A, R>(self: &Arc<Self>, action: A) -> WalleResult<R>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
@@ -156,8 +159,12 @@ impl<AH, EH> OneBot<AH, EH> {
         self.event_handler
             .after_call_action(
                 self.action_handler
-                    .call(self.event_handler.before_call_action(action).await?)
+                    .call(
+                        self.event_handler.before_call_action(action, self).await?,
+                        self,
+                    )
                     .await?,
+                self,
             )
             .await
     }
