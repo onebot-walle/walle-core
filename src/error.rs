@@ -44,3 +44,12 @@ pub enum WalleError {
     #[error("{0}")]
     Other(String),
 }
+
+impl serde::de::Error for WalleError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        WalleError::Other(format!("{}", msg))
+    }
+}

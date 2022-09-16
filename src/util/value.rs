@@ -1,4 +1,7 @@
-use serde::{de::Visitor, Deserialize, Serialize};
+use serde::{
+    de::{MapAccess, Visitor},
+    Deserialize, Serialize,
+};
 use std::collections::HashMap;
 
 use super::OneBotBytes;
@@ -8,8 +11,7 @@ use crate::error::{WalleError, WalleResult};
 pub type ValueMap = HashMap<String, Value>;
 
 /// 扩展字段 MapValue
-#[derive(Debug, Clone, Serialize, PartialEq)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Str(String),
     F64(f64),
@@ -18,8 +20,6 @@ pub enum Value {
     Map(ValueMap),
     List(Vec<Value>),
     Bytes(OneBotBytes),
-    #[serde(serialize_with = "null_serialize")]
-    // deserialize_with = "null_deserialize" will cause error
     Null,
 }
 
@@ -229,20 +229,6 @@ impl TryFrom<Value> for () {
         Ok(())
     }
 }
-
-fn null_serialize<S>(serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_none()
-}
-
-// fn null_deserialize<'de, D>(deserializer: D) -> Result<ExtendedValue, D::Error>
-// where
-//     D: serde::de::Deserializer<'de>,
-// {
-//     deserializer.deserialize_unit(ValueVisitor)
-// }
 
 struct ValueVisitor;
 
@@ -691,4 +677,140 @@ fn macro_test() {
             }
         }
     );
+}
+
+use serde::de::{Deserializer, SeqAccess};
+use serde::forward_to_deserialize_any;
+
+impl<'de> Deserializer<'de> for Value {
+    type Error = WalleError;
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        match self {
+            Value::Null => visitor.visit_none(),
+            Value::Bool(b) => visitor.visit_bool(b),
+            Value::Int(i) => visitor.visit_i64(i),
+            Value::F64(f) => visitor.visit_f64(f),
+            Value::Str(s) => visitor.visit_string(s),
+            Value::Bytes(b) => visitor.visit_byte_buf(b.0),
+            Value::List(l) => visitor.visit_seq(SeqDezer(l.into_iter())),
+            Value::Map(m) => visitor.visit_map(MapDezer {
+                iter: m.into_iter(),
+                value: None,
+            }),
+        }
+    }
+    forward_to_deserialize_any! {bool f32 f64 char str string bytes byte_buf
+    unit unit_struct seq tuple tuple_struct map struct identifier ignored_any
+    i8 i16 i32 i64 u8 u16 u32 u64 option enum newtype_struct}
+}
+
+struct SeqDezer(std::vec::IntoIter<Value>);
+
+impl<'de> SeqAccess<'de> for SeqDezer {
+    type Error = WalleError;
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: serde::de::DeserializeSeed<'de>,
+    {
+        match self.0.next() {
+            Some(value) => seed.deserialize(value).map(Some),
+            None => Ok(None),
+        }
+    }
+}
+
+struct MapDezer {
+    iter: std::collections::hash_map::IntoIter<String, Value>,
+    value: Option<Value>,
+}
+
+impl<'de> MapAccess<'de> for MapDezer {
+    type Error = WalleError;
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+    where
+        K: serde::de::DeserializeSeed<'de>,
+    {
+        match self.iter.next() {
+            Some((key, value)) => {
+                self.value = Some(value);
+                seed.deserialize(StringDezer(key)).map(Some)
+            }
+            None => Ok(None),
+        }
+    }
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::DeserializeSeed<'de>,
+    {
+        match self.value.take() {
+            Some(value) => seed.deserialize(value),
+            None => Err(WalleError::Other("map value missed".to_owned())),
+        }
+    }
+}
+
+struct StringDezer(String);
+
+impl<'de> Deserializer<'de> for StringDezer {
+    type Error = WalleError;
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_string(self.0)
+    }
+    forward_to_deserialize_any! {bool f32 f64 char str string bytes byte_buf
+    unit unit_struct seq tuple tuple_struct map struct identifier ignored_any
+    i8 i16 i32 i64 u8 u16 u32 u64 option enum newtype_struct}
+}
+
+impl<'de> Deserializer<'de> for MapDezer {
+    type Error = WalleError;
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_map(self)
+    }
+    forward_to_deserialize_any! {bool f32 f64 char str string bytes byte_buf
+    unit unit_struct seq tuple tuple_struct map struct identifier ignored_any
+    i8 i16 i32 i64 u8 u16 u32 u64 option enum newtype_struct}
+}
+
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Value::Null => serializer.serialize_none(),
+            Value::Str(s) => serializer.serialize_str(s),
+            Value::F64(f) => serializer.serialize_f64(*f),
+            Value::Bool(b) => serializer.serialize_bool(*b),
+            Value::Int(i) => serializer.serialize_i64(*i),
+            Value::Bytes(b) => b.serialize(serializer),
+            Value::List(l) => l.serialize(serializer),
+            Value::Map(m) => m.serialize(serializer),
+        }
+    }
+}
+
+pub fn from_value<T>(value: Value) -> Result<T, WalleError>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    T::deserialize(value)
+}
+
+pub fn from_value_map<T>(map: ValueMap) -> Result<T, WalleError>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    T::deserialize(MapDezer {
+        iter: map.into_iter(),
+        value: None,
+    })
 }
