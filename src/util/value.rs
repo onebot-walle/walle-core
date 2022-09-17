@@ -814,3 +814,316 @@ where
         value: None,
     })
 }
+
+struct Serializer;
+
+macro_rules! number_impl {
+    ($fn_name: ident, $t: tt, $t0: ty) => {
+        fn $fn_name(self, v: $t0) -> Result<Self::Ok, Self::Error> {
+            Ok(Value::$t(v))
+        }
+    };
+    ($fn_name: ident, $t: tt, $t0: ty, $t1: ty) => {
+        fn $fn_name(self, v: $t0) -> Result<Self::Ok, Self::Error> {
+            Ok(Value::$t(v as $t1))
+        }
+    };
+}
+
+impl serde::ser::Serializer for Serializer {
+    type Ok = Value;
+    type Error = WalleError;
+    type SerializeMap = SerializeMap;
+    type SerializeStruct = SerializeMap;
+    type SerializeStructVariant = SerializeMapVariant;
+    type SerializeSeq = SerializeSeq;
+    type SerializeTuple = SerializeSeq;
+    type SerializeTupleStruct = SerializeSeq;
+    type SerializeTupleVariant = SerializeSeqVariant;
+
+    fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Bool(v))
+    }
+    number_impl!(serialize_i8, Int, i8, i64);
+    number_impl!(serialize_i16, Int, i16, i64);
+    number_impl!(serialize_i32, Int, i32, i64);
+    number_impl!(serialize_i64, Int, i64);
+    number_impl!(serialize_i128, Int, i128, i64);
+    number_impl!(serialize_u8, Int, u8, i64);
+    number_impl!(serialize_u16, Int, u16, i64);
+    number_impl!(serialize_u32, Int, u32, i64);
+    number_impl!(serialize_u64, Int, u64, i64);
+    number_impl!(serialize_u128, Int, u128, i64);
+    number_impl!(serialize_f32, F64, f32, f64);
+    number_impl!(serialize_f64, F64, f64);
+    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Bytes(OneBotBytes(v.to_vec())))
+    }
+    fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Str(v.to_string()))
+    }
+    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        Ok(SerializeMap {
+            map: if let Some(len) = len {
+                HashMap::with_capacity(len)
+            } else {
+                HashMap::new()
+            },
+            key: None,
+        })
+    }
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        value.serialize(self)
+    }
+    fn serialize_newtype_variant<T: ?Sized>(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        Ok(Value::Map(HashMap::from([(
+            variant.to_owned(),
+            value.serialize(self)?,
+        )])))
+    }
+    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize,
+    {
+        Ok(value.serialize(self)?)
+    }
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        Ok(SerializeSeq(if let Some(len) = len {
+            Vec::with_capacity(len)
+        } else {
+            Vec::new()
+        }))
+    }
+    fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Str(v.to_owned()))
+    }
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeStruct, Self::Error> {
+        Ok(SerializeMap {
+            map: HashMap::with_capacity(len),
+            key: None,
+        })
+    }
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
+        Ok(SerializeMapVariant {
+            map: HashMap::with_capacity(len),
+            name: variant.to_owned(),
+        })
+    }
+    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        Ok(SerializeSeq(Vec::with_capacity(len)))
+    }
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        Ok(SerializeSeq(Vec::with_capacity(len)))
+    }
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        _variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        Ok(SerializeSeqVariant {
+            name: variant.to_owned(),
+            seq: Vec::with_capacity(len),
+        })
+    }
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Null)
+    }
+    fn serialize_unit_variant(
+        self,
+        _sname: &'static str,
+        _svariant_index: u32,
+        variant: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Str(variant.to_owned()))
+    }
+}
+
+struct SerializeMap {
+    map: HashMap<String, Value>,
+    key: Option<String>,
+}
+
+impl serde::ser::SerializeMap for SerializeMap {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.key = Some(serde_json::to_string(key).map_err(|e| WalleError::Other(e.to_string()))?);
+        Ok(())
+    }
+    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        match self.key.take() {
+            Some(key) => {
+                self.map.insert(key, to_value(value)?);
+                Ok(())
+            }
+            None => Err(WalleError::Other("miss key".to_owned())),
+        }
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Map(self.map))
+    }
+}
+
+impl serde::ser::SerializeStruct for SerializeMap {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_field<T: ?Sized>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.map.insert(key.to_owned(), to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Map(self.map))
+    }
+}
+
+struct SerializeMapVariant {
+    map: HashMap<String, Value>,
+    name: String,
+}
+
+impl serde::ser::SerializeStructVariant for SerializeMapVariant {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_field<T: ?Sized>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.map.insert(key.to_owned(), to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Map(HashMap::from([(
+            self.name,
+            Value::Map(self.map),
+        )])))
+    }
+}
+
+struct SerializeSeq(Vec<Value>);
+
+impl serde::ser::SerializeSeq for SerializeSeq {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.0.push(to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::List(self.0))
+    }
+}
+
+impl serde::ser::SerializeTuple for SerializeSeq {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.0.push(to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::List(self.0))
+    }
+}
+
+impl serde::ser::SerializeTupleStruct for SerializeSeq {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.0.push(to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::List(self.0))
+    }
+}
+
+struct SerializeSeqVariant {
+    name: String,
+    seq: Vec<Value>,
+}
+
+impl serde::ser::SerializeTupleVariant for SerializeSeqVariant {
+    type Ok = Value;
+    type Error = WalleError;
+    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        self.seq.push(to_value(value)?);
+        Ok(())
+    }
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(Value::Map(HashMap::from([(
+            self.name,
+            Value::List(self.seq),
+        )])))
+    }
+}
+
+pub fn to_value<T: Serialize + ?Sized>(value: &T) -> Result<Value, WalleError> {
+    value.serialize(Serializer)
+}

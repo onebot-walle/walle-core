@@ -53,3 +53,12 @@ impl serde::de::Error for WalleError {
         WalleError::Other(format!("{}", msg))
     }
 }
+
+impl serde::ser::Error for WalleError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        WalleError::Other(format!("{}", msg))
+    }
+}
