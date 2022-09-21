@@ -27,7 +27,7 @@ mod test;
 
 pub mod prelude {
     pub use crate::resp::{resp_error, Resp};
-    pub use crate::segment::{IntoMessage, MessageExt, MessageSegment, Segments};
+    pub use crate::segment::{IntoMessage, MessageExt, MsgSegment, Segments};
 
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};

@@ -1,19 +1,40 @@
 use crate::{
-    prelude::WalleError,
-    util::{Value, ValueMap, ValueMapExt},
+    prelude::{WalleError, WalleResult},
+    util::{PushToValueMap, Value, ValueMap, ValueMapExt},
     value, value_map,
 };
 use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
-pub type Segments = Vec<MessageSegment>;
+pub type Segments = Vec<MsgSegment>;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MessageSegment {
+pub struct MsgSegment {
     pub ty: String,
     pub data: ValueMap,
 }
 
-impl ValueMapExt for MessageSegment {
+pub trait ToMsgSegment: PushToValueMap {
+    fn ty(&self) -> &'static str;
+    fn to_segment(self) -> MsgSegment
+    where
+        Self: Sized,
+    {
+        MsgSegment {
+            ty: self.ty().to_string(),
+            data: {
+                let mut map = ValueMap::new();
+                self.push_to(&mut map);
+                map
+            },
+        }
+    }
+}
+
+pub trait TryFromMsgSegment: Sized {
+    fn try_from_msg_segment(segment: &mut MsgSegment) -> WalleResult<Self>;
+}
+
+impl ValueMapExt for MsgSegment {
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<Value, Error = WalleError>,
@@ -46,7 +67,7 @@ impl ValueMapExt for MessageSegment {
     }
 }
 
-impl MessageSegment {
+impl MsgSegment {
     pub fn alt(&self) -> String {
         if self.ty == "text" {
             self.data.get_downcast("text").unwrap_or_default()
@@ -65,8 +86,8 @@ pub fn alt(segments: &Segments) -> String {
     segments.iter().map(|seg| seg.alt()).collect()
 }
 
-impl From<MessageSegment> for Value {
-    fn from(segment: MessageSegment) -> Self {
+impl From<MsgSegment> for Value {
+    fn from(segment: MsgSegment) -> Self {
         value!({
             "type": segment.ty,
             "data": segment.data
@@ -74,7 +95,7 @@ impl From<MessageSegment> for Value {
     }
 }
 
-impl TryFrom<Value> for MessageSegment {
+impl TryFrom<Value> for MsgSegment {
     type Error = WalleError;
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         if let Value::Map(mut map) = value {
@@ -100,11 +121,11 @@ pub struct BaseSegment<T> {
     pub extra: ValueMap,
 }
 
-impl<T: for<'a> TryFrom<&'a mut MessageSegment, Error = WalleError>> TryFrom<MessageSegment>
+impl<T: for<'a> TryFrom<&'a mut MsgSegment, Error = WalleError>> TryFrom<MsgSegment>
     for BaseSegment<T>
 {
     type Error = WalleError;
-    fn try_from(mut segment: MessageSegment) -> Result<Self, Self::Error> {
+    fn try_from(mut segment: MsgSegment) -> Result<Self, Self::Error> {
         Ok(Self {
             segment: T::try_from(&mut segment)?,
             extra: segment.data,
@@ -122,24 +143,24 @@ impl IntoMessage for Segments {
     }
 }
 
-impl<T: Into<MessageSegment>> IntoMessage for T {
+impl<T: Into<MsgSegment>> IntoMessage for T {
     fn into_message(self) -> Segments {
         vec![self.into()]
     }
 }
 
-impl From<String> for MessageSegment {
+impl From<String> for MsgSegment {
     fn from(text: String) -> Self {
-        MessageSegment {
+        MsgSegment {
             ty: "text".to_string(),
             data: value_map! { "text": text },
         }
     }
 }
 
-impl From<&str> for MessageSegment {
+impl From<&str> for MsgSegment {
     fn from(text: &str) -> Self {
-        MessageSegment {
+        MsgSegment {
             ty: "text".to_string(),
             data: value_map! { "text": text },
         }
@@ -148,7 +169,7 @@ impl From<&str> for MessageSegment {
 
 pub trait SegmentDeclare {
     fn ty(&self) -> &'static str;
-    fn check(segment: &MessageSegment) -> bool;
+    fn check(segment: &MsgSegment) -> bool;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
@@ -215,7 +236,7 @@ pub struct Reply {
 
 pub trait MessageExt {
     fn extract_plain_text(&self) -> String;
-    fn extract<T: TryFrom<MessageSegment>>(self) -> Vec<T>;
+    fn extract<T: TryFrom<MsgSegment>>(self) -> Vec<T>;
 }
 
 impl MessageExt for Segments {
@@ -231,7 +252,7 @@ impl MessageExt for Segments {
             .collect::<Vec<_>>()
             .join("\n")
     }
-    fn extract<T: TryFrom<MessageSegment>>(self) -> Vec<T> {
+    fn extract<T: TryFrom<MsgSegment>>(self) -> Vec<T> {
         self.into_iter()
             .filter_map(|seg| T::try_from(seg).ok())
             .collect()

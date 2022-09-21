@@ -156,13 +156,13 @@ fn event() {
             1632847927.0,
             Message {
                 message: vec![
-                    crate::segment::MessageSegment {
+                    crate::segment::MsgSegment {
                         ty: "text".to_string(),
                         data: value_map! {
                             "text": "OneBot is not a bot"
                         },
                     },
-                    crate::segment::MessageSegment {
+                    crate::segment::MsgSegment {
                         ty: "image".to_string(),
                         data: value_map! {
                             "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"
@@ -257,7 +257,7 @@ fn action() {
         SendMessage {
             detail_type: "group".to_string(),
             group_id: Some("12467".to_string()),
-            message: vec![MessageSegment {
+            message: vec![MsgSegment {
                 ty: "text".to_string(),
                 data: value_map! {
                     "text": "我是文字巴拉巴拉巴拉"
@@ -275,11 +275,11 @@ fn action_resp() {}
 
 #[test]
 fn segment() {
-    fn test<T>(message: (Value, MessageSegment, T))
+    fn test<T>(message: (Value, MsgSegment, T))
     where
-        T: TryFrom<MessageSegment, Error = WalleError> + std::fmt::Debug + PartialEq,
+        T: TryFrom<MsgSegment, Error = WalleError> + std::fmt::Debug + PartialEq,
     {
-        assert_eq!(MessageSegment::try_from(message.0).unwrap(), message.1);
+        assert_eq!(MsgSegment::try_from(message.0).unwrap(), message.1);
         assert_eq!(T::try_from(message.1.clone()).unwrap(), message.2);
         println!("{}", message.1.alt());
     }
@@ -290,7 +290,7 @@ fn segment() {
                 "text": "这是一个纯文本消息段"
             }
         }),
-        MessageSegment {
+        MsgSegment {
             ty: "text".to_string(),
             data: value_map! {
                 "text": "这是一个纯文本消息段"
@@ -307,7 +307,7 @@ fn segment() {
                 "url": "https://example.com"
             }
         }),
-        MessageSegment {
+        MsgSegment {
             ty: "image".to_string(),
             data: value_map! {
                 "file_id": "e30f9684-3d54-4f65-b2da-db291a477f16",

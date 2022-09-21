@@ -31,7 +31,7 @@ pub(crate) fn internal(
         (
             quote!(segment::SegmentDeclare),
             quote!(ty),
-            quote!(segment::MessageSegment),
+            quote!(segment::MsgSegment),
             quote!(data),
             quote!(),
         )

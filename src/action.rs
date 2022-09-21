@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    prelude::WalleError,
+    prelude::{WalleError, WalleResult},
     structs::Selft,
     util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
     value_map,
@@ -13,6 +13,29 @@ pub struct Action {
     pub params: ValueMap,
     #[serde(rename = "self")]
     pub selft: Option<Selft>,
+}
+
+pub trait ToAction: PushToValueMap {
+    fn ty(&self) -> &'static str;
+    fn selft(&self) -> Option<Selft>;
+    fn to_action(self) -> Action
+    where
+        Self: Sized,
+    {
+        Action {
+            action: self.ty().to_string(),
+            selft: self.selft(),
+            params: {
+                let mut map = ValueMap::new();
+                self.push_to(&mut map);
+                map
+            },
+        }
+    }
+}
+
+pub trait TryFromAcrion: Sized {
+    fn try_from_action(action: &mut Action) -> WalleResult<Self>;
 }
 
 impl ValueMapExt for Action {

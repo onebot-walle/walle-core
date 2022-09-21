@@ -3,35 +3,13 @@ use crate::{
     util::{PushToValueMap, Value, ValueMap, ValueMapExt},
 };
 
-pub struct ValueStruct {
+pub struct NamedValueStruct {
     pub field0: u32,
     pub field1: String,
 }
 
-impl TryFrom<&ValueMap> for ValueStruct {
-    type Error = WalleError;
-    fn try_from(map: &ValueMap) -> Result<Self, Self::Error> {
-        Ok(Self {
-            field0: map.get_downcast("field0")?,
-            field1: map.get_downcast("field1")?,
-        })
-    }
-}
-
-impl TryFrom<&Value> for ValueStruct {
-    type Error = WalleError;
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        match value {
-            Value::Map(map) => Self::try_from(map),
-            _ => Err(WalleError::DeclareNotMatch(
-                "Struct Value",
-                "not struct".to_owned(),
-            )),
-        }
-    }
-}
-
-impl TryFrom<&mut ValueMap> for ValueStruct {
+//From
+impl TryFrom<&mut ValueMap> for NamedValueStruct {
     type Error = WalleError;
     fn try_from(map: &mut ValueMap) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -41,20 +19,18 @@ impl TryFrom<&mut ValueMap> for ValueStruct {
     }
 }
 
-impl TryFrom<&mut Value> for ValueStruct {
+impl TryFrom<&mut Value> for NamedValueStruct {
     type Error = WalleError;
     fn try_from(value: &mut Value) -> Result<Self, Self::Error> {
         match value {
             Value::Map(map) => Self::try_from(map),
-            _ => Err(WalleError::DeclareNotMatch(
-                "Struct Value",
-                "not struct".to_owned(),
-            )),
+            v => Err(WalleError::DeclareNotMatch("Map Value", format!("{:?}", v))),
         }
     }
 }
 
-impl PushToValueMap for ValueStruct {
+//Push
+impl PushToValueMap for NamedValueStruct {
     fn push_to(self, map: &mut ValueMap)
     where
         Self: Sized,
@@ -64,17 +40,67 @@ impl PushToValueMap for ValueStruct {
     }
 }
 
-impl From<ValueStruct> for ValueMap {
-    fn from(s: ValueStruct) -> Self {
+impl From<NamedValueStruct> for ValueMap {
+    fn from(s: NamedValueStruct) -> Self {
         let mut map = ValueMap::default();
         s.push_to(&mut map);
         map
     }
 }
 
-impl From<ValueStruct> for Value {
-    fn from(s: ValueStruct) -> Self {
+impl From<NamedValueStruct> for Value {
+    fn from(s: NamedValueStruct) -> Self {
         Value::Map(s.into())
     }
 }
 
+pub struct UnnamedValueStruct(NamedValueStruct);
+
+impl TryFrom<&mut ValueMap> for UnnamedValueStruct {
+    type Error = WalleError;
+    fn try_from(map: &mut ValueMap) -> Result<Self, Self::Error> {
+        //mut
+        Ok(Self(NamedValueStruct::try_from(map)?))
+    }
+}
+
+impl TryFrom<&mut Value> for UnnamedValueStruct {
+    type Error = WalleError;
+    fn try_from(value: &mut Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Map(map) => Self::try_from(map),
+            v => Err(WalleError::DeclareNotMatch("Map Value", format!("{:?}", v))),
+        }
+    }
+}
+
+impl PushToValueMap for UnnamedValueStruct {
+    fn push_to(self, map: &mut ValueMap)
+    where
+        Self: Sized,
+    {
+        //mut
+        self.0.push_to(map);
+    }
+}
+
+impl From<UnnamedValueStruct> for ValueMap {
+    fn from(s: UnnamedValueStruct) -> Self {
+        let mut map = ValueMap::default();
+        s.push_to(&mut map);
+        map
+    }
+}
+
+impl From<UnnamedValueStruct> for Value {
+    fn from(s: UnnamedValueStruct) -> Self {
+        Value::Map(s.into())
+    }
+}
+
+// unsupport
+// pub enum ValueEnum {
+//     Enum0,
+//     Enum1(u8),
+//     Enum2 { field: u8 },
+// }

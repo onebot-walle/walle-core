@@ -1,5 +1,5 @@
 use crate::{
-    prelude::WalleError,
+    prelude::{WalleError, WalleResult},
     structs::{Selft, Status},
     util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
 };
@@ -17,6 +17,25 @@ pub struct Event {
     #[serde(flatten)]
     pub extra: ValueMap,
 }
+
+pub trait ToEvent<T>: PushToValueMap {
+    fn ty(&self) -> &'static str;
+}
+
+pub trait TryFromEvent<T>: Sized {
+    fn try_from_event(event: &mut Event, implt: &str) -> WalleResult<Self>;
+}
+
+#[doc(hidden)]
+pub struct TypeLevel;
+#[doc(hidden)]
+pub struct DetailTypeLevel;
+#[doc(hidden)]
+pub struct SubTypeLevel;
+#[doc(hidden)]
+pub struct PlatformLevel;
+#[doc(hidden)]
+pub struct ImplLevel;
 
 impl Event {
     pub fn selft(&self) -> Option<Selft> {
@@ -297,7 +316,6 @@ impl ImplDeclare for () {
         Ok(())
     }
 }
-impl PushToValueMap for () {}
 impl TryFrom<&mut Event> for () {
     type Error = WalleError;
     fn try_from(_: &mut Event) -> Result<Self, Self::Error> {

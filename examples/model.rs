@@ -1,6 +1,6 @@
 use walle_core::event::{BaseEvent, Event};
 use walle_core::prelude::OneBot;
-use walle_core::segment::{MessageSegment, Segments};
+use walle_core::segment::{MsgSegment, Segments};
 use walle_core::structs::Selft;
 use walle_core::value_map;
 
@@ -86,11 +86,11 @@ fn main() {
             },
             message_id: "6283".to_string(),
             message: vec![
-                MessageSegment {
+                MsgSegment {
                     ty: "text".to_string(),
                     data: value_map! {"text": "OneBot is not a bot"},
                 },
-                MessageSegment {
+                MsgSegment {
                     ty: "image".to_string(),
                     data: value_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
                 },
@@ -147,11 +147,11 @@ fn main() {
             },
             message_id: "6283".to_string(),
             message: vec![
-                MessageSegment {
+                MsgSegment {
                     ty: "text".to_string(),
                     data: value_map! {"text": "OneBot is not a bot"},
                 },
-                MessageSegment {
+                MsgSegment {
                     ty: "image".to_string(),
                     data: value_map! {"file_id": "e30f9684-3d54-4f65-b2da-db291a477f16"},
                 },
