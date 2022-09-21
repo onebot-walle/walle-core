@@ -5,6 +5,8 @@ use syn::{
     Result,
 };
 
+use crate::error;
+
 use super::{snake_case, try_from_idents};
 
 #[derive(Debug, Clone, Copy)]
@@ -273,4 +275,15 @@ fn enum_declare(
 
 pub(crate) fn to_event_internal(input: DeriveInput, span: TokenStream2) -> Result<TokenStream2> {
     todo!()
+}
+
+fn parse_ty(ty: &str, span: &TokenStream2) -> Result<TokenStream2> {
+    match ty {
+        "type" => Ok(quote!(#span::event::TypeLevel)),
+        "detail_type" => Ok(quote!(#span::event::DetailTypeLevel)),
+        "sub_type" => Ok(quote!(#span::event::SubTypeLevel)),
+        "platform" => Ok(quote!(#span::event::PlatformLevel)),
+        "impl" => Ok(quote!(#span::event::ImplLevel)),
+        ty => Err(error(format!("unsupportted type {}", ty))),
+    }
 }

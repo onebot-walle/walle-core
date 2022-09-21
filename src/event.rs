@@ -22,12 +22,8 @@ pub trait ToEvent<T>: PushToValueMap {
     fn ty(&self) -> &'static str;
 }
 
-pub trait TryFromEvent<T>: for<'a> TryFrom<&'a mut Event, Error = WalleError> + Sized {
-    fn check(event: &Event, implt: &str) -> WalleResult<()>;
-    fn try_from_event(event: &mut Event, implt: &str) -> WalleResult<Self> {
-        Self::check(event, implt)?;
-        Self::try_from(event)
-    }
+pub trait TryFromEvent<T>: Sized {
+    fn try_from_event(event: &mut Event, implt: &str) -> WalleResult<Self>;
 }
 
 #[doc(hidden)]

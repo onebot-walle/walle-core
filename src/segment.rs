@@ -30,14 +30,8 @@ pub trait ToMsgSegment: PushToValueMap {
     }
 }
 
-pub trait TryFromMsgSegment:
-    for<'a> TryFrom<&'a mut MsgSegment, Error = WalleError> + Sized
-{
-    fn check(segment: &MsgSegment) -> WalleResult<()>;
-    fn try_from_msg_segment(segment: &mut MsgSegment) -> WalleResult<Self> {
-        Self::check(segment)?;
-        Self::try_from(segment)
-    }
+pub trait TryFromMsgSegment: Sized {
+    fn try_from_msg_segment(segment: &mut MsgSegment) -> WalleResult<Self>;
 }
 
 impl ValueMapExt for MsgSegment {

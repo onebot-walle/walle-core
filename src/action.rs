@@ -34,12 +34,8 @@ pub trait ToAction: PushToValueMap {
     }
 }
 
-pub trait TryFromAcrion: for<'a> TryFrom<&'a mut Action, Error = WalleError> + Sized {
-    fn check(action: &Action) -> WalleResult<()>;
-    fn try_from_event(action: &mut Action) -> WalleResult<Self> {
-        Self::check(action)?;
-        Self::try_from(action)
-    }
+pub trait TryFromAcrion: Sized {
+    fn try_from_action(action: &mut Action) -> WalleResult<Self>;
 }
 
 impl ValueMapExt for Action {
