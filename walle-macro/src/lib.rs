@@ -1,10 +1,11 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
-use syn::{Data, DeriveInput, Error, Fields, FieldsNamed, Result, Type};
+use syn::{Data, DeriveInput, Error, Fields, Result, Type};
 
 mod action_segment;
 mod event;
+mod value;
 
 #[proc_macro_derive(OneBot, attributes(event, action, value, segment))]
 pub fn onebot(token: TokenStream) -> TokenStream {
@@ -128,117 +129,6 @@ fn try_from_idents(fields: &Fields, head: TokenStream2, sub: bool) -> Result<Tok
     }
 }
 
-#[proc_macro_derive(PushToValueMap)]
-pub fn push_to_map(token: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(token as DeriveInput);
-    flatten(push_to_map_internal(input, quote!(walle_core))).into()
-}
-
-#[proc_macro_derive(_PushToValueMap)]
-pub fn _push_to_map(token: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(token as DeriveInput);
-    flatten(push_to_map_internal(input, quote!(crate))).into()
-}
-
-fn push_to_map_internal(input: DeriveInput, span: TokenStream2) -> Result<TokenStream2> {
-    let name = &input.ident;
-    let idents = push_idents(&input, &span)?;
-    Ok(quote!(
-        impl #span::util::value::PushToValueMap for #name {
-            fn push_to(self, map: &mut #span ::util::value::ValueMap) {
-                #idents
-            }
-        }
-
-        impl From<#name> for #span::util::value::ValueMap {
-            fn from(i: #name) -> Self {
-                use #span::util::value::PushToValueMap;
-                let mut map = Self::default();
-                i.push_to(&mut map);
-                map
-            }
-        }
-
-        impl From<#name> for #span::util::value::Value {
-            fn from(i: #name) -> Self {
-                #span::util::value::Value::Map(i.into())
-            }
-        }
-    ))
-}
-
-fn push_idents(input: &DeriveInput, span: &TokenStream2) -> Result<TokenStream2> {
-    match &input.data {
-        Data::Struct(data) => match &data.fields {
-            Fields::Named(named) => named_push_idents(&named, quote!(self)),
-            Fields::Unit => Ok(quote!()),
-            Fields::Unnamed(unnamed) => {
-                let mut i = 0;
-                let mut vars = vec![];
-                for _ in &unnamed.unnamed {
-                    let index = syn::Index::from(i);
-                    vars.push(quote!(
-                        self.#index.push_to(map);
-                    ));
-                    i += 1;
-                }
-                Ok(quote!(
-                    use #span::util::value::PushToValueMap;
-                    #(#vars)*
-                ))
-            }
-        },
-        Data::Union(_) => Err(Error::new(Span::call_site(), "union not supportted")),
-        Data::Enum(data) => {
-            let mut vars = vec![];
-            for var in &data.variants {
-                let id = &var.ident;
-                match &var.fields {
-                    Fields::Named(named) => {
-                        let ids = named.named.iter().collect::<Vec<_>>();
-                        let fields = named_push_idents(&named, quote!(i))?;
-                        vars.push(quote!(
-                            Self::#id{#(#ids)*} => {
-                                #fields
-                            }
-                        ))
-                    }
-                    Fields::Unit => vars.push(quote!(Self::#id => {})),
-                    Fields::Unnamed(unnamed) => {
-                        let mut i = 0;
-                        let mut ids = vec![];
-                        let mut fs = vec![];
-                        for _ in &unnamed.unnamed {
-                            let id = Ident::new(&format!("v{}", i), Span::call_site());
-                            ids.push(id.clone());
-                            fs.push(quote!(#id.push_to(map);));
-                            i += 1;
-                        }
-                        vars.push(quote!(Self::#id(#(#ids)*) => {
-                            use #span::util::value::PushToValueMap;
-                            #(#fs)*
-                        }))
-                    }
-                }
-            }
-            Ok(quote!(match self {
-                #(#vars)*
-            }))
-        }
-    }
-}
-
-fn named_push_idents(named: &FieldsNamed, head: TokenStream2) -> Result<TokenStream2> {
-    let mut out = quote!();
-    for field in &named.named {
-        let i = field.ident.clone().unwrap();
-        let mut s = i.to_string();
-        escape(&mut s);
-        out.extend(quote!(map.insert(#s.to_string(), #head.#i.into());))
-    }
-    Ok(out)
-}
-
 fn snake_case(s: String) -> String {
     let mut out = String::default();
     let mut chars = s.chars();
@@ -260,5 +150,76 @@ fn escape(s: &mut String) {
         "implt" => *s = "impl".to_string(),
         "selft" => *s = "self".to_string(),
         _ => {}
+    }
+}
+
+fn error<T: std::fmt::Display>(msg: T) -> Error {
+    Error::new(Span::call_site(), msg)
+}
+
+macro_rules! ob {
+    ($t: ident $(: $($attr: ident),+)? => $f: ident, $fin: ident, $span: ident) => {
+        #[proc_macro_derive($t $(,attributes($($attr),+))?)]
+        pub fn $f(token: TokenStream) -> TokenStream {
+            let input = syn::parse_macro_input!(token as DeriveInput);
+            flatten($fin(input, quote!($span))).into()
+        }
+    };
+}
+
+use value::try_from_value_internal;
+
+ob!(TryFromValue => try_from_value, try_from_value_internal, walle_core);
+ob!(_TryFromValue => _try_from_value, try_from_value_internal, crate);
+
+use value::push_to_value_map_internal;
+
+ob!(PushToValueMap => push_to_value_map, push_to_value_map_internal, walle_core);
+ob!(_PushToValueMap => _push_to_value_map, push_to_value_map_internal, crate);
+
+use event::to_event_internal;
+
+ob!(ToEvent: event => to_event, to_event_internal, walle_core);
+ob!(_ToEvent: event => _to_event, to_event_internal, crate);
+
+fn fields_from_map(fields: &Fields) -> TokenStream2 {
+    match fields {
+        Fields::Named(named) => {
+            let v = named
+                .named
+                .iter()
+                .map(|f| {
+                    let field_name = f.ident.clone().unwrap();
+                    let mut s = field_name.to_string();
+                    escape(&mut s);
+                    if let Type::Path(ref p) = f.ty {
+                        if p.path
+                            .segments
+                            .first()
+                            .unwrap()
+                            .ident
+                            .to_string()
+                            .starts_with("Option")
+                        {
+                            return quote!(#field_name: map.try_remove_downcast(#s)?);
+                        }
+                    }
+                    quote!(#field_name: map.remove_downcast(#s)?)
+                })
+                .collect::<Vec<_>>();
+            quote!({#(#v),*})
+        }
+        Fields::Unnamed(unamed) => {
+            let v = unamed
+                .unnamed
+                .iter()
+                .map(|field| {
+                    let t = &field.ty;
+                    quote!(#t::tryfrom(map)?)
+                })
+                .collect::<Vec<_>>();
+            quote!((#(#v),*))
+        }
+        Fields::Unit => quote!(),
     }
 }

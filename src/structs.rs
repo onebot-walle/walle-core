@@ -1,39 +1,36 @@
 use serde::{Deserialize, Serialize};
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+use walle_macro::{
+    _OneBot as OneBot, _PushToValueMap as PushToValueMap, _TryFromValue as TryFromValue,
+};
 
 #[derive(
-    Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot, Hash, Serialize, Deserialize, Default,
+    Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue, Hash, Serialize, Deserialize, Default,
 )]
-#[value]
 pub struct Selft {
     pub platform: String,
     pub user_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct Bot {
     pub selft: Selft,
     pub online: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot, TryFromValue)]
 #[event(detail_type = "status_update")]
 pub struct Status {
     pub good: bool,
     pub bots: Vec<Bot>,
 }
 
-#[derive(Debug, Clone, PartialEq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, TryFromValue)]
 pub struct SendMessageResp {
     pub message_id: String,
     pub time: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct UserInfo {
     pub user_id: String,
     pub user_name: String,
@@ -41,21 +38,18 @@ pub struct UserInfo {
     pub user_remark: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct GroupInfo {
     pub group_id: String,
     pub group_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct FileId {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct File {
     pub name: String,
     pub url: Option<String>,
@@ -65,22 +59,19 @@ pub struct File {
     pub sha256: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct GuildInfo {
     pub guild_id: String,
     pub guild_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct ChannelInfo {
     pub channel_id: String,
     pub channel_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct Version {
     pub implt: String,
     pub platform: String,

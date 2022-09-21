@@ -270,3 +270,7 @@ fn enum_declare(
         Err(Error::new(Span::call_site(), "not metapath attributes"))
     }
 }
+
+pub(crate) fn to_event_internal(input: DeriveInput, span: TokenStream2) -> Result<TokenStream2> {
+    todo!()
+}

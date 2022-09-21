@@ -19,11 +19,11 @@ impl TryFrom<&mut ValueMap> for NamedValueStruct {
     }
 }
 
-impl TryFrom<&mut Value> for NamedValueStruct {
+impl TryFrom<Value> for NamedValueStruct {
     type Error = WalleError;
-    fn try_from(value: &mut Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            Value::Map(map) => Self::try_from(map),
+            Value::Map(mut map) => Self::try_from(&mut map),
             v => Err(WalleError::DeclareNotMatch("Map Value", format!("{:?}", v))),
         }
     }
@@ -104,3 +104,13 @@ impl From<UnnamedValueStruct> for Value {
 //     Enum1(u8),
 //     Enum2 { field: u8 },
 // }
+
+use walle_macro::_TryFromValue as TryFromValue;
+
+#[derive(TryFromValue)]
+pub struct TestStruct;
+
+#[derive(TryFromValue)]
+pub struct TestStruct2 {
+    pub f0: TestStruct,
+}
