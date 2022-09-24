@@ -962,7 +962,7 @@ dependencies = [
 
 [[package]]
 name = "walle-macro"
-version = "0.7.0-a1"
+version = "0.7.0-a2"
 dependencies = [
  "proc-macro2",
  "quote",
