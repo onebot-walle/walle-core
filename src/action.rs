@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     prelude::{WalleError, WalleResult},
     structs::Selft,
-    util::{GetSelf, PushToValueMap, TryFromValueMap, ValueMap, ValueMapExt},
+    util::{GetSelf, PushToValueMap, ValueMap, ValueMapExt},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -325,8 +325,9 @@ impl TryFromAction for GetFileFragmented {
     }
 }
 
-impl TryFromValueMap for GetFileFragmented {
-    fn try_from_map(map: &mut ValueMap) -> WalleResult<Self> {
+impl TryFrom<&mut ValueMap> for GetFileFragmented {
+    type Error = WalleError;
+    fn try_from(map: &mut ValueMap) -> WalleResult<Self> {
         match map.remove_downcast::<String>("stage")?.as_str() {
             "prepare" => Ok(Self::Prepare {
                 file_id: map.remove_downcast("file_id")?,

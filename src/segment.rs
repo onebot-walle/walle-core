@@ -144,48 +144,66 @@ pub trait SegmentDeclare {
 
 use walle_macro::{
     _PushToValueMap as PushToValueMap, _ToMsgSegment as ToMsgSegment,
-    _TryFromMsgSegment as TryFromMsgSegment,
+    _TryFromMsgSegment as TryFromMsgSegment, _TryFromValue as TryFromValue,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Text {
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Mention {
     pub user_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct MentionAll {}
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Image {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Voice {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Audio {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Video {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct File {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Location {
     pub latitude: f64,
     pub longitude: f64,
@@ -193,7 +211,9 @@ pub struct Location {
     pub content: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
+)]
 pub struct Reply {
     pub message_id: String,
     pub user_id: String,

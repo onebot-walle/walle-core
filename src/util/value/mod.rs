@@ -406,16 +406,6 @@ impl PushToValueMap for () {
     fn push_to(self, _map: &mut ValueMap) {}
 }
 
-pub trait TryFromValueMap: Sized {
-    fn try_from_map(map: &mut ValueMap) -> WalleResult<Self>;
-}
-
-impl TryFromValueMap for () {
-    fn try_from_map(_map: &mut ValueMap) -> WalleResult<Self> {
-        Ok(())
-    }
-}
-
 pub trait ValueMapExt {
     fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
     where
