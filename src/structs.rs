@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use walle_macro::{
-    _OneBot as OneBot, _PushToValueMap as PushToValueMap, _TryFromValue as TryFromValue,
+    _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
+    _TryFromValue as TryFromValue,
 };
 
 #[derive(
@@ -17,7 +18,7 @@ pub struct Bot {
     pub online: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot, TryFromValue)]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue, ToEvent, TryFromEvent)]
 #[event(detail_type = "status_update")]
 pub struct Status {
     pub good: bool,

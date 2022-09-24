@@ -1,10 +1,10 @@
 use walle_core::event::{BaseEvent, Event};
-use walle_core::prelude::OneBot;
+use walle_core::prelude::{PushToValueMap, ToEvent, TryFromEvent};
 use walle_core::segment::{MsgSegment, Segments};
 use walle_core::structs::Selft;
 use walle_core::value_map;
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(type = "message")]
 pub struct MessageE {
     pub selft: Selft,
@@ -14,28 +14,28 @@ pub struct MessageE {
     pub user_id: String,
 }
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(detail_type = "private")]
 pub struct Private {}
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(detail_type)]
 pub struct Group {
     pub group_id: String,
 }
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(impl)]
 pub struct GoCqhttp;
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(impl)]
 pub struct Walle {
     xxx: String,
     yyy: i64,
 }
 
-#[derive(Debug, OneBot, PartialEq)]
+#[derive(Debug, ToEvent, TryFromEvent, PushToValueMap, PartialEq)]
 #[event(impl)]
 pub enum Impls {
     Gocq,

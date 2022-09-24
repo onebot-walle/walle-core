@@ -18,3 +18,14 @@ impl PushToValueMap for EventTypeNamedStruct {
         map.insert("struct_field0".to_string(), self.struct_field0.into());
     }
 }
+
+use walle_macro::{
+    _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
+};
+
+#[derive(ToEvent, PushToValueMap, TryFromEvent)]
+#[event(type = "type", detail_type = "detail_type")]
+pub enum EventType {
+    A { f: u16 },
+    B,
+}

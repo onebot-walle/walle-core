@@ -26,15 +26,21 @@ pub mod obc;
 mod test;
 
 pub mod prelude {
-    pub use crate::resp::{resp_error, Resp};
-    pub use crate::segment::{IntoMessage, MessageExt, MsgSegment, Segments};
-
     pub use super::*;
     pub use crate::error::{WalleError, WalleResult};
     pub use crate::util::{Echo, GetSelf, OneBotBytes, Value, ValueMap, ValueMapExt};
     pub use crate::{value, value_map, value_vec};
     pub use async_trait::async_trait;
-    pub use walle_macro::{OneBot, PushToValueMap};
+    pub use walle_macro::{PushToValueMap, ToAction, ToEvent, ToMsgSegment};
+    pub use walle_macro::{TryFromAction, TryFromEvent, TryFromMsgSegment, TryFromValue};
+
+    pub use crate::action::{Action, BaseAction, ToAction, TryFromAction};
+    pub use crate::event::{BaseEvent, Event, ToEvent, TryFromEvent};
+    pub use crate::resp::{resp_error, Resp};
+    pub use crate::segment::{
+        IntoMessage, MessageExt, MsgSegment, Segments, ToMsgSegment, TryFromMsgSegment,
+    };
+    pub use crate::structs::*;
 }
 
 /// AH: EventConstructor + ActionHandler
@@ -48,7 +54,7 @@ pub struct OneBot<AH, EH> {
 
 use std::sync::Arc;
 
-use crate::error::{WalleError, WalleResult};
+pub use crate::error::{WalleError, WalleResult};
 
 impl<AH, EH> OneBot<AH, EH> {
     pub fn new(action_handler: AH, event_handler: EH) -> Self {

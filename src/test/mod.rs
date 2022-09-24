@@ -8,7 +8,9 @@ use crate::{
     util::{Value, ValueMap},
     value, value_map,
 };
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+use walle_macro::{
+    _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
+};
 mod event;
 mod value;
 
@@ -26,7 +28,7 @@ fn event() {
         assert_eq!(T::try_from(event.1.clone()).unwrap(), event.2);
         println!("{}", event.1.colored_alt());
     }
-    #[derive(Debug, PushToValueMap, OneBot)]
+    #[derive(Debug, PushToValueMap, ToEvent, TryFromEvent)]
     #[event(platform)]
     struct GoOnebotQq {}
 
@@ -337,8 +339,8 @@ fn valuemap_test() {
 
 #[test]
 fn enum_action() {
-    #[derive(Debug, OneBot, PartialEq, Eq)]
-    #[action]
+    use walle_macro::{_ToAction as ToAction, _TryFromAction as TryFromAction};
+    #[derive(Debug, PartialEq, Eq, TryFromAction, ToAction, PushToValueMap)]
     pub enum MyAction {
         GetUserInfo(GetUserInfo),
         GetGroupInfo { group_id: String },
@@ -362,8 +364,8 @@ fn enum_action() {
 
 #[test]
 fn option_action() {
-    #[derive(Debug, OneBot, PushToValueMap)]
-    #[action]
+    use walle_macro::{_ToAction as ToAction, _TryFromAction as TryFromAction};
+    #[derive(Debug, ToAction, TryFromAction, PushToValueMap)]
     pub struct MySeg {
         pub text: Option<String>,
     }

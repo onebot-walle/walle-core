@@ -3,7 +3,6 @@ use crate::{
     util::{PushToValueMap, Value, ValueMap, ValueMapExt},
     value, value_map,
 };
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
 
 pub type Segments = Vec<MsgSegment>;
 
@@ -31,39 +30,9 @@ pub trait ToMsgSegment: PushToValueMap {
 }
 
 pub trait TryFromMsgSegment: Sized {
-    fn try_from_msg_segment(segment: &mut MsgSegment) -> WalleResult<Self>;
-}
-
-impl ValueMapExt for MsgSegment {
-    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.data.get_downcast(key)
-    }
-    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.data.remove_downcast(key)
-    }
-    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.data.try_get_downcast(key)
-    }
-    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.data.try_remove_downcast(key)
-    }
-    fn push<T>(&mut self, value: T)
-    where
-        T: crate::util::PushToValueMap,
-    {
-        value.push_to(&mut self.data)
+    fn try_from_msg_segment_mut(segment: &mut MsgSegment) -> WalleResult<Self>;
+    fn try_from_msg_segment(mut segment: MsgSegment) -> WalleResult<Self> {
+        Self::try_from_msg_segment_mut(&mut segment)
     }
 }
 
@@ -121,13 +90,14 @@ pub struct BaseSegment<T> {
     pub extra: ValueMap,
 }
 
-impl<T: for<'a> TryFrom<&'a mut MsgSegment, Error = WalleError>> TryFrom<MsgSegment>
-    for BaseSegment<T>
+impl<T> TryFrom<MsgSegment> for BaseSegment<T>
+where
+    T: TryFromMsgSegment,
 {
     type Error = WalleError;
     fn try_from(mut segment: MsgSegment) -> Result<Self, Self::Error> {
         Ok(Self {
-            segment: T::try_from(&mut segment)?,
+            segment: T::try_from_msg_segment_mut(&mut segment)?,
             extra: segment.data,
         })
     }
@@ -172,54 +142,50 @@ pub trait SegmentDeclare {
     fn check(segment: &MsgSegment) -> bool;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+use walle_macro::{
+    _PushToValueMap as PushToValueMap, _ToMsgSegment as ToMsgSegment,
+    _TryFromMsgSegment as TryFromMsgSegment,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Text {
     pub text: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Mention {
     pub user_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct MentionAll {}
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Image {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Voice {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Audio {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Video {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct File {
     pub file_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Location {
     pub latitude: f64,
     pub longitude: f64,
@@ -227,8 +193,7 @@ pub struct Location {
     pub content: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, OneBot)]
-#[segment]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment)]
 pub struct Reply {
     pub message_id: String,
     pub user_id: String,

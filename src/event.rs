@@ -23,7 +23,10 @@ pub trait ToEvent<T>: PushToValueMap {
 }
 
 pub trait TryFromEvent<T>: Sized {
-    fn try_from_event(event: &mut Event, implt: &str) -> WalleResult<Self>;
+    fn try_from_event_mut(event: &mut Event, implt: &str) -> WalleResult<Self>;
+    fn try_from_event(mut event: Event, implt: &str) -> WalleResult<Self> {
+        Self::try_from_event_mut(&mut event, implt)
+    }
 }
 
 #[doc(hidden)]
@@ -46,39 +49,6 @@ impl Event {
     }
     pub fn platform(&self) -> Option<String> {
         self.selft().map(|s| s.platform)
-    }
-}
-
-impl ValueMapExt for Event {
-    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.extra.get_downcast(key)
-    }
-    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.extra.remove_downcast(key)
-    }
-    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.extra.try_get_downcast(key)
-    }
-    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.extra.try_remove_downcast(key)
-    }
-    fn push<T>(&mut self, value: T)
-    where
-        T: PushToValueMap,
-    {
-        value.push_to(&mut self.extra)
     }
 }
 
@@ -135,19 +105,19 @@ pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
 
 impl<T, D, S, P, I> From<BaseEvent<T, D, S, P, I>> for Event
 where
-    T: TypeDeclare + PushToValueMap,
-    D: DetailTypeDeclare + PushToValueMap,
-    S: SubTypeDeclare + PushToValueMap,
-    P: PlatformDeclare + PushToValueMap,
-    I: ImplDeclare + PushToValueMap,
+    T: ToEvent<TypeLevel>,
+    D: ToEvent<DetailTypeLevel>,
+    S: ToEvent<SubTypeLevel>,
+    P: ToEvent<PlatformLevel>,
+    I: ToEvent<ImplLevel>,
 {
     fn from(mut event: BaseEvent<T, D, S, P, I>) -> Self {
         Self {
             id: event.id,
             time: event.time,
             ty: event.ty.ty().to_string(),
-            detail_type: event.detail_type.detail_type().to_string(),
-            sub_type: event.sub_type.sub_type().to_string(),
+            detail_type: event.detail_type.ty().to_string(),
+            sub_type: event.sub_type.ty().to_string(),
             extra: {
                 let map = &mut event.extra;
                 event.implt.push_to(map);
@@ -189,39 +159,19 @@ pub trait ParseEvent: Sized {
 
 impl<T, D, S, P, I> ParseEvent for BaseEvent<T, D, S, P, I>
 where
-    I: ImplDeclare,
-    T: for<'a> TryFrom<&'a mut Event, Error = WalleError> + TypeDeclare,
-    D: for<'a> TryFrom<&'a mut Event, Error = WalleError> + DetailTypeDeclare,
-    S: for<'a> TryFrom<&'a mut Event, Error = WalleError> + SubTypeDeclare,
-    P: for<'a> TryFrom<&'a mut Event, Error = WalleError> + PlatformDeclare,
+    I: TryFromEvent<ImplLevel>,
+    T: TryFromEvent<TypeLevel>,
+    D: TryFromEvent<DetailTypeLevel>,
+    S: TryFromEvent<SubTypeLevel>,
+    P: TryFromEvent<PlatformLevel>,
 {
     fn parse(mut event: Event, implt: &str) -> Result<Self, WalleError> {
-        if !T::check(&event) {
-            return Err(WalleError::DeclareNotMatch("type", event.ty.clone()));
-        } else if !D::check(&event) {
-            return Err(WalleError::DeclareNotMatch(
-                "detail_type",
-                event.detail_type.clone(),
-            ));
-        } else if !S::check(&event) {
-            return Err(WalleError::DeclareNotMatch(
-                "sub_type",
-                event.sub_type.clone(),
-            ));
-        } else if !P::check(&event) {
-            return Err(WalleError::DeclareNotMatch(
-                "platform",
-                event.platform().unwrap_or_default(),
-            ));
-        } else if !I::check(implt) {
-            return Err(WalleError::DeclareNotMatch("impl", implt.to_owned()));
-        }
         Ok(Self {
-            ty: T::try_from(&mut event)?,
-            detail_type: D::try_from(&mut event)?,
-            sub_type: S::try_from(&mut event)?,
-            implt: I::from_event(&mut event, implt)?,
-            platform: P::try_from(&mut event)?,
+            ty: T::try_from_event_mut(&mut event, implt)?,
+            detail_type: D::try_from_event_mut(&mut event, implt)?,
+            sub_type: S::try_from_event_mut(&mut event, implt)?,
+            implt: I::try_from_event_mut(&mut event, implt)?,
+            platform: P::try_from_event_mut(&mut event, implt)?,
             id: event.id,
             time: event.time,
             extra: event.extra,
@@ -229,12 +179,63 @@ where
     }
 }
 
+impl TryFromEvent<ImplLevel> for () {
+    fn try_from_event_mut(_event: &mut Event, _implt: &str) -> WalleResult<Self> {
+        Ok(())
+    }
+}
+impl TryFromEvent<TypeLevel> for () {
+    fn try_from_event_mut(_event: &mut Event, _implt: &str) -> WalleResult<Self> {
+        Ok(())
+    }
+}
+impl TryFromEvent<DetailTypeLevel> for () {
+    fn try_from_event_mut(_event: &mut Event, _implt: &str) -> WalleResult<Self> {
+        Ok(())
+    }
+}
+impl TryFromEvent<SubTypeLevel> for () {
+    fn try_from_event_mut(_event: &mut Event, _implt: &str) -> WalleResult<Self> {
+        Ok(())
+    }
+}
+impl TryFromEvent<PlatformLevel> for () {
+    fn try_from_event_mut(_event: &mut Event, _implt: &str) -> WalleResult<Self> {
+        Ok(())
+    }
+}
+impl ToEvent<TypeLevel> for () {
+    fn ty(&self) -> &'static str {
+        ""
+    }
+}
+impl ToEvent<DetailTypeLevel> for () {
+    fn ty(&self) -> &'static str {
+        ""
+    }
+}
+impl ToEvent<SubTypeLevel> for () {
+    fn ty(&self) -> &'static str {
+        ""
+    }
+}
+impl ToEvent<PlatformLevel> for () {
+    fn ty(&self) -> &'static str {
+        ""
+    }
+}
+impl ToEvent<ImplLevel> for () {
+    fn ty(&self) -> &'static str {
+        ""
+    }
+}
+
 impl<T, D, S, P> TryFrom<Event> for BaseEvent<T, D, S, P>
 where
-    T: for<'a> TryFrom<&'a mut Event, Error = WalleError> + TypeDeclare,
-    D: for<'a> TryFrom<&'a mut Event, Error = WalleError> + DetailTypeDeclare,
-    S: for<'a> TryFrom<&'a mut Event, Error = WalleError> + SubTypeDeclare,
-    P: for<'a> TryFrom<&'a mut Event, Error = WalleError> + PlatformDeclare,
+    T: TryFromEvent<TypeLevel>,
+    D: TryFromEvent<DetailTypeLevel>,
+    S: TryFromEvent<SubTypeLevel>,
+    P: TryFromEvent<PlatformLevel>,
 {
     type Error = WalleError;
     fn try_from(event: Event) -> Result<Self, Self::Error> {
@@ -242,90 +243,12 @@ where
     }
 }
 
-pub trait ImplDeclare {
-    fn implt(&self) -> &'static str;
-    fn check(implt: &str) -> bool;
-    fn from_event(event: &mut Event, implt: &str) -> Result<Self, WalleError>
-    where
-        Self: Sized;
-}
+use walle_macro::{
+    _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
+    _TryFromValue as TryFromValue,
+};
 
-pub trait PlatformDeclare {
-    fn platform(&self) -> &'static str;
-    fn check(event: &Event) -> bool;
-}
-
-pub trait SubTypeDeclare {
-    fn sub_type(&self) -> &'static str;
-    fn check(event: &Event) -> bool;
-}
-
-pub trait DetailTypeDeclare {
-    fn detail_type(&self) -> &'static str;
-    fn check(_event: &Event) -> bool;
-}
-
-pub trait TypeDeclare {
-    fn ty(&self) -> &'static str;
-    fn check(_event: &Event) -> bool;
-}
-
-impl TypeDeclare for () {
-    fn ty(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
-}
-impl DetailTypeDeclare for () {
-    fn detail_type(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
-}
-impl SubTypeDeclare for () {
-    fn sub_type(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
-}
-impl PlatformDeclare for () {
-    fn platform(&self) -> &'static str {
-        ""
-    }
-    fn check(_event: &Event) -> bool {
-        true
-    }
-}
-impl ImplDeclare for () {
-    fn implt(&self) -> &'static str {
-        ""
-    }
-    fn check(_implt: &str) -> bool {
-        true
-    }
-    fn from_event(_event: &mut Event, _implt: &str) -> Result<Self, WalleError>
-    where
-        Self: Sized,
-    {
-        Ok(())
-    }
-}
-impl TryFrom<&mut Event> for () {
-    type Error = WalleError;
-    fn try_from(_: &mut Event) -> Result<Self, Self::Error> {
-        Ok(())
-    }
-}
-
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
-
-#[derive(Debug, Clone, PartialEq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Message {
     pub selft: Selft,
@@ -342,7 +265,7 @@ impl GetSelf for Message {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Notice {
     pub selft: Selft,
@@ -355,7 +278,7 @@ impl GetSelf for Notice {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Request {
     pub selft: Selft,
@@ -368,12 +291,12 @@ impl GetSelf for Request {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Meta;
 pub type MetaEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Meta, D, S, P, I>;
 
-#[derive(Debug, Clone, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub enum EventType {
     Meta,
@@ -382,19 +305,19 @@ pub enum EventType {
     Notice(Notice),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Private;
 pub type PrivateMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Private, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Group {
     pub group_id: String,
 }
 pub type GroupMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Group, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Heartbeat {
     pub interval: u32,
@@ -404,7 +327,7 @@ pub type HeartbeatEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Heartbeat, S, 
 
 pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Status, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub enum MetaTypes {
     Heartbeat(Heartbeat),
@@ -412,7 +335,7 @@ pub enum MetaTypes {
 }
 pub type MetaDetailEvent<S = (), P = (), I = ()> = BaseEvent<Meta, MetaTypes, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMemberIncrease {
     pub group_id: String,
@@ -422,7 +345,7 @@ pub struct GroupMemberIncrease {
 pub type GroupMemberIncreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMemberIncrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMemberDecrease {
     pub group_id: String,
@@ -432,7 +355,7 @@ pub struct GroupMemberDecrease {
 pub type GroupMemberDecreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMemberDecrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMessageDelete {
     pub group_id: String,
@@ -443,21 +366,21 @@ pub struct GroupMessageDelete {
 pub type GroupMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMessageDelete, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct FriendIncrease {
     pub user_id: String,
 }
 pub type FriendIncreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendIncrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct FriendDecrease {
     pub user_id: String,
 }
 pub type FriendDecreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendDecrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct PrivateMessageDelete {
     pub message_id: String,
@@ -466,7 +389,7 @@ pub struct PrivateMessageDelete {
 pub type PrivateMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, PrivateMessageDelete, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GuildMemberIncrease {
     pub guild_id: String,
@@ -476,7 +399,7 @@ pub struct GuildMemberIncrease {
 pub type GuildMemberIncreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GuildMemberIncrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GuildMemberDecrease {
     pub guild_id: String,
@@ -486,7 +409,7 @@ pub struct GuildMemberDecrease {
 pub type GuildMemberDecreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GuildMemberDecrease, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelMessageDelete {
     pub guild_id: String,
@@ -498,7 +421,7 @@ pub struct ChannelMessageDelete {
 pub type ChannelMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, ChannelMessageDelete, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelCreate {
     pub guild_id: String,
@@ -507,7 +430,7 @@ pub struct ChannelCreate {
 }
 pub type ChannelCreateEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelCreate, S, P, I>;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelDelete {
     pub guild_id: String,
@@ -516,7 +439,7 @@ pub struct ChannelDelete {
 }
 pub type ChannelDeleteEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelDelete, S, P, I>;
 
-#[derive(Debug, Clone, OneBot)]
+#[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub enum MessageDeatilTypes {
     Group(Group),

@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     prelude::{WalleError, WalleResult},
     structs::Selft,
-    util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
-    value_map,
+    util::{GetSelf, PushToValueMap, TryFromValueMap, ValueMap, ValueMapExt},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -17,7 +16,9 @@ pub struct Action {
 
 pub trait ToAction: PushToValueMap {
     fn ty(&self) -> &'static str;
-    fn selft(&self) -> Option<Selft>;
+    fn selft(&self) -> Option<Selft> {
+        None
+    }
     fn to_action(self) -> Action
     where
         Self: Sized,
@@ -34,40 +35,10 @@ pub trait ToAction: PushToValueMap {
     }
 }
 
-pub trait TryFromAcrion: Sized {
-    fn try_from_action(action: &mut Action) -> WalleResult<Self>;
-}
-
-impl ValueMapExt for Action {
-    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.params.get_downcast(key)
-    }
-    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.params.remove_downcast(key)
-    }
-    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.params.try_get_downcast(key)
-    }
-    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>,
-    {
-        self.params.try_remove_downcast(key)
-    }
-    fn push<T>(&mut self, value: T)
-    where
-        T: PushToValueMap,
-    {
-        value.push_to(&mut self.params)
+pub trait TryFromAction: Sized {
+    fn try_from_action_mut(action: &mut Action) -> WalleResult<Self>;
+    fn try_from_action(mut action: Action) -> WalleResult<Self> {
+        Self::try_from_action_mut(&mut action)
     }
 }
 
@@ -84,18 +55,13 @@ pub struct BaseAction<T> {
     pub extra: ValueMap,
 }
 
-pub trait ActionDeclare {
-    fn action(&self) -> &'static str;
-    fn check(action: &Action) -> bool;
-}
-
 impl<T> From<BaseAction<T>> for Action
 where
-    T: ActionDeclare + PushToValueMap,
+    T: ToAction,
 {
     fn from(mut action: BaseAction<T>) -> Self {
         Self {
-            action: action.action.action().to_string(),
+            action: action.action.ty().to_string(),
             selft: action.selft,
             params: {
                 action.action.push_to(&mut action.extra);
@@ -105,10 +71,13 @@ where
     }
 }
 
-impl<T: ActionDeclare + Into<ValueMap>> From<(T, Selft)> for Action {
+impl<T> From<(T, Selft)> for Action
+where
+    T: ToAction + Into<ValueMap>,
+{
     fn from(v: (T, Selft)) -> Self {
         Self {
-            action: v.0.action().to_owned(),
+            action: v.0.ty().to_owned(),
             params: v.0.into(),
             selft: Some(v.1),
         }
@@ -117,37 +86,37 @@ impl<T: ActionDeclare + Into<ValueMap>> From<(T, Selft)> for Action {
 
 impl<T> TryFrom<Action> for BaseAction<T>
 where
-    T: for<'a> TryFrom<&'a mut Action, Error = WalleError>,
+    T: TryFromAction,
 {
     type Error = WalleError;
     fn try_from(mut value: Action) -> Result<Self, Self::Error> {
         Ok(Self {
-            action: T::try_from(&mut value)?,
+            action: T::try_from_action_mut(&mut value)?,
             selft: value.selft,
             extra: value.params,
         })
     }
 }
 
-use walle_macro::{_OneBot as OneBot, _PushToValueMap as PushToValueMap};
+use walle_macro::{
+    _PushToValueMap as PushToValueMap, _ToAction as ToAction, _TryFromAction as TryFromAction,
+    _TryFromValue as TryFromValue,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-#[action]
+#[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct GetLatestEvents {
     pub limit: i64,
     pub timeout: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-#[action]
+#[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct DeleteMessage {
     pub message_id: String,
 }
 
 macro_rules! action {
     ($name: ident, $($f: ident: $fty: ty),*) => {
-        #[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-        #[action]
+        #[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
         pub struct $name {
             $(pub $f: $fty,)*
         }
@@ -156,8 +125,7 @@ macro_rules! action {
 
 use crate::util::OneBotBytes;
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-#[action]
+#[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct GetUserInfo {
     pub user_id: String,
 }
@@ -181,8 +149,7 @@ action!(
 action!(LeaveGuild, guild_id: String);
 action!(GetGuildInfo, guild_id: String);
 
-#[derive(Debug, Clone, PartialEq, OneBot, PushToValueMap)]
-#[action]
+#[derive(Debug, Clone, PartialEq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct SendMessage {
     pub detail_type: String,
     pub user_id: Option<String>,
@@ -192,17 +159,13 @@ pub struct SendMessage {
     pub message: crate::segment::Segments,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-#[action]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct GetFile {
     pub file_id: String,
     pub ty: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToValueMap)]
-#[action]
-#[value]
+#[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct UploadFile {
     pub ty: String,
     pub name: String,
@@ -231,19 +194,9 @@ pub enum UploadFileFragmented {
     },
 }
 
-impl ActionDeclare for UploadFileFragmented {
-    fn action(&self) -> &'static str {
-        "upload_file_fragmented"
-    }
-    fn check(action: &Action) -> bool {
-        action.action.as_str() == "upload_file_fragmented"
-    }
-}
-
-impl TryFrom<&mut Action> for UploadFileFragmented {
-    type Error = WalleError;
-    fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if Self::check(action) {
+impl TryFromAction for UploadFileFragmented {
+    fn try_from_action_mut(action: &mut Action) -> WalleResult<Self> {
+        if action.action != "upload_file_fragmented" {
             Err(WalleError::DeclareNotMatch(
                 "upload_file_fragmented",
                 action.action.clone(),
@@ -273,45 +226,64 @@ impl TryFrom<&mut Action> for UploadFileFragmented {
     }
 }
 
-impl TryFrom<Action> for UploadFileFragmented {
+impl TryFrom<&mut ValueMap> for UploadFileFragmented {
     type Error = WalleError;
-    fn try_from(mut value: Action) -> Result<Self, Self::Error> {
-        Self::try_from(&mut value)
+    fn try_from(map: &mut ValueMap) -> Result<Self, Self::Error> {
+        match map.remove_downcast::<String>("stage")?.as_str() {
+            "prepare" => Ok(Self::Prepare {
+                name: map.remove_downcast("name")?,
+                total_size: map.remove_downcast("total_size")?,
+            }),
+            "transfer" => Ok(Self::Transfer {
+                file_id: map.remove_downcast("file_id")?,
+                offset: map.remove_downcast("offset")?,
+                size: map.remove_downcast("size")?,
+                data: map.remove_downcast("data")?,
+            }),
+            "finish" => Ok(Self::Finish {
+                file_id: map.remove_downcast("file_id")?,
+                sha256: map.try_remove_downcast("sha256")?,
+            }),
+            x => Err(WalleError::DeclareNotMatch(
+                "prepare or transfer or finish",
+                x.to_string(),
+            )),
+        }
     }
 }
 
-impl From<UploadFileFragmented> for Action {
-    fn from(u: UploadFileFragmented) -> Self {
-        Self {
-            action: u.action().to_string(),
-            selft: None,
-            params: {
-                match u {
-                    UploadFileFragmented::Prepare { name, total_size } => value_map! {
-                        "stage": "prepare",
-                        "name": name,
-                        "total_size": total_size
-                    },
-                    UploadFileFragmented::Transfer {
-                        file_id,
-                        offset,
-                        size,
-                        data,
-                    } => value_map! {
-                        "stage" : "transfer",
-                        "file_id" : file_id,
-                        "offset" : offset,
-                        "size" : size,
-                        "date" : data
-                    },
-                    UploadFileFragmented::Finish { file_id, sha256 } => value_map! {
-                        "stage" : "finish",
-                        "file_id" : file_id,
-                        "sha256" : sha256
-                    },
-                }
-            },
+impl PushToValueMap for UploadFileFragmented {
+    fn push_to(self, map: &mut ValueMap) {
+        match self {
+            UploadFileFragmented::Prepare { name, total_size } => {
+                map.insert("stage".to_string(), "prepare".into());
+                map.insert("name".to_string(), name.into());
+                map.insert("total_size".to_string(), total_size.into());
+            }
+            UploadFileFragmented::Transfer {
+                file_id,
+                offset,
+                size,
+                data,
+            } => {
+                map.insert("stage".to_string(), "transfer".into());
+                map.insert("file_id".to_string(), file_id.into());
+                map.insert("offset".to_string(), offset.into());
+                map.insert("size".to_string(), size.into());
+                map.insert("data".to_string(), data.into());
+            }
+            UploadFileFragmented::Finish { file_id, sha256 } => {
+                map.insert("stage".to_string(), "finish".into());
+                map.insert("file_id".to_string(), file_id.into());
+                map.insert("sha256".to_string(), sha256.into());
+            }
         }
+    }
+}
+
+impl ToAction for UploadFileFragmented {
+    fn ty(&self) -> &'static str {
+        "upload_file_fragmented"
     }
 }
 
@@ -327,19 +299,9 @@ pub enum GetFileFragmented {
     },
 }
 
-impl ActionDeclare for GetFileFragmented {
-    fn action(&self) -> &'static str {
-        "get_file_fragmented"
-    }
-    fn check(action: &Action) -> bool {
-        action.action.as_str() == "get_file_fragmented"
-    }
-}
-
-impl TryFrom<&mut Action> for GetFileFragmented {
-    type Error = WalleError;
-    fn try_from(action: &mut Action) -> Result<Self, Self::Error> {
-        if Self::check(action) {
+impl TryFromAction for GetFileFragmented {
+    fn try_from_action_mut(action: &mut Action) -> WalleResult<Self> {
+        if action.action != "get_file_fragmented" {
             Err(WalleError::DeclareNotMatch(
                 "get_file_fragmented",
                 action.action.clone(),
@@ -363,35 +325,49 @@ impl TryFrom<&mut Action> for GetFileFragmented {
     }
 }
 
-impl TryFrom<Action> for GetFileFragmented {
-    type Error = WalleError;
-    fn try_from(mut value: Action) -> Result<Self, Self::Error> {
-        Self::try_from(&mut value)
+impl TryFromValueMap for GetFileFragmented {
+    fn try_from_map(map: &mut ValueMap) -> WalleResult<Self> {
+        match map.remove_downcast::<String>("stage")?.as_str() {
+            "prepare" => Ok(Self::Prepare {
+                file_id: map.remove_downcast("file_id")?,
+            }),
+            "transfer" => Ok(Self::Transfer {
+                file_id: map.remove_downcast("file_id")?,
+                offset: map.remove_downcast("offset")?,
+                size: map.remove_downcast("size")?,
+            }),
+            x => Err(WalleError::DeclareNotMatch(
+                "prepare | transfer | finish",
+                x.to_string(),
+            )),
+        }
     }
 }
 
-impl From<GetFileFragmented> for Action {
-    fn from(g: GetFileFragmented) -> Self {
-        Self {
-            action: g.action().to_string(),
-            selft: None,
-            params: match g {
-                GetFileFragmented::Prepare { file_id } => value_map! {
-                    "stage": "prepare",
-                    "file_id": file_id
-                },
-                GetFileFragmented::Transfer {
-                    file_id,
-                    offset,
-                    size,
-                } => value_map! {
-                    "stage": "transfer",
-                    "file_id": file_id,
-                    "offset": offset,
-                    "size": size
-                },
-            },
+impl PushToValueMap for GetFileFragmented {
+    fn push_to(self, map: &mut ValueMap) {
+        match self {
+            Self::Prepare { file_id } => {
+                map.insert("stage".to_string(), "prepare".into());
+                map.insert("file_id".to_string(), file_id.into());
+            }
+            Self::Transfer {
+                file_id,
+                offset,
+                size,
+            } => {
+                map.insert("stage".to_string(), "transfer".into());
+                map.insert("file_id".to_string(), file_id.into());
+                map.insert("offset".to_string(), offset.into());
+                map.insert("size".to_string(), size.into());
+            }
         }
+    }
+}
+
+impl ToAction for GetFileFragmented {
+    fn ty(&self) -> &'static str {
+        "get_file_fragmented"
     }
 }
 
