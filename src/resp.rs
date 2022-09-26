@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -5,6 +7,7 @@ use crate::{
     util::Value,
 };
 
+/// ActionResp 通用模型
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Resp {
     /// 执行状态（成功与否），必须是 ok、failed 中的一个，分别表示执行成功和失败
@@ -31,6 +34,22 @@ where
     }
 }
 
+impl<T, S> From<(T, S)> for Resp
+where
+    T: Into<Value>,
+    S: Display,
+{
+    fn from(data: (T, S)) -> Self {
+        Self {
+            status: "ok".to_string(),
+            retcode: 0,
+            data: data.0.into(),
+            message: data.1.to_string(),
+        }
+    }
+}
+
+/// failed ActionResp 构造
 #[derive(Clone)]
 pub struct RespError {
     pub retcode: u32,
@@ -54,20 +73,70 @@ impl From<RespError> for Resp {
     }
 }
 
+impl<T> From<(RespError, T)> for Resp
+where
+    T: Into<Value>,
+{
+    fn from(error: (RespError, T)) -> Self {
+        Self {
+            status: "failed".to_string(),
+            retcode: error.0.retcode,
+            data: error.1.into(),
+            message: error.0.message,
+        }
+    }
+}
+
 impl Resp {
-    pub fn as_result(self) -> WalleResult<Value> {
+    /// map ActionResp to `Result<Value, RespError>`
+    pub fn as_result(self) -> Result<Value, RespError> {
         if self.retcode != 0 {
-            Err(WalleError::RespError(RespError {
+            Err(RespError {
                 retcode: self.retcode,
                 message: self.message,
-            }))
+            })
         } else {
             Ok(self.data)
         }
     }
 
-    pub fn as_result_downcast<T: TryFrom<Value, Error = WalleError>>(self) -> WalleResult<T> {
-        self.as_result().and_then(|v| v.try_into())
+    /// map and downcast ActionResp
+    pub fn as_result_downcast<T>(self) -> WalleResult<T>
+    where
+        T: TryFrom<Value, Error = WalleError>,
+    {
+        match self.as_result() {
+            Ok(v) => v.try_into(),
+            Err(e) => Err(WalleError::RespError(e)),
+        }
+    }
+
+    /// build a success RespAction
+    pub fn ok<T, S>(data: T, message: S) -> Self
+    where
+        T: Into<Value>,
+        S: Display,
+    {
+        Self {
+            status: "ok".to_string(),
+            retcode: 0,
+            data: data.into(),
+            message: message.to_string(),
+        }
+    }
+
+    /// build a failed RespAction
+    pub fn failed<T, S>(retcode: u32, data: T, message: S) -> Self
+    where
+        T: Into<Value>,
+        S: Display,
+    {
+        Self {
+            status: "failed".to_string(),
+            retcode,
+            data: data.into(),
+            message: message.to_string(),
+        }
     }
 }
 
@@ -79,10 +148,18 @@ pub mod resp_error {
     /// ```
     /// generate code:
     /// ```rust
-    /// pub fn bad_request() -> RespError {
+    /// pub fn bad_request<T: std::fmt::Display>(msg: T) -> RespError {
     ///     RespError {
     ///         code: 10001,
-    ///         message: "无效的动作请求".to_owned(),
+    ///         message: {
+    ///             let mut message = String::from($message);
+    ///             let msg = msg.to_string();
+    ///                 if msg != String::default() {
+    ///                     message.push(':');
+    ///                     message.push_str(&msg);
+    ///                 }
+    ///             message
+    ///         },
     ///     }
     /// }
     /// ```
