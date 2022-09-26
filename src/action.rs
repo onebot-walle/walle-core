@@ -1,3 +1,4 @@
+//! Action 相关模型定义
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -6,6 +7,7 @@ use crate::{
     util::{GetSelf, PushToValueMap, ValueMap, ValueMapExt},
 };
 
+/// 标准 Action 模型
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Action {
     pub action: String,
@@ -48,6 +50,7 @@ impl GetSelf for Action {
     }
 }
 
+/// 泛型可扩展 Action 模型
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseAction<T> {
     pub action: T,

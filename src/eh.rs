@@ -6,6 +6,11 @@ use crate::error::WalleResult;
 use crate::ActionHandler;
 use crate::OneBot;
 
+/// EventHandler 接收 Event, 产生 Action
+///
+/// 对于应用端，EventHandler 为具体实现
+///
+/// 对于协议端，EventHandler 为 OBC
 #[async_trait]
 pub trait EventHandler<E, A, R>: Sync {
     type Config;

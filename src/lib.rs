@@ -1,7 +1,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
+#[doc(hidden)]
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// "Walle-core"
 pub const WALLE_CORE: &str = "Walle-core";
 
 pub mod action;
@@ -43,8 +45,7 @@ pub mod prelude {
     pub use crate::structs::*;
 }
 
-/// AH: EventConstructor + ActionHandler
-/// EH: EventHandler + ActionConstructor
+/// 基础抽象模型，持有 ActionHandler 与 EventHandler
 pub struct OneBot<AH, EH> {
     action_handler: AH,
     event_handler: EH,

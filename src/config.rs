@@ -1,3 +1,5 @@
+//! OBC 配置项
+
 use std::{collections::HashMap, fmt::Debug};
 
 use serde::{Deserialize, Serialize};

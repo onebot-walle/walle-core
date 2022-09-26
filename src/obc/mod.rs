@@ -1,3 +1,5 @@
+//! OBC
+
 pub const OBC: &str = "Walle-OBC";
 
 #[cfg(feature = "app-obc")]

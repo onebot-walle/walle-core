@@ -1,3 +1,5 @@
+//! MsgSegment 相关模型定义
+
 use crate::{
     prelude::{WalleError, WalleResult},
     util::{PushToValueMap, Value, ValueMap, ValueMapExt},
@@ -6,6 +8,7 @@ use crate::{
 
 pub type Segments = Vec<MsgSegment>;
 
+/// 标准 MsgSegment 模型
 #[derive(Debug, Clone, PartialEq)]
 pub struct MsgSegment {
     pub ty: String,
@@ -84,6 +87,7 @@ impl TryFrom<Value> for MsgSegment {
     }
 }
 
+/// 泛型可扩展 MsgSegment 模型
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseSegment<T> {
     pub segment: T,

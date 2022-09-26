@@ -8,6 +8,11 @@ use crate::util::GetSelf;
 use crate::EventHandler;
 use crate::OneBot;
 
+/// ActionHandler 接收 Action, 产生 Event
+///
+/// 对于应用端，ActionHandler 为 OBC
+///
+/// 对于协议端，ActionHandler 为具体实现
 #[async_trait]
 pub trait ActionHandler<E, A, R>: GetStatus + Sync {
     type Config;
@@ -42,6 +47,7 @@ pub trait ActionHandler<E, A, R>: GetStatus + Sync {
     async fn shutdown(&self) {}
 }
 
+/// supertrait for ActionHandler
 #[async_trait]
 pub trait GetSelfs {
     async fn get_selfs(&self) -> Vec<Selft>;
@@ -75,6 +81,7 @@ impl<T: GetSelfs> GetSelfs for Arc<T> {
     }
 }
 
+/// supertrait for ActionHandler
 #[async_trait]
 pub trait GetStatus: GetSelfs {
     async fn is_good(&self) -> bool;

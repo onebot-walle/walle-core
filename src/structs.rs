@@ -1,3 +1,5 @@
+//! 通用 Value 模型定义
+
 use serde::{Deserialize, Serialize};
 use walle_macro::{
     _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,

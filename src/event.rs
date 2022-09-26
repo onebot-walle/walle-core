@@ -1,3 +1,5 @@
+//! Event 相关模型定义
+
 use crate::{
     prelude::{WalleError, WalleResult},
     structs::{Selft, Status},
@@ -6,6 +8,7 @@ use crate::{
 
 use serde::{Deserialize, Serialize};
 
+/// 标准 Event 模型
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub id: String,
@@ -91,6 +94,7 @@ impl GetSelf for Event {
     }
 }
 
+/// 泛型可扩展 Event 模型
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
     pub id: String,

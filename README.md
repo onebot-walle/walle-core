@@ -28,8 +28,10 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 
 - http: 启用 Http 与 HttpWebhook 通讯协议
 - websocket: 启用正向 WebSocket 与反向 WebSocket 通讯协议
-- impl: 启用实现端 lib api
-- app: 启用应用端 lib api
+- impl-obc: 启用实现端 obc
+- app-obc: 启用应用端 obc
+- alt: 启用 ColoredAlt trait 着色输出纯文本 alt
+- full: 启用所有 features
 
 ## How to use
 
@@ -50,13 +52,9 @@ use walle_core::OneBot;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let ob = Arc::new(OneBot::new_12(
+    let ob = Arc::new(OneBot::new(
         TracingHandler::<Event, Action, Resp>::default(),
-        ImplOBC::new(
-            "self_id".to_string(),
-            "impl".to_string(),
-            "platform".to_string(),
-        ),
+        ImplOBC::new("impl".to_string()),
     ));
     let tasks = ob.start((), ImplConfig::default(), true).await.unwrap();
     for task in tasks {
@@ -80,7 +78,7 @@ use walle_core::OneBot;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let ob = Arc::new(OneBot::new_12(
+    let ob = Arc::new(OneBot::new(
         AppOBC::new(),
         TracingHandler::<Event, Action, Resp>::default(),
     ));
@@ -98,18 +96,20 @@ walle_core::event::Event 为序列化使用标准类型，该模型仅确保 eve
 
 walle_core::event::BaseEvent\<T, D, S, P, I\> 为扩展模型，其中五个泛型依次为 type detail_type sub_type platform impl 五个层级的扩展字段
 
-定义一个 Event 模型的扩展你需要实现以下 trait：
+需要实现 Event -> BaseEvent 转化时，扩展字段需要 impl `TryFromEvent<T>` trait ，通常在应用端使用
 
-- TryFrom\<&mut Event\>
-- PushToExtendedMap
-- TypeDeclare (or other EventDeclare trait)
+需要实现 BaseEvent -> Event 转化时，扩展字段需要 impl `PushtoValueMap` 和 `ToEvent<T>` trait ，通常在协议端使用
 
-或者直接使用本 crate 提供的 OneBot 与 PushToMap 宏
+> 其中 T 标识不同扩展级别，分别为 `TypeLevel` | `DetailTypeLevel` | `SubTypeLevel` | `PlatformLevel` | `ImplLevel`
+
+或者直接使用本 crate 提供的派生宏
 
 定义一个 type 级别扩展字段（ ob12 理论上不支持该级别扩展）:
 
 ```rust
-#[derive(Debug, Clone, PartialEq, OneBot, PushToMap)]
+use walle_core::prelude::{PushToValueMap, ToEvent, TryFromEvent};
+
+#[derive(ToEvent, PushToValueMap, TryFromEvent)]
 #[event(type)]
 pub struct Message {
     pub message_id: String,
@@ -119,31 +119,37 @@ pub struct Message {
 }
 ```
 
-或者定义一个 detail_type 级别扩展字段（ ob12 理论上不支持该级别扩展）
+或者定义一个 detail_type 级别扩展字段
 
 ```rust
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
+#[derive(PushToValueMap, TryFromEvent, ToEvent)]
 #[event(detail_type = "group")]
 pub struct Group_ {
     pub group_id: String,
 }
+
+// TryFromEvent 支持 enum 类型的扩展
+#[derive(TryFromEvent)]
+#[event(detail_type)]
+pub enum Details {
+    Group(Group), // Group 应 impl TryFromValue
+    Private,
+}
+
 ```
 
 ### Action
 
 walle_core::action::Action 为序列化使用标准类型，该模型仅确保 action 与 params 字段存在且类型正确
 
-定义一个扩展 Action 模型你需要实现以下 trait：
+实现 Action -> BaseAction 或 Action -> T 转化时，扩展字段需要 impl `TryFromAction` trait
 
-- TryFrom\<&mut Action\>
-- TryFrom\<Action\>
-- From\<YourAction\> for Action
+实现 BaseAction -> Action 或 T -> Action 转化时，扩展字段需要 impl `PushtoValueMap` 和 `ToAction` trait 
 
-或者直接使用本 crate 提供的 OneBot 与 PushToMap 宏
+或者直接使用本 crate 提供的派生宏
 
 ```rust
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
-#[action]
+#[derive(ToAction, PushToValueMap, TryFromAction)]
 pub struct GetFile {
     pub file_id: String,
     pub ty: String,
@@ -153,8 +159,8 @@ pub struct GetFile {
 或者
 
 ```rust
-#[derive(Debug, Clone, PartialEq, Eq, OneBot, PushToMap)]
-#[action = "upload_file"]
+#[derive(ToAction, TryFromAction, PushToValueMap)]
+#[action("upload_file")]
 pub struct UploadFile_ {
     pub ty: String,
     pub name: String,
@@ -169,10 +175,9 @@ pub struct UploadFile_ {
 想要同时支持多种 Action ? 没问题! 
 
 ```rust
-#[derive(Debug, OneBot)]
-#[action]
+#[derive(TryFromAction)]
 pub enum MyAction {
-    GetUserInfo(GetUserInfo),
+    GetUserInfo(GetUserInfo), // GetUserInfo 应 impl TryFromValue
     GetGroupInfo { group_id: String },
 }
 ```
@@ -183,16 +188,14 @@ walle_core::resp::Resp 为序列化使用标准类型
 
 同时本库还提供了 RespError 用于构造失败的 Resp，可以使用 \<Resp\>.as_result() 
 
-定义一个 Resp 模型你需要实现以下 trait：
+实现 Value -> T 转化时，需要 impl `TryFromValue` trait
 
-- TryFrom\<ExtendedValue\>
-- From\<YourResp\> for ExtendedValue
+实现 T -> Value 转化时，需要 impl `PushToValueMap` trait (仅支持 struct )
 
-当然还是可以使用 OneBot 与 PushToMap 宏
+当然还是可以使用宏
 
 ```rust
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
-#[value]
+#[derive(PushToValueMap, TryFromValue)]
 pub struct Status {
     pub good: bool,
     pub online: bool,
@@ -203,11 +206,10 @@ pub struct Status {
 
 ### MessageSegment
 
-基本与 Action 模型相同，唯一的不同是序列化使用的模型是 walle_core::message::MessageSegment，该模型同时也是一个Value，因此可以从 Event 或 Action 中获取。
+基本与 Action 模型相同，唯一的不同是序列化使用的模型是 walle_core::message::MessageSegment，该模型同时也是一个 Value ，因此可以从 Event 或 Action 中获取。
 
 ```rust
-#[derive(Debug, Clone, PartialEq, Eq, PushToMap, OneBot)]
-#[segment]
+#[derive(PushToValueMap, TryFromMsgSegment, ToMsgSegment)]
 pub struct Text {
     pub text: String,
 }
