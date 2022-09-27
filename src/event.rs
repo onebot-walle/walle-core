@@ -2,7 +2,7 @@
 
 use crate::{
     prelude::{WalleError, WalleResult},
-    structs::{Selft, Status},
+    structs::Selft,
     util::{GetSelf, PushToValueMap, Value, ValueMap, ValueMapExt},
 };
 
@@ -339,7 +339,7 @@ pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, StatusUpdat
 #[event(detail_type)]
 pub enum MetaTypes {
     Heartbeat(Heartbeat),
-    StatusUpdate(Status),
+    StatusUpdate(StatusUpdate),
 }
 pub type MetaDetailEvent<S = (), P = (), I = ()> = BaseEvent<Meta, MetaTypes, S, P, I>;
 
