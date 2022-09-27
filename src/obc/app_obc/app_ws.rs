@@ -213,15 +213,7 @@ where
             <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.to_string())
         }) {
             if let MetaTypes::StatusUpdate(status) = event.detail_type {
-                bot_map.connect_update(
-                    seq,
-                    status
-                        .bots
-                        .into_iter()
-                        .filter_map(|bot| if bot.online { Some(bot.selft) } else { None })
-                        .collect(),
-                    implt,
-                );
+                bot_map.connect_update(seq, status.bots, implt);
             }
         }
     };

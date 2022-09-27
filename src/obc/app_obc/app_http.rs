@@ -1,13 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    convert::Infallible,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, convert::Infallible, sync::Arc, time::Duration};
 
 use crate::{
     config::{HttpClient, HttpServer},
     error::{WalleError, WalleResult},
+    prelude::Bot,
     structs::Selft,
     util::{AuthReqHeaderExt, Echo, GetSelf, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
@@ -95,7 +91,14 @@ where
                         Ok(event) => {
                             let (seq, mut action_rx) = bot_map.new_connect();
                             let selft = event.get_self();
-                            bot_map.connect_update(&seq, HashSet::from([selft]), &implt);
+                            bot_map.connect_update(
+                                &seq,
+                                vec![Bot {
+                                    online: true,
+                                    selft,
+                                }],
+                                &implt,
+                            );
                             if let Err(e) = ob.handle_event(event).await {
                                 warn!(target: super::OBC, "{}", e);
                             }
@@ -151,13 +154,15 @@ where
         for (bot_id, http) in config {
             let (seq, mut rx) = self.bots.new_connect();
             let implt = http.implt.clone().unwrap_or_default();
-            // let (tx, mut rx) = mpsc::unbounded_channel();
             self.bots.connect_update(
                 &seq,
-                HashSet::from([Selft {
-                    platform: http.platform.clone().unwrap_or_default(),
-                    user_id: bot_id.clone(),
-                }]),
+                vec![Bot {
+                    online: true,
+                    selft: Selft {
+                        platform: http.platform.clone().unwrap_or_default(),
+                        user_id: bot_id.clone(),
+                    },
+                }],
                 &implt,
             );
             let ob = ob.clone();
