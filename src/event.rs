@@ -325,11 +325,15 @@ pub type GroupMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Group, S
 #[event(detail_type)]
 pub struct Heartbeat {
     pub interval: u32,
-    pub status: crate::structs::Status,
 }
 pub type HeartbeatEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Heartbeat, S, P, I>;
 
-pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Status, S, P, I>;
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
+#[event(detail_type)]
+pub struct StatusUpdate {
+    pub status: crate::structs::Status,
+}
+pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, StatusUpdate, S, P, I>;
 
 #[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]

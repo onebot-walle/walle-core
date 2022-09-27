@@ -4,7 +4,7 @@ use crate::{
     error::WalleError,
     event::*,
     segment::*,
-    structs::{Bot, Selft, Status},
+    structs::Selft,
     util::{Value, ValueMap},
     value, value_map,
 };
@@ -41,14 +41,7 @@ fn event() {
             "sub_type": "",
             "interval": 5000,
             "status": {
-                "good": true,
-                "bots": [{
-                    "self": {
-                        "user_id": "123234",
-                        "platform": "walle"
-                    },
-                    "online": true
-                }]
+                "good": true
             }
         }"#,
         Event {
@@ -59,35 +52,13 @@ fn event() {
             sub_type: "".to_string(),
             extra: value_map! {
                 "interval": 5000,
-                "status": {
-                    "good": true,
-                    "bots": [{
-                        "self": {
-                            "user_id": "123234",
-                            "platform": "walle"
-                        },
-                        "online": true
-                    }]
-                }
             },
         },
         new_event(
             "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
             1632847927.599013,
             Meta {},
-            Heartbeat {
-                interval: 5000,
-                status: Status {
-                    good: true,
-                    bots: vec![Bot {
-                        selft: Selft {
-                            user_id: "123234".to_string(),
-                            platform: "walle".to_string(),
-                        },
-                        online: true,
-                    }],
-                },
-            },
+            Heartbeat { interval: 5000 },
             (),
             (),
             (),

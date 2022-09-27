@@ -1,10 +1,7 @@
 //! 通用 Value 模型定义
 
 use serde::{Deserialize, Serialize};
-use walle_macro::{
-    _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
-    _TryFromValue as TryFromValue,
-};
+use walle_macro::{_PushToValueMap as PushToValueMap, _TryFromValue as TryFromValue};
 
 #[derive(
     Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue, Hash, Serialize, Deserialize, Default,
@@ -20,8 +17,7 @@ pub struct Bot {
     pub online: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue, ToEvent, TryFromEvent)]
-#[event(detail_type = "status_update")]
+#[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct Status {
     pub good: bool,
     pub bots: Vec<Bot>,
