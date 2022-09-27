@@ -2,7 +2,7 @@ use crate::{
     error::{WalleError, WalleResult},
     resp::{resp_error, Resp},
     util::{AuthReqHeaderExt, Echo, ProtocolItem, ValueMap},
-    ActionHandler, EventHandler, OneBot,
+    value_map, ActionHandler, EventHandler, OneBot,
 };
 use crate::{
     event::Event,
@@ -146,7 +146,9 @@ async fn ws_loop<E, A, R, AH, EH>(
         ty: "meta".to_string(),
         detail_type: "status_update".to_string(),
         sub_type: "".to_string(),
-        extra: status.into(),
+        extra: value_map! {
+            "status": status
+        },
     };
     ws_stream.send(WsMsg::Text(event.json_encode())).await.ok();
     loop {
