@@ -131,32 +131,32 @@ where
 
 #[derive(Debug)]
 pub(crate) struct BotMap<A> {
-    pub(crate) tx_seq: AtomicUsize,
-    // (implt, action_tx)
+    pub(crate) conn_seq: AtomicUsize,
+    // value: (implt, action_tx)
     pub(crate) bots: DashMap<Selft, (String, Vec<mpsc::UnboundedSender<Echo<A>>>)>,
-    // (action_tx, selfts)
-    pub(crate) txs: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
+    // value: (action_tx, selfts)
+    pub(crate) conns: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
 }
 
 impl<A> Default for BotMap<A> {
     fn default() -> Self {
         Self {
-            tx_seq: AtomicUsize::default(),
+            conn_seq: AtomicUsize::default(),
             bots: DashMap::default(),
-            txs: DashMap::default(),
+            conns: DashMap::default(),
         }
     }
 }
 
 impl<A> BotMap<A> {
     fn new_connect(&self) -> (usize, mpsc::UnboundedReceiver<Echo<A>>) {
-        let seq = self.tx_seq.fetch_add(1, Ordering::Relaxed);
+        let seq = self.conn_seq.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = mpsc::unbounded_channel();
-        self.txs.insert(seq, (tx, HashSet::default()));
+        self.conns.insert(seq, (tx, HashSet::default()));
         (seq, rx)
     }
     fn connect_closs(&self, tx_seq: &usize) {
-        if let Some(selfts) = self.txs.remove(tx_seq) {
+        if let Some(selfts) = self.conns.remove(tx_seq) {
             for selft in selfts.1 .1 {
                 let mut bot = self.bots.get_mut(&selft).unwrap();
                 bot.value_mut()
@@ -170,7 +170,7 @@ impl<A> BotMap<A> {
         }
     }
     fn connect_update(&self, tx_seq: &usize, bots: Vec<Bot>, implt: &str) {
-        let mut get = self.txs.get_mut(tx_seq).unwrap();
+        let mut get = self.conns.get_mut(tx_seq).unwrap();
         let tx = get.0.clone();
         let selfts = &mut get.1;
         for bot in bots {
@@ -250,7 +250,7 @@ fn test_bot_map() {
     let (seq, _) = map.new_connect();
     assert_eq!(seq, 1);
     assert_eq!(
-        map.txs
+        map.conns
             .iter()
             .map(|i| i.key().clone())
             .collect::<HashSet<_>>(),
@@ -269,7 +269,7 @@ fn test_bot_map() {
     // assert!(map.txs.get(&0).unwrap().1.len() == 1);
     // map.connect_update(&0, HashSet::from([self1.clone()]), "");
     assert!(map.bots.get(&self0).is_none());
-    assert!(map.txs.get(&0).unwrap().1.len() == 1);
+    assert!(map.conns.get(&0).unwrap().1.len() == 1);
     assert_eq!(map.bots.get(&self1).unwrap().1.len(), 1);
     assert!(map.get_bot(&self1).is_some());
 }

@@ -290,6 +290,12 @@ impl ToAction for UploadFileFragmented {
     }
 }
 
+impl From<UploadFileFragmented> for Action {
+    fn from(u: UploadFileFragmented) -> Self {
+        u.to_action()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetFileFragmented {
     Prepare {
@@ -372,6 +378,12 @@ impl PushToValueMap for GetFileFragmented {
 impl ToAction for GetFileFragmented {
     fn ty(&self) -> &'static str {
         "get_file_fragmented"
+    }
+}
+
+impl From<GetFileFragmented> for Action {
+    fn from(g: GetFileFragmented) -> Self {
+        g.to_action()
     }
 }
 
