@@ -118,6 +118,10 @@ pub struct DeleteMessage {
 }
 
 macro_rules! action {
+    ($name: ident) => {
+        #[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
+        pub struct $name;
+    };
     ($name: ident, $($f: ident: $fty: ty),*) => {
         #[derive(Debug, Clone, PartialEq, Eq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
         pub struct $name {
@@ -132,26 +136,38 @@ use crate::util::OneBotBytes;
 pub struct GetUserInfo {
     pub user_id: String,
 }
-
+// Group
 action!(GetGroupInfo, group_id: String);
-action!(GetGroupMemberList, group_id: String);
-action!(LeaveGroup, group_id: String);
+action!(GetGroupList);
 action!(GetGroupMemberInfo, group_id: String, user_id: String);
+action!(GetGroupMemberList, group_id: String);
 action!(SetGroupName, group_id: String, group_name: String);
-action!(GetChannelInfo, guild_id: String, channel_id: String);
-action!(GetChannelList, guild_id: String);
+action!(LeaveGroup, group_id: String);
+// Guild
+action!(GetGuildInfo, guild_id: String);
+action!(GetGuildList);
+action!(SetGuildName, guild_id: String, guild_name: String);
 action!(GetGuildMemberInfo, guild_id: String, user_id: String);
 action!(GetGuildMemberList, guild_id: String);
-action!(SetGuildName, guild_id: String, guild_name: String);
+action!(LeaveGuild, guild_id: String);
+// Channel
+action!(GetChannelInfo, guild_id: String, channel_id: String);
+action!(GetChannelList, guild_id: String, joined_only: bool);
 action!(
     SetChannelName,
     guild_id: String,
     channel_id: String,
     channel_name: String
 );
-action!(LeaveGuild, guild_id: String);
-action!(GetGuildInfo, guild_id: String);
-
+action!(
+    GetChannelMemberInfo,
+    guild_id: String,
+    channel_id: String,
+    user_id: String
+);
+action!(GetChannelMemberList, guild_id: String, channel_id: String);
+action!(LeaveChannel, guild_id: String, channel_id: String);
+// message
 #[derive(Debug, Clone, PartialEq, TryFromValue, TryFromAction, ToAction, PushToValueMap)]
 pub struct SendMessage {
     pub detail_type: String,
