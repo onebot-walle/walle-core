@@ -2,7 +2,7 @@
 
 use crate::{
     prelude::{WalleError, WalleResult},
-    util::{PushToValueMap, Value, ValueMap, ValueMapExt},
+    util::{PushToValueMap, TryAsMut, TryAsRef, Value, ValueMap, ValueMapExt},
     value, value_map,
 };
 
@@ -245,5 +245,177 @@ impl MessageExt for Segments {
         self.into_iter()
             .filter_map(|seg| T::try_from(seg).ok())
             .collect()
+    }
+}
+
+pub enum MsgSegmentRef<'a> {
+    Text {
+        text: &'a str,
+        extra: &'a ValueMap,
+    },
+    Mention {
+        user_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    MentionAll {
+        extra: &'a ValueMap,
+    },
+    Image {
+        file_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    Voice {
+        file_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    Audio {
+        file_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    Video {
+        file_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    File {
+        file_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    Location {
+        latitude: &'a f64,
+        longitude: &'a f64,
+        title: &'a str,
+        content: &'a str,
+        extra: &'a ValueMap,
+    },
+    Reply {
+        message_id: &'a str,
+        user_id: &'a str,
+        extra: &'a ValueMap,
+    },
+    Other {
+        ty: &'a str,
+        extra: &'a ValueMap,
+    },
+}
+
+fn _as_ref<'a, 'b, 'c>(ty: &'a str, data: &'b ValueMap) -> WalleResult<MsgSegmentRef<'c>>
+where
+    'a: 'c,
+    'b: 'c,
+{
+    match ty {
+        "text" => Ok(MsgSegmentRef::Text {
+            text: data.try_get_as_ref("text")?,
+            extra: &data,
+        }),
+        "mention" => Ok(MsgSegmentRef::Mention {
+            user_id: data.try_get_as_ref("user_id")?,
+            extra: &data,
+        }),
+        "mention_all" => Ok(MsgSegmentRef::MentionAll { extra: &data }),
+        "image" => Ok(MsgSegmentRef::Image {
+            file_id: data.try_get_as_ref("file_id")?,
+            extra: &data,
+        }),
+        "voice" => Ok(MsgSegmentRef::Voice {
+            file_id: data.try_get_as_ref("file_id")?,
+            extra: &data,
+        }),
+        "audio" => Ok(MsgSegmentRef::Audio {
+            file_id: data.try_get_as_ref("file_id")?,
+            extra: &data,
+        }),
+        "video" => Ok(MsgSegmentRef::Video {
+            file_id: data.try_get_as_ref("file_id")?,
+            extra: &data,
+        }),
+        "file" => Ok(MsgSegmentRef::File {
+            file_id: data.try_get_as_ref("file_id")?,
+            extra: &data,
+        }),
+        "location" => Ok(MsgSegmentRef::Location {
+            latitude: data.try_get_as_ref("latitude")?,
+            longitude: data.try_get_as_ref("longitude")?,
+            title: data.try_get_as_ref("title")?,
+            content: data.try_get_as_ref("content")?,
+            extra: &data,
+        }),
+        "reply" => Ok(MsgSegmentRef::Reply {
+            message_id: data.try_get_as_ref("message_id")?,
+            user_id: data.try_get_as_ref("user_id")?,
+            extra: &data,
+        }),
+        _ => Ok(MsgSegmentRef::Other { ty, extra: &data }),
+    }
+}
+
+impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for MsgSegment {
+    fn try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+        _as_ref(&self.ty, &self.data)
+    }
+}
+
+impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for ValueMap {
+    fn try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+        _as_ref(
+            self.try_get_as_ref("type")?,
+            self.try_get_as_ref::<&ValueMap>("data")?,
+        )
+    }
+}
+
+pub enum MsgSegmentMut<'a> {
+    Text { text: &'a mut String },
+    Mention { user_id: &'a mut String },
+    Image { file_id: &'a mut String },
+    Voice { file_id: &'a mut String },
+    Audio { file_id: &'a mut String },
+    Video { file_id: &'a mut String },
+    File { file_id: &'a mut String },
+    Other,
+}
+
+fn _as_mut<'a, 'b>(ty: &str, data: &'a mut ValueMap) -> WalleResult<MsgSegmentMut<'b>>
+where
+    'a: 'b,
+{
+    match ty {
+        "text" => Ok(MsgSegmentMut::Text {
+            text: data.try_get_as_mut("text")?,
+        }),
+        "mention" => Ok(MsgSegmentMut::Mention {
+            user_id: data.try_get_as_mut("user_id")?,
+        }),
+        "image" => Ok(MsgSegmentMut::Image {
+            file_id: data.try_get_as_mut("file_id")?,
+        }),
+        "voice" => Ok(MsgSegmentMut::Voice {
+            file_id: data.try_get_as_mut("file_id")?,
+        }),
+        "audio" => Ok(MsgSegmentMut::Audio {
+            file_id: data.try_get_as_mut("file_id")?,
+        }),
+        "video" => Ok(MsgSegmentMut::Video {
+            file_id: data.try_get_as_mut("file_id")?,
+        }),
+        "file" => Ok(MsgSegmentMut::File {
+            file_id: data.try_get_as_mut("file_id")?,
+        }),
+        _ => Ok(MsgSegmentMut::Other),
+    }
+}
+
+impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for MsgSegment {
+    fn try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+        _as_mut(&self.ty, &mut self.data)
+    }
+}
+
+impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for ValueMap {
+    fn try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+        _as_mut(
+            &self.get_downcast::<String>("type")?,
+            self.try_get_as_mut("data")?,
+        )
     }
 }

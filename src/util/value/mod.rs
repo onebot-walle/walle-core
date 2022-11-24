@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::OneBotBytes;
+use super::{OneBotBytes, TryAsMut, TryAsRef};
 use crate::error::{WalleError, WalleResult};
 
 /// 扩展字段 Map
@@ -274,104 +274,6 @@ impl Value {
         }
     }
 
-    pub fn as_str(&self) -> Option<&str> {
-        match self {
-            Self::Str(s) => Some(s),
-            _ => None,
-        }
-    }
-
-    pub fn as_f64(&self) -> Option<f64> {
-        match self {
-            Self::F64(f) => Some(*f),
-            _ => None,
-        }
-    }
-
-    pub fn as_i64(&self) -> Option<i64> {
-        match self {
-            Self::Int(i) => Some(*i),
-            _ => None,
-        }
-    }
-
-    pub fn as_bool(&self) -> Option<bool> {
-        match self {
-            Self::Bool(b) => Some(*b),
-            _ => None,
-        }
-    }
-
-    pub fn as_bytes(&self) -> Option<&[u8]> {
-        match self {
-            Self::Bytes(b) => Some(&b.0),
-            _ => None,
-        }
-    }
-
-    pub fn as_map(&self) -> Option<&ValueMap> {
-        match self {
-            Self::Map(m) => Some(m),
-            _ => None,
-        }
-    }
-
-    pub fn as_list(&self) -> Option<&Vec<Value>> {
-        match self {
-            Self::List(l) => Some(l),
-            _ => None,
-        }
-    }
-
-    pub fn as_str_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::Str(s) => Some(s),
-            _ => None,
-        }
-    }
-
-    pub fn as_f64_mut(&mut self) -> Option<&mut f64> {
-        match self {
-            Self::F64(f) => Some(f),
-            _ => None,
-        }
-    }
-
-    pub fn as_i64_mut(&mut self) -> Option<&mut i64> {
-        match self {
-            Self::Int(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    pub fn as_bool_mut(&mut self) -> Option<&mut bool> {
-        match self {
-            Self::Bool(b) => Some(b),
-            _ => None,
-        }
-    }
-
-    pub fn as_bytes_mut(&mut self) -> Option<&mut [u8]> {
-        match self {
-            Self::Bytes(b) => Some(&mut b.0),
-            _ => None,
-        }
-    }
-
-    pub fn as_map_mut(&mut self) -> Option<&mut ValueMap> {
-        match self {
-            Self::Map(m) => Some(m),
-            _ => None,
-        }
-    }
-
-    pub fn as_list_mut(&mut self) -> Option<&mut Vec<Value>> {
-        match self {
-            Self::List(l) => Some(l),
-            _ => None,
-        }
-    }
-
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
     }
@@ -419,6 +321,14 @@ pub trait ValueMapExt {
     fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
     where
         T: TryFrom<Value, Error = WalleError>;
+    fn try_get_as_ref<'a, T>(&'a self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsRef<'a, T>,
+        T: 'a;
+    fn try_get_as_mut<'a, T>(&'a mut self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsMut<'a, T>,
+        T: 'a;
     fn push<T>(&mut self, value: T)
     where
         T: PushToValueMap;
@@ -467,6 +377,26 @@ impl ValueMapExt for ValueMap {
         self.try_get_downcast(key)
             .and_then(|v| v.ok_or_else(|| WalleError::MapMissedKey(key.to_string())))
     }
+    fn try_get_as_ref<'a, T>(&'a self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsRef<'a, T>,
+        T: 'a,
+    {
+        match self.get(key) {
+            Some(v) => v.try_as_ref(),
+            None => Err(WalleError::MapMissedKey(key.to_owned())),
+        }
+    }
+    fn try_get_as_mut<'a, T>(&'a mut self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsMut<'a, T>,
+        T: 'a,
+    {
+        match self.get_mut(key) {
+            Some(v) => v.try_as_mut(),
+            None => Err(WalleError::MapMissedKey(key.to_owned())),
+        }
+    }
     fn push<T>(&mut self, value: T)
     where
         T: PushToValueMap,
@@ -474,3 +404,61 @@ impl ValueMapExt for ValueMap {
         value.push_to(self)
     }
 }
+
+macro_rules! ref_impl {
+    ($t: ty, $mt: ty, $subt: tt, $s: expr) => {
+        impl<'a> TryAsRef<'a, $t> for Value {
+            fn try_as_ref(&'a self) -> WalleResult<$t> {
+                match self {
+                    Self::$subt(r) => Ok(r),
+                    _ => Err(WalleError::ValueTypeNotMatch(
+                        $s.to_owned(),
+                        format!("{:?}", self),
+                    )),
+                }
+            }
+        }
+        impl<'a> TryAsMut<'a, $mt> for Value {
+            fn try_as_mut(&'a mut self) -> WalleResult<$mt> {
+                match self {
+                    Self::$subt(r) => Ok(r),
+                    _ => Err(WalleError::ValueTypeNotMatch(
+                        $s.to_owned(),
+                        format!("{:?}", self),
+                    )),
+                }
+            }
+        }
+    };
+}
+
+impl<'a> TryAsRef<'a, &'a str> for Value {
+    fn try_as_ref(&'a self) -> WalleResult<&'a str> {
+        match self {
+            Self::Str(s) => Ok(s),
+            _ => Err(WalleError::ValueTypeNotMatch(
+                "str".to_string(),
+                format!("{:?}", self),
+            )),
+        }
+    }
+}
+
+impl<'a> TryAsMut<'a, &'a mut String> for Value {
+    fn try_as_mut(&'a mut self) -> WalleResult<&'a mut String> {
+        match self {
+            Self::Str(s) => Ok(s),
+            _ => Err(WalleError::ValueTypeNotMatch(
+                "str".to_string(),
+                format!("{:?}", self),
+            )),
+        }
+    }
+}
+
+ref_impl!(&'a i64, &'a mut i64, Int, "i64");
+ref_impl!(&'a f64, &'a mut f64, F64, "f64");
+ref_impl!(&'a bool, &'a mut bool, Bool, "bool");
+ref_impl!(&'a ValueMap, &'a mut ValueMap, Map, "map");
+ref_impl!(&'a Vec<Value>, &'a mut Vec<Value>, List, "list");
+ref_impl!(&'a OneBotBytes, &'a mut OneBotBytes, Bytes, "bytes");

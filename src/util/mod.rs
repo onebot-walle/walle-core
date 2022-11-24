@@ -113,7 +113,7 @@ use hyper::http::{header::AUTHORIZATION, request::Builder};
 #[cfg(all(feature = "websocket", not(feature = "http")))]
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, request::Builder};
 
-use crate::structs::Selft;
+use crate::{structs::Selft, WalleResult};
 
 #[cfg(any(feature = "websocket", feature = "http"))]
 impl AuthReqHeaderExt for Builder {
@@ -124,4 +124,18 @@ impl AuthReqHeaderExt for Builder {
             self
         }
     }
+}
+
+pub trait TryAsRef<'a, T>
+where
+    T: 'a,
+{
+    fn try_as_ref(&'a self) -> WalleResult<T>;
+}
+
+pub trait TryAsMut<'a, T>
+where
+    T: 'a,
+{
+    fn try_as_mut(&'a mut self) -> WalleResult<T>;
 }
