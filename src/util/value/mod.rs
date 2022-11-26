@@ -274,6 +274,20 @@ impl Value {
         }
     }
 
+    pub fn try_as_ref<T>(&self) -> WalleResult<T>
+    where
+        Self: for<'a> TryAsRef<'a, T>,
+    {
+        self._try_as_ref()
+    }
+
+    pub fn try_as_mut<T>(&mut self) -> WalleResult<T>
+    where
+        Self: for<'a> TryAsMut<'a, T>,
+    {
+        self._try_as_mut()
+    }
+
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str(_))
     }
@@ -383,7 +397,7 @@ impl ValueMapExt for ValueMap {
         T: 'a,
     {
         match self.get(key) {
-            Some(v) => v.try_as_ref(),
+            Some(v) => v._try_as_ref(),
             None => Err(WalleError::MapMissedKey(key.to_owned())),
         }
     }
@@ -393,7 +407,7 @@ impl ValueMapExt for ValueMap {
         T: 'a,
     {
         match self.get_mut(key) {
-            Some(v) => v.try_as_mut(),
+            Some(v) => v._try_as_mut(),
             None => Err(WalleError::MapMissedKey(key.to_owned())),
         }
     }
@@ -408,7 +422,7 @@ impl ValueMapExt for ValueMap {
 macro_rules! ref_impl {
     ($t: ty, $mt: ty, $subt: tt, $s: expr) => {
         impl<'a> TryAsRef<'a, $t> for Value {
-            fn try_as_ref(&'a self) -> WalleResult<$t> {
+            fn _try_as_ref(&'a self) -> WalleResult<$t> {
                 match self {
                     Self::$subt(r) => Ok(r),
                     _ => Err(WalleError::ValueTypeNotMatch(
@@ -419,7 +433,7 @@ macro_rules! ref_impl {
             }
         }
         impl<'a> TryAsMut<'a, $mt> for Value {
-            fn try_as_mut(&'a mut self) -> WalleResult<$mt> {
+            fn _try_as_mut(&'a mut self) -> WalleResult<$mt> {
                 match self {
                     Self::$subt(r) => Ok(r),
                     _ => Err(WalleError::ValueTypeNotMatch(
@@ -433,7 +447,7 @@ macro_rules! ref_impl {
 }
 
 impl<'a> TryAsRef<'a, &'a str> for Value {
-    fn try_as_ref(&'a self) -> WalleResult<&'a str> {
+    fn _try_as_ref(&'a self) -> WalleResult<&'a str> {
         match self {
             Self::Str(s) => Ok(s),
             _ => Err(WalleError::ValueTypeNotMatch(
@@ -445,7 +459,7 @@ impl<'a> TryAsRef<'a, &'a str> for Value {
 }
 
 impl<'a> TryAsMut<'a, &'a mut String> for Value {
-    fn try_as_mut(&'a mut self) -> WalleResult<&'a mut String> {
+    fn _try_as_mut(&'a mut self) -> WalleResult<&'a mut String> {
         match self {
             Self::Str(s) => Ok(s),
             _ => Err(WalleError::ValueTypeNotMatch(

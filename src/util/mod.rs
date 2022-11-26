@@ -130,12 +130,12 @@ pub trait TryAsRef<'a, T>
 where
     T: 'a,
 {
-    fn try_as_ref(&'a self) -> WalleResult<T>;
+    fn _try_as_ref(&'a self) -> WalleResult<T>;
 }
 
 pub trait TryAsMut<'a, T>
 where
     T: 'a,
 {
-    fn try_as_mut(&'a mut self) -> WalleResult<T>;
+    fn _try_as_mut(&'a mut self) -> WalleResult<T>;
 }

@@ -350,17 +350,33 @@ where
 }
 
 impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for MsgSegment {
-    fn try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+    fn _try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
         _as_ref(&self.ty, &self.data)
     }
 }
 
 impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for ValueMap {
-    fn try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+    fn _try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
         _as_ref(
             self.try_get_as_ref("type")?,
             self.try_get_as_ref::<&ValueMap>("data")?,
         )
+    }
+}
+
+impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for Value {
+    fn _try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+        if let Value::Map(m) = self {
+            _as_ref(
+                m.try_get_as_ref("type")?,
+                m.try_get_as_ref::<&ValueMap>("data")?,
+            )
+        } else {
+            Err(WalleError::ValueTypeNotMatch(
+                "map".to_string(),
+                format!("{:?}", self),
+            ))
+        }
     }
 }
 
@@ -406,16 +422,32 @@ where
 }
 
 impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for MsgSegment {
-    fn try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+    fn _try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
         _as_mut(&self.ty, &mut self.data)
     }
 }
 
 impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for ValueMap {
-    fn try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+    fn _try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
         _as_mut(
             &self.get_downcast::<String>("type")?,
             self.try_get_as_mut("data")?,
         )
+    }
+}
+
+impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for Value {
+    fn _try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+        if let Value::Map(m) = self {
+            _as_mut(
+                &m.get_downcast::<String>("type")?,
+                m.try_get_as_mut("data")?,
+            )
+        } else {
+            Err(WalleError::ValueTypeNotMatch(
+                "map".to_string(),
+                format!("{:?}", self),
+            ))
+        }
     }
 }
