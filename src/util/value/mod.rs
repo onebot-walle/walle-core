@@ -274,16 +274,18 @@ impl Value {
         }
     }
 
-    pub fn try_as_ref<T>(&self) -> WalleResult<T>
+    pub fn try_as_ref<'a, T>(&'a self) -> WalleResult<T>
     where
-        Self: for<'a> TryAsRef<'a, T>,
+        Self: TryAsRef<'a, T>,
+        T: 'a,
     {
         self._try_as_ref()
     }
 
-    pub fn try_as_mut<T>(&mut self) -> WalleResult<T>
+    pub fn try_as_mut<'a, T>(&'a mut self) -> WalleResult<T>
     where
-        Self: for<'a> TryAsMut<'a, T>,
+        Self: TryAsMut<'a, T>,
+        T: 'a,
     {
         self._try_as_mut()
     }
