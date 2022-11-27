@@ -52,6 +52,12 @@ impl MsgSegment {
             format!("[{},{}]", self.ty, content)
         }
     }
+    pub fn try_as_ref<'a>(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+        self._try_as_ref()
+    }
+    pub fn try_as_mut<'a>(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+        self._try_as_mut()
+    }
 }
 
 pub fn alt(segments: &Segments) -> String {
@@ -226,6 +232,41 @@ pub struct Reply {
 pub trait MessageExt {
     fn extract_plain_text(&self) -> String;
     fn extract<T: TryFrom<MsgSegment>>(self) -> Vec<T>;
+    fn try_as_ref<'a>(&'a self) -> WalleResult<Vec<MsgSegmentRef<'a>>>;
+    fn try_as_mut<'a>(&'a mut self) -> WalleResult<Vec<MsgSegmentMut<'a>>>;
+    fn try_iter_text_mut<'a>(&'a mut self) -> WalleResult<Vec<&'a mut String>> {
+        Ok(self
+            .try_as_mut()?
+            .into_iter()
+            .filter_map(|seg| {
+                if let MsgSegmentMut::Text { text } = seg {
+                    Some(text)
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+    fn try_first_text_mut<'a>(&'a mut self) -> WalleResult<&'a mut String> {
+        let mut segs = self.try_as_mut()?;
+        if !segs.is_empty() {
+            if let MsgSegmentMut::Text { text } = segs.remove(0) {
+                return Ok(text);
+            }
+        }
+        Err(WalleError::Other(
+            "first message segment is not text".to_string(),
+        ))
+    }
+    fn try_last_text_mut<'a>(&'a mut self) -> WalleResult<&'a mut String> {
+        if let Some(MsgSegmentMut::Text { text }) = self.try_as_mut()?.pop() {
+            return Ok(text);
+        } else {
+            Err(WalleError::Other(
+                "first message segment is not text".to_string(),
+            ))
+        }
+    }
 }
 
 impl MessageExt for Segments {
@@ -245,6 +286,12 @@ impl MessageExt for Segments {
         self.into_iter()
             .filter_map(|seg| T::try_from(seg).ok())
             .collect()
+    }
+    fn try_as_ref<'a>(&'a self) -> WalleResult<Vec<MsgSegmentRef<'a>>> {
+        self.iter().map(|seg| seg.try_as_ref()).collect()
+    }
+    fn try_as_mut<'a>(&'a mut self) -> WalleResult<Vec<MsgSegmentMut<'a>>> {
+        self.into_iter().map(|seg| seg.try_as_mut()).collect()
     }
 }
 
@@ -355,15 +402,6 @@ impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for MsgSegment {
     }
 }
 
-impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for ValueMap {
-    fn _try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
-        _as_ref(
-            self.try_get_as_ref("type")?,
-            self.try_get_as_ref::<&ValueMap>("data")?,
-        )
-    }
-}
-
 impl<'a> TryAsRef<'a, MsgSegmentRef<'a>> for Value {
     fn _try_as_ref(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
         if let Value::Map(m) = self {
@@ -424,15 +462,6 @@ where
 impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for MsgSegment {
     fn _try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
         _as_mut(&self.ty, &mut self.data)
-    }
-}
-
-impl<'a> TryAsMut<'a, MsgSegmentMut<'a>> for ValueMap {
-    fn _try_as_mut(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
-        _as_mut(
-            &self.get_downcast::<String>("type")?,
-            self.try_get_as_mut("data")?,
-        )
     }
 }
 
