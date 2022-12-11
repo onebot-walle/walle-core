@@ -323,6 +323,13 @@ pub type GroupMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Group, S
 
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
+pub struct Connect {
+    pub version: crate::structs::Version,
+}
+pub type ConnectEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Connect, S, P, I>;
+
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
+#[event(detail_type)]
 pub struct Heartbeat {
     pub interval: u32,
 }
@@ -338,6 +345,7 @@ pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, StatusUpdat
 #[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub enum MetaTypes {
+    Connect(Connect),
     Heartbeat(Heartbeat),
     StatusUpdate(StatusUpdate),
 }

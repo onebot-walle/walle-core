@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use super::OBC;
 use crate::ah::GetSelfs;
-use crate::prelude::Bot;
+use crate::prelude::{Bot, Version};
 use crate::structs::Selft;
 use crate::util::{Echo, EchoInner, EchoS, GetSelf, ProtocolItem};
-use crate::{ActionHandler, EventHandler, GetStatus, OneBot};
+use crate::{ActionHandler, EventHandler, GetStatus, GetVersion, OneBot};
 use crate::{WalleError, WalleResult};
 
 use async_trait::async_trait;
@@ -239,6 +239,16 @@ where
 {
     async fn is_good(&self) -> bool {
         true
+    }
+}
+
+impl<A, R> GetVersion for AppOBC<A, R> {
+    fn get_version(&self) -> Version {
+        Version {
+            implt: super::OBC.to_owned(),
+            version: crate::VERSION.to_owned(),
+            onebot_version: "12".to_owned(),
+        }
     }
 }
 

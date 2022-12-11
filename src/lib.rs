@@ -18,7 +18,7 @@ pub mod structs;
 pub mod util;
 
 mod ah;
-pub use ah::{ActionHandler, GetSelfs, GetStatus};
+pub use ah::{ActionHandler, GetSelfs, GetStatus, GetVersion};
 mod eh;
 pub use eh::EventHandler;
 

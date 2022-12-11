@@ -47,7 +47,6 @@ where
             let echo_map = self.echos.clone();
             let bot_map = self.bots.clone();
             let mut signal_rx = ob.get_signal_rx()?;
-            let implt = wsc.implt.clone().unwrap_or_default();
             tasks.push(tokio::spawn(async move {
                 while signal_rx.try_recv().is_err() {
                     let ob = ob.clone();
@@ -61,7 +60,7 @@ where
                         .header_auth_token(&wsc.access_token);
                     match try_connect(&wsc, req).await {
                         Some(ws_stream) => {
-                            ws_loop(ob, ws_stream, echo_map, bot_map, implt.clone()).await;
+                            ws_loop(ob, ws_stream, echo_map, bot_map).await;
                             warn!(target: crate::WALLE_CORE, "Disconnected from {}", wsc.url);
                         }
                         None => {
@@ -106,12 +105,12 @@ where
                             break;
                         }
                         Ok((stream, _)) = tcp_listener.accept() => {
-                            if let Some((ws_stream, implt)) =
+                            if let Some((ws_stream, _implt)) =
                                 upgrade_websocket(&wss.access_token, stream)
                                     .await
                             {
                                 let ob = ob.clone();
-                                tokio::spawn(ws_loop(ob.clone(), ws_stream, echo_map.clone(), bot_map.clone(), implt.clone()));
+                                tokio::spawn(ws_loop(ob.clone(), ws_stream, echo_map.clone(), bot_map.clone()));
                             }
                         }
                     }
@@ -127,7 +126,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
     bot_map: Arc<BotMap<A>>,
-    implt: String,
+    // implt: String,
 ) where
     E: ProtocolItem + GetSelf + Clone,
     A: ProtocolItem,
@@ -137,6 +136,7 @@ async fn ws_loop<E, A, R, AH, EH>(
 {
     let (seq, mut action_rx) = bot_map.new_connect();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
+    let mut implt = None;
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,
@@ -154,7 +154,7 @@ async fn ws_loop<E, A, R, AH, EH>(
                         &echo_map,
                         &bot_map,
                         &seq,
-                        &implt,
+                        &mut implt,
                     ).await {
                         break;
                     },
@@ -176,7 +176,7 @@ async fn ws_recv<E, A, R, AH, EH>(
     echo_map: &EchoMap<R>,
     bot_map: &BotMap<A>,
     seq: &usize,
-    implt: &str,
+    implt: &mut Option<String>,
 ) -> bool
 where
     E: ProtocolItem + Clone + GetSelf,
@@ -212,8 +212,14 @@ where
         if let Ok(event) = meta.and_then(|e: Event| {
             <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.to_string())
         }) {
-            if let MetaTypes::StatusUpdate(status) = event.detail_type {
-                bot_map.connect_update(seq, status.status.bots, implt);
+            match event.detail_type {
+                MetaTypes::Connect(c) => *implt = Some(c.version.implt),
+                MetaTypes::StatusUpdate(s) => {
+                    if let Some(some_implt) = implt {
+                        bot_map.connect_update(seq, s.status.bots, some_implt)
+                    }
+                }
+                _ => {}
             }
         }
     };

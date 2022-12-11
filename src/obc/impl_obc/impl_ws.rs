@@ -139,18 +139,41 @@ async fn ws_loop<E, A, R, AH, EH>(
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
-    let status = ob.action_handler.get_status().await;
-    let event = Event {
-        id: "".to_string(),
+    let connect = Event {
+        id: "".to_owned(),
         time: crate::util::timestamp_nano_f64(),
-        ty: "meta".to_string(),
-        detail_type: "status_update".to_string(),
-        sub_type: "".to_string(),
+        ty: "meta".to_owned(),
+        detail_type: "connect".to_owned(),
+        sub_type: "".to_owned(),
+        extra: value_map! {
+            "version": ob.action_handler.get_version()
+        },
+    };
+    if ws_stream
+        .send(WsMsg::Text(connect.json_encode()))
+        .await
+        .is_err()
+    {
+        return;
+    }
+    let status = ob.action_handler.get_status().await;
+    let status = Event {
+        id: "".to_owned(),
+        time: crate::util::timestamp_nano_f64(),
+        ty: "meta".to_owned(),
+        detail_type: "status_update".to_owned(),
+        sub_type: "".to_owned(),
         extra: value_map! {
             "status": status
         },
     };
-    ws_stream.send(WsMsg::Text(event.json_encode())).await.ok();
+    if ws_stream
+        .send(WsMsg::Text(status.json_encode()))
+        .await
+        .is_err()
+    {
+        return;
+    }
     loop {
         tokio::select! {
             _ = signal_rx.recv() => break,

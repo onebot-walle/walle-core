@@ -145,8 +145,6 @@ impl Default for WebSocketServer {
 /// OneBot Impl 反向 WebSocket 通讯设置
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WebSocketClient {
-    #[serde(rename = "impl")]
-    pub implt: Option<String>,
     pub url: String,
     pub access_token: Option<String>,
     pub reconnect_interval: u32,
@@ -155,7 +153,6 @@ pub struct WebSocketClient {
 impl Default for WebSocketClient {
     fn default() -> Self {
         Self {
-            implt: None,
             url: "ws://127.0.0.1:8844".to_owned(),
             access_token: None,
             reconnect_interval: 4,
