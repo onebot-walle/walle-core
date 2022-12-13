@@ -1,7 +1,7 @@
-# 0.7.0(a1)
+# 0.7.0
 
 - refactor handler trait
-- support OneBot rfc #180 #181 #204
+- support OneBot v12 候选版
 
 # 0.6.1
 
