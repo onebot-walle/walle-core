@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
+use crate::action::Action;
 use crate::error::WalleResult;
+use crate::event::Event;
+use crate::resp::Resp;
 use crate::ActionHandler;
 use crate::OneBot;
 
@@ -12,7 +15,7 @@ use crate::OneBot;
 ///
 /// 对于协议端，EventHandler 为 OBC
 #[async_trait]
-pub trait EventHandler<E, A, R>: Sync {
+pub trait EventHandler<E = Event, A = Action, R = Resp>: Sync {
     type Config;
     async fn start<AH, EH>(
         &self,

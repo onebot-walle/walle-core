@@ -2,8 +2,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
+use crate::action::Action;
 use crate::error::WalleResult;
+use crate::event::Event;
 use crate::prelude::Version;
+use crate::resp::Resp;
 use crate::structs::{Bot, Selft, Status};
 use crate::util::GetSelf;
 use crate::EventHandler;
@@ -15,7 +18,7 @@ use crate::OneBot;
 ///
 /// 对于协议端，ActionHandler 为具体实现
 #[async_trait]
-pub trait ActionHandler<E, A, R>: GetStatus + GetVersion + Sync {
+pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus + GetVersion + Sync {
     type Config;
     async fn start<AH, EH>(
         &self,
