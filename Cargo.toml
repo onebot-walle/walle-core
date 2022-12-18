@@ -29,7 +29,7 @@ tracing = "0.1"
 colored = "2"
 uuid = { version = "1.0", optional = true }
 hyper = { version = "0.14", features = ["full"], optional = true }
-tokio = { version = "1.0", features = ["sync", "net", "time", "macros", "rt"] }
+tokio = { version = "1.0", features = ["sync", "time", "macros", "rt"] }
 tokio-tungstenite = { version = "0.17", optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "1.0"
