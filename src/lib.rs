@@ -17,6 +17,9 @@ pub mod segment;
 pub mod structs;
 pub mod util;
 
+#[cfg(feature = "database")]
+pub mod database;
+
 mod ah;
 pub use ah::{ActionHandler, GetSelfs, GetStatus, GetVersion};
 mod eh;
