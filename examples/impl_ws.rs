@@ -14,8 +14,7 @@ async fn main() {
         TracingHandler::<Event, Action, Resp>::default(),
         ImplOBC::new("impl".to_string()),
     ));
-    let tasks = ob.start((), ImplConfig::default(), true).await.unwrap();
-    for task in tasks {
-        task.await.unwrap()
-    }
+    ob.start((), ImplConfig::default(), true).await.unwrap();
+    // ob.wait_all().await;
+    ob.shutdown(true).await.ok();
 }

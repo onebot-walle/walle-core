@@ -14,8 +14,7 @@ async fn main() {
         AppOBC::new(),
         TracingHandler::<Event, Action, Resp>::default(),
     ));
-    let tasks = ob.start(AppConfig::default(), (), true).await.unwrap();
-    for task in tasks {
-        task.await.unwrap()
-    }
+    ob.start(AppConfig::default(), (), true).await.unwrap();
+    // ob.wait_all().await;
+    ob.shutdown(true).await.ok();
 }
