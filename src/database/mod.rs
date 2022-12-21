@@ -4,31 +4,76 @@ use crate::{
     action::Action,
     event::Event,
     prelude::{Selft, Status},
-    resp::Resp,
+    resp::{resp_error, Resp, RespError},
     ActionHandler, EventHandler, GetSelfs, GetStatus, GetVersion, OneBot, WalleResult,
 };
 
-pub struct DataBase<H> {
-    _database: (),
+use self::db_trait::SqlDB;
+mod db_trait;
+
+pub struct DataBase<DB, H> {
+    database: DB,
     handler: H,
 }
 
-impl<H: ActionHandler + Send + Sync> DataBase<H> {
-    pub fn new(handler: H) -> Self {
+use walle_macro::_TryFromAction as TryFromAction;
+
+enum ActionOrResp {
+    Action(Action),
+    Resp(Resp),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, TryFromAction)]
+pub enum DataBaseAction {
+    GetEvent {
+        id: String,
+    },
+    GetEvents {
+        user_id: Option<String>,
+        group_id: Option<String>,
+        channel_id: Option<String>,
+        guild_id: Option<String>,
+        limit: u32,
+        offset: u32,
+    },
+}
+
+impl<DB: SqlDB, H: ActionHandler + Send + Sync> DataBase<DB, H> {
+    pub async fn new(handler: H) -> Self {
         Self {
-            _database: (),
+            database: DB::new().await,
             handler,
         }
     }
+    async fn handle_action(&self, action: Action) -> ActionOrResp {
+        match action.action.as_str() {
+            "get_event" | "get_events" => {
+                let action = match DataBaseAction::try_from(action) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        return ActionOrResp::Resp(resp_error::bad_param(e.to_string()).into())
+                    }
+                };
+                ActionOrResp::Resp(match self._handle_action(action).await {
+                    Ok(resp) => resp,
+                    Err(e) => e.into(),
+                })
+            }
+            _ => ActionOrResp::Action(action),
+        }
+    }
+    async fn _handle_action(&self, _action: DataBaseAction) -> Result<Resp, RespError> {
+        todo!()
+    }
 }
 
-impl<H: GetVersion> GetVersion for DataBase<H> {
+impl<DB: SqlDB, H: GetVersion> GetVersion for DataBase<DB, H> {
     fn get_version(&self) -> crate::prelude::Version {
         self.handler.get_version()
     }
 }
 
-impl<H: GetStatus + Sync> GetStatus for DataBase<H> {
+impl<DB: SqlDB, H: GetStatus + Sync> GetStatus for DataBase<DB, H> {
     fn is_good<'a, 't>(&'a self) -> Pin<Box<dyn Future<Output = bool> + Send + 't>>
     where
         'a: 't,
@@ -46,7 +91,7 @@ impl<H: GetStatus + Sync> GetStatus for DataBase<H> {
     }
 }
 
-impl<H: GetSelfs> GetSelfs for DataBase<H> {
+impl<DB: SqlDB, H: GetSelfs> GetSelfs for DataBase<DB, H> {
     fn get_impl<'a, 'b, 't>(
         &'a self,
         selft: &'b Selft,
@@ -67,7 +112,7 @@ impl<H: GetSelfs> GetSelfs for DataBase<H> {
     }
 }
 
-impl<H: ActionHandler + Send + Sync> ActionHandler for DataBase<H> {
+impl<DB: SqlDB + Send + Sync, H: ActionHandler + Send + Sync> ActionHandler for DataBase<DB, H> {
     type Config = H::Config;
     fn start<'a, 'b, 't, AH, EH>(
         &'a self,
@@ -100,8 +145,10 @@ impl<H: ActionHandler + Send + Sync> ActionHandler for DataBase<H> {
         Self: 't,
     {
         Box::pin(async move {
-            //todo
-            self.handler.call(action, ob).await
+            match self.handle_action(action).await {
+                ActionOrResp::Action(a) => self.handler.call(a, ob).await,
+                ActionOrResp::Resp(r) => Ok(r),
+            }
         })
     }
     fn before_call_event<'a, 'b, 't, AH, EH>(
@@ -120,7 +167,7 @@ impl<H: ActionHandler + Send + Sync> ActionHandler for DataBase<H> {
         Self: 't,
     {
         Box::pin(async move {
-            //todo
+            self.database.insert_event(&event).await;
             Ok(event)
         })
     }
