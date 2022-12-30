@@ -758,26 +758,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
 
 [[package]]
-name = "snake_cased"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4586c5a1e13fd7b00552c861116077f2f60ec4b94092671bf1998e6adb462d25"
-dependencies = [
- "snake_cased_derive",
-]
-
-[[package]]
-name = "snake_cased_derive"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c859c1484dd123a8b2913cef1e031794051845509bb9b149a84492d19779c47"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "snap"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1080,7 +1060,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "snake_cased",
  "thiserror",
  "tokio",
  "tokio-tungstenite",

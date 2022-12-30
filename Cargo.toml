@@ -37,7 +37,7 @@ tokio-tungstenite = { version = "0.17", optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "1.0"
 sha2 = { version = "0.10", optional = true }
-snake_cased = { version = "0.1", features = ["derive"] }
+# snake_cased = { version = "0.1", features = ["derive"] }
 
 dashmap = "5.3"
 
