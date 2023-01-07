@@ -204,7 +204,6 @@ pub enum UploadFileFragmented {
     Transfer {
         file_id: String,
         offset: i64,
-        size: i64,
         data: OneBotBytes,
     },
     Finish {
@@ -229,7 +228,6 @@ impl TryFromAction for UploadFileFragmented {
                 "transfer" => Ok(Self::Transfer {
                     file_id: action.params.remove_downcast("file_id")?,
                     offset: action.params.remove_downcast("offset")?,
-                    size: action.params.remove_downcast("size")?,
                     data: action.params.remove_downcast("data")?,
                 }),
                 "finish" => Ok(Self::Finish {
@@ -256,7 +254,6 @@ impl TryFrom<&mut ValueMap> for UploadFileFragmented {
             "transfer" => Ok(Self::Transfer {
                 file_id: map.remove_downcast("file_id")?,
                 offset: map.remove_downcast("offset")?,
-                size: map.remove_downcast("size")?,
                 data: map.remove_downcast("data")?,
             }),
             "finish" => Ok(Self::Finish {
@@ -282,13 +279,11 @@ impl PushToValueMap for UploadFileFragmented {
             UploadFileFragmented::Transfer {
                 file_id,
                 offset,
-                size,
                 data,
             } => {
                 map.insert("stage".to_string(), "transfer".into());
                 map.insert("file_id".to_string(), file_id.into());
                 map.insert("offset".to_string(), offset.into());
-                map.insert("size".to_string(), size.into());
                 map.insert("data".to_string(), data.into());
             }
             UploadFileFragmented::Finish { file_id, sha256 } => {
