@@ -89,14 +89,9 @@ impl<AH, EH> OneBot<AH, EH> {
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        let mut signal = self.signal.lock().unwrap();
-        if signal.is_none() {
-            let (tx, _) = tokio::sync::broadcast::channel(1);
-            *signal = Some(tx);
-        } else {
+        if !self.set_signal() {
             return Err(WalleError::AlreadyStarted);
         }
-        drop(signal);
         if ah_first {
             *self.ah_tasks.lock().await = self.action_handler.start(self, ah_config).await?;
             *self.eh_tasks.lock().await = self.event_handler.start(self, eh_config).await?;
@@ -113,6 +108,16 @@ impl<AH, EH> OneBot<AH, EH> {
         );
         for task in tasks {
             task.await.ok();
+        }
+    }
+    pub fn set_signal(&self) -> bool {
+        let mut signal = self.signal.lock().unwrap();
+        if signal.is_none() {
+            let (tx, _) = tokio::sync::broadcast::channel(1);
+            *signal = Some(tx);
+            true
+        } else {
+            false
         }
     }
     pub fn is_started(&self) -> bool {
