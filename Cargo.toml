@@ -20,8 +20,6 @@ alt = []
 full = ["http", "websocket", "app-obc", "impl-obc", "alt"]
 tokio-rt = ["tokio/rt-multi-thread"]
 
-database = []
-leveldb = ["rusty-leveldb", "database"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -43,8 +41,6 @@ dashmap = "5.3"
 
 base64 = "0.13"
 hex = "0.4"
-
-rusty-leveldb = { version = "1.0", optional = true }
 
 [dependencies.walle-macro]
 # path = "./walle-macro"
