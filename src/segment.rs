@@ -226,7 +226,7 @@ pub struct Location {
 )]
 pub struct Reply {
     pub message_id: String,
-    pub user_id: String,
+    pub user_id: Option<String>,
 }
 
 pub trait MessageExt {

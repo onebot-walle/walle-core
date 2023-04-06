@@ -916,7 +916,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "walle-core"
-version = "0.7.3"
+version = "0.7.4"
 dependencies = [
  "async-trait",
  "base64",
