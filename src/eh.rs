@@ -124,8 +124,48 @@ where
         self.0.call(event.clone(), ob).await?;
         self.1.call(event, ob).await
     }
+    async fn before_call_action<AH, EH>(
+        &self,
+        action: A,
+        ob: &Arc<OneBot<AH, EH>>,
+    ) -> WalleResult<A>
+    where
+        A: Send + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        self.1
+            .before_call_action(self.0.before_call_action(action, ob).await?, ob)
+            .await
+    }
+    async fn after_call_action<AH, EH>(&self, resp: R, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    where
+        R: Send + 'static,
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        self.1
+            .after_call_action(self.0.after_call_action(resp, ob).await?, ob)
+            .await
+    }
     async fn shutdown(&self) {
         self.0.shutdown().await;
         self.1.shutdown().await;
+    }
+    async fn on_onebot_connect<AH, EH>(&self, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        self.0.on_onebot_connect(ob).await?;
+        self.1.on_onebot_connect(ob).await
+    }
+    async fn on_onebot_disconnect<AH, EH>(&self, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        self.0.on_onebot_disconnect(ob).await?;
+        self.1.on_onebot_disconnect(ob).await
     }
 }

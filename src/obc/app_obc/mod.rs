@@ -29,23 +29,25 @@ pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
-    #[allow(dead_code)]
-    pub(crate) block_meta_event: AtomicBool, //todo
-    pub(crate) echos: EchoMap<R>,    // echo channel sender 暂存 Map
-    pub(crate) seq: AtomicU64,       // 用于生成 echo
-    pub(crate) bots: Arc<BotMap<A>>, // Bot action channel map
+    pub(crate) _block_meta_event: AtomicBool, //todo
+    pub(crate) echos: EchoMap<R>,             // echo channel sender 暂存 Map
+    pub(crate) seq: AtomicU64,                // 用于生成 echo
+    pub(crate) bots: Arc<BotMap<A>>,          // Bot action channel map
 }
 
 impl<A, R> AppOBC<A, R> {
     pub fn new() -> Self {
         Default::default()
     }
+    pub fn block_meta_event(&self, b: bool) {
+        self._block_meta_event.swap(b, Ordering::Relaxed);
+    }
 }
 
 impl<A, R> Default for AppOBC<A, R> {
     fn default() -> Self {
         Self {
-            block_meta_event: AtomicBool::new(true),
+            _block_meta_event: AtomicBool::new(true),
             echos: Arc::new(DashMap::new()),
             seq: AtomicU64::default(),
             bots: Arc::new(Default::default()),
@@ -127,6 +129,22 @@ where
                 Err(WalleError::BotNotExist)
             }
         }
+    }
+    async fn before_call_event<AH, EH>(
+        &self,
+        event: E,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> WalleResult<E> {
+        if self._block_meta_event.load(Ordering::Relaxed) {
+            use core::any::Any;
+            let event: Box<dyn Any> = Box::new(event.clone());
+            if let Ok(ty) = event.downcast::<crate::event::Event>().map(|e| e.ty) {
+                if &ty == "meta" {
+                    return Err(WalleError::Other("blocked".to_string()));
+                }
+            }
+        }
+        Ok(event)
     }
 }
 
