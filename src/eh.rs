@@ -51,6 +51,20 @@ pub trait EventHandler<E = Event, A = Action, R = Resp>: Sync {
         Ok(resp)
     }
     async fn shutdown(&self) {}
+    async fn on_onebot_connect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        Ok(())
+    }
+    async fn on_onebot_disconnect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        Ok(())
+    }
 }
 
 use crate::ah::JoinedHandler;

@@ -47,6 +47,7 @@ impl Default for Heartbeat {
 /// OneBot 应用端设置项
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AppConfig {
+    pub block_meta_event: Option<bool>,
     pub http_webhook: Vec<HttpServer>,
     pub websocket: Vec<WebSocketClient>,
     pub websocket_rev: Vec<WebSocketServer>,
@@ -56,6 +57,7 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
+            block_meta_event: Some(true),
             http: HashMap::default(),
             http_webhook: vec![],
             websocket: vec![],
@@ -67,6 +69,7 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn empty() -> Self {
         Self {
+            block_meta_event: Some(true),
             http: HashMap::default(),
             http_webhook: vec![],
             websocket: vec![],

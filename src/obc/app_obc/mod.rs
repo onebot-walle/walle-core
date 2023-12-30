@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use super::OBC;
@@ -30,6 +30,7 @@ pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
+    pub(crate) block_meta_event: AtomicBool, //todo
     pub(crate) echos: EchoMap<R>,    // echo channel sender 暂存 Map
     pub(crate) seq: AtomicU64,       // 用于生成 echo
     pub(crate) bots: Arc<BotMap<A>>, // Bot action channel map
@@ -44,6 +45,7 @@ impl<A, R> AppOBC<A, R> {
 impl<A, R> Default for AppOBC<A, R> {
     fn default() -> Self {
         Self {
+            block_meta_event: AtomicBool::new(true),
             echos: Arc::new(DashMap::new()),
             seq: AtomicU64::default(),
             bots: Arc::new(Default::default()),

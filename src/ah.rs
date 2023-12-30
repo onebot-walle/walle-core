@@ -49,6 +49,20 @@ pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus + GetVersion
         Ok(())
     }
     async fn shutdown(&self) {}
+    async fn on_onebot_connect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        Ok(())
+    }
+    async fn on_onebot_disconnect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    where
+        AH: ActionHandler<E, A, R> + Send + Sync + 'static,
+        EH: EventHandler<E, A, R> + Send + Sync + 'static,
+    {
+        Ok(())
+    }
 }
 
 /// supertrait for ActionHandler
