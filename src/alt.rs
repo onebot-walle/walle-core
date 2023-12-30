@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::vec;
 
-use async_trait::async_trait;
 use colored::*;
 use tracing::info;
 
@@ -97,7 +96,6 @@ impl<E, A, R> Default for TracingHandler<E, A, R> {
     }
 }
 
-#[async_trait]
 impl<E, A, R> GetSelfs for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
@@ -112,7 +110,6 @@ where
     }
 }
 
-#[async_trait]
 impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
@@ -134,7 +131,6 @@ impl<E, A, R> crate::GetVersion for TracingHandler<E, A, R> {
     }
 }
 
-#[async_trait]
 impl<E, A, R> ActionHandler<E, A, R> for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
@@ -142,16 +138,16 @@ where
     R: From<RespError> + Send + Sync + 'static,
 {
     type Config = ();
-    async fn start<AH, EH>(
+    fn start<AH, EH>(
         &self,
         _ob: &Arc<OneBot<AH, EH>>,
         _config: (),
-    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
+    ) -> impl std::future::Future<Output = WalleResult<Vec<tokio::task::JoinHandle<()>>>> + Send
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(vec![])
+        async move { Ok(vec![]) }
     }
     async fn call<AH, EH>(&self, action: A, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
     where
@@ -166,7 +162,6 @@ where
     }
 }
 
-#[async_trait]
 impl<E, A, R> EventHandler<E, A, R> for TracingHandler<E, A, R>
 where
     E: ColoredAlt + Send + Sync + 'static,

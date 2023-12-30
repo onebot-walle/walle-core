@@ -1,6 +1,5 @@
+use std::future::Future;
 use std::sync::Arc;
-
-use async_trait::async_trait;
 
 use crate::action::Action;
 use crate::error::WalleResult;
@@ -17,107 +16,107 @@ use crate::OneBot;
 /// 对于应用端，ActionHandler 为 OBC
 ///
 /// 对于协议端，ActionHandler 为具体实现
-#[async_trait]
-pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus + GetVersion + Sync {
+pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus + GetVersion {
     type Config;
-    async fn start<AH, EH>(
+    fn start<AH, EH>(
         &self,
         ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
+    ) -> impl Future<Output = WalleResult<Vec<tokio::task::JoinHandle<()>>>> + Send
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use call directly, use OneBot.handle_action instead.
-    async fn call<AH, EH>(&self, action: A, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    fn call<AH, EH>(
+        &self,
+        action: A,
+        ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<R>> + Send
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
-    async fn before_call_event<AH, EH>(&self, event: E, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<E>
+    fn before_call_event<AH, EH>(
+        &self,
+        event: E,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<E>> + Send
     where
         E: Send + 'static,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(event)
+        async { Ok(event) }
     }
-    async fn after_call_event<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn after_call_event<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>> + Send
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(())
+        async { Ok(()) }
     }
-    async fn shutdown(&self) {}
-    async fn on_onebot_connect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn shutdown(&self) -> impl Future<Output = ()> {
+        async {}
+    }
+    fn on_onebot_connect<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(())
+        async { Ok(()) }
     }
-    async fn on_onebot_disconnect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn on_onebot_disconnect<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(())
+        async { Ok(()) }
     }
 }
 
 /// supertrait for ActionHandler
-#[async_trait]
 pub trait GetSelfs {
-    async fn get_selfs(&self) -> Vec<Selft>;
-    async fn get_impl(&self, selft: &Selft) -> String;
+    fn get_selfs(&self) -> impl Future<Output = Vec<Selft>> + Send;
+    fn get_impl(&self, selft: &Selft) -> impl Future<Output = String> + Send;
 }
 
-impl<T: GetSelfs> GetSelfs for Arc<T> {
-    fn get_impl<'life0, 'life1, 'async_trait>(
-        &'life0 self,
-        selft: &'life1 Selft,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = String> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.as_ref().get_impl(selft)
+impl<T: GetSelfs + Send + Sync> GetSelfs for Arc<T> {
+    async fn get_impl(&self, selft: &Selft) -> String {
+        self.as_ref().get_impl(selft).await
     }
-    fn get_selfs<'life0, 'async_trait>(
-        &'life0 self,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = Vec<Selft>> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        Self: 'async_trait,
-    {
-        self.as_ref().get_selfs()
+    async fn get_selfs(&self) -> Vec<Selft> {
+        self.as_ref().get_selfs().await
     }
 }
 
 /// supertrait for ActionHandler
-#[async_trait]
-pub trait GetStatus: GetSelfs {
-    async fn is_good(&self) -> bool;
-    async fn get_status(&self) -> Status
+pub trait GetStatus: GetSelfs + Sync {
+    fn is_good(&self) -> impl Future<Output = bool> + Send;
+    fn get_status(&self) -> impl Future<Output = Status> + Send
     where
         Self: Sized,
     {
-        Status {
-            good: self.is_good().await,
-            bots: self
-                .get_selfs()
-                .await
-                .into_iter()
-                .map(|selft| Bot {
-                    selft,
-                    online: true,
-                })
-                .collect(),
+        async {
+            Status {
+                good: self.is_good().await,
+                bots: self
+                    .get_selfs()
+                    .await
+                    .into_iter()
+                    .map(|selft| Bot {
+                        selft,
+                        online: true,
+                    })
+                    .collect(),
+            }
         }
     }
 }
@@ -139,7 +138,6 @@ pub trait AHExt<E, A, R> {
 
 impl<T: ActionHandler<E, A, R>, E, A, R> AHExt<E, A, R> for T {}
 
-#[async_trait]
 impl<H0, H1> GetSelfs for JoinedHandler<H0, H1>
 //todo
 where
@@ -160,7 +158,6 @@ where
     }
 }
 
-#[async_trait]
 impl<H0, H1> GetStatus for JoinedHandler<H0, H1>
 //todo
 where
@@ -181,7 +178,6 @@ where
     }
 }
 
-#[async_trait]
 impl<AH0, AH1, E, A, R> ActionHandler<E, A, R> for JoinedHandler<AH0, AH1>
 where
     AH0: ActionHandler<E, A, R> + Send + Sync + 'static,

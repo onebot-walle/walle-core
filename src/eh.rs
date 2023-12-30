@@ -1,6 +1,5 @@
+use std::future::Future;
 use std::sync::Arc;
-
-use async_trait::async_trait;
 
 use crate::action::Action;
 use crate::error::WalleResult;
@@ -14,56 +13,71 @@ use crate::OneBot;
 /// 对于应用端，EventHandler 为具体实现
 ///
 /// 对于协议端，EventHandler 为 OBC
-#[async_trait]
 pub trait EventHandler<E = Event, A = Action, R = Resp>: Sync {
     type Config;
-    async fn start<AH, EH>(
+    fn start<AH, EH>(
         &self,
         ob: &Arc<OneBot<AH, EH>>,
         config: Self::Config,
-    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
+    ) -> impl Future<Output = WalleResult<Vec<tokio::task::JoinHandle<()>>>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use directly, use OneBot.handle_event instead.
-    async fn call<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn call<AH, EH>(
+        &self,
+        event: E,
+        ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>> + Send
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
-    async fn before_call_action<AH, EH>(
+    fn before_call_action<AH, EH>(
         &self,
         action: A,
         _ob: &Arc<OneBot<AH, EH>>,
-    ) -> WalleResult<A>
+    ) -> impl Future<Output = WalleResult<A>> + Send
     where
         A: Send + 'static,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(action)
+        async { Ok(action) }
     }
-    async fn after_call_action<AH, EH>(&self, resp: R, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
+    fn after_call_action<AH, EH>(
+        &self,
+        resp: R,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<R>> + Send
     where
         R: Send + 'static,
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(resp)
+        async { Ok(resp) }
     }
-    async fn shutdown(&self) {}
-    async fn on_onebot_connect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn shutdown(&self) -> impl Future<Output = ()> {
+        async {}
+    }
+    fn on_onebot_connect<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(())
+        async { Ok(()) }
     }
-    async fn on_onebot_disconnect<AH, EH>(&self, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
+    fn on_onebot_disconnect<AH, EH>(
+        &self,
+        _ob: &Arc<OneBot<AH, EH>>,
+    ) -> impl Future<Output = WalleResult<()>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        Ok(())
+        async { Ok(()) }
     }
 }
 
@@ -80,7 +94,6 @@ pub trait EHExt<E, A, R> {
 
 impl<T: EventHandler<E, A, R>, E, A, R> EHExt<E, A, R> for T {}
 
-#[async_trait]
 impl<EH0, EH1, E, A, R> EventHandler<E, A, R> for JoinedHandler<EH0, EH1>
 where
     EH0: EventHandler<E, A, R> + Send + Sync + 'static,

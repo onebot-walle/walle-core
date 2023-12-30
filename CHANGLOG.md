@@ -1,3 +1,7 @@
+# 0.8.0(unrelease)
+
+- update to rust 1.75, remove async-trait
+
 # 0.7.0
 
 - refactor handler trait

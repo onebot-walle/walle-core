@@ -33,7 +33,6 @@ pub mod prelude {
     pub use crate::error::{WalleError, WalleResult};
     pub use crate::util::{Echo, GetSelf, OneBotBytes, Value, ValueMap, ValueMapExt};
     pub use crate::{value, value_map, value_vec};
-    pub use async_trait::async_trait;
     pub use walle_macro::{PushToValueMap, ToAction, ToEvent, ToMsgSegment};
     pub use walle_macro::{TryFromAction, TryFromEvent, TryFromMsgSegment, TryFromValue};
 
@@ -56,8 +55,6 @@ pub struct OneBot<AH, EH> {
     eh_tasks: Mutex<Vec<JoinHandle<()>>>,
 }
 
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::{Arc, Mutex as StdMutex};
 use tokio::sync::Mutex;
 
@@ -191,44 +188,25 @@ impl<AH, EH> OneBot<AH, EH> {
 impl<AH, EH> GetStatus for OneBot<AH, EH>
 where
     AH: GetStatus + Sync,
+    EH: Sync,
 {
-    fn get_status<'a, 't>(&'a self) -> Pin<Box<dyn Future<Output = structs::Status> + Send + 't>>
-    where
-        Self: Sized,
-        'a: 't,
-        Self: Sync + 't,
-    {
-        self.action_handler.get_status()
+    async fn is_good(&self) -> bool {
+        self.action_handler.is_good().await
     }
-    fn is_good<'a, 't>(&'a self) -> Pin<Box<dyn Future<Output = bool> + Send + 't>>
-    where
-        'a: 't,
-        Self: 't,
-    {
-        self.action_handler.is_good()
+    async fn get_status(&self) -> structs::Status {
+        self.action_handler.get_status().await
     }
 }
 
 impl<AH, EH> GetSelfs for OneBot<AH, EH>
 where
-    AH: GetSelfs,
+    AH: GetSelfs + Sync,
+    EH: Sync,
 {
-    fn get_impl<'a, 'b, 't>(
-        &'a self,
-        selft: &'b structs::Selft,
-    ) -> Pin<Box<dyn Future<Output = String> + Send + 't>>
-    where
-        'a: 't,
-        'b: 't,
-        Self: 't,
-    {
-        self.action_handler.get_impl(selft)
+    async fn get_impl(&self, selft: &structs::Selft) -> String {
+        self.action_handler.get_impl(selft).await
     }
-    fn get_selfs<'a, 't>(&'a self) -> Pin<Box<dyn Future<Output = Vec<structs::Selft>> + Send + 't>>
-    where
-        'a: 't,
-        Self: 't,
-    {
-        self.action_handler.get_selfs()
+    async fn get_selfs(&self) -> Vec<structs::Selft> {
+        self.action_handler.get_selfs().await
     }
 }

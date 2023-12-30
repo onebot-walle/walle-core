@@ -5,7 +5,6 @@ use crate::event::Event;
 use crate::util::ProtocolItem;
 use crate::{ActionHandler, EventHandler, OneBot};
 use crate::{GetStatus, WalleResult};
-use async_trait::async_trait;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
@@ -25,7 +24,6 @@ pub struct ImplOBC<E> {
     pub(crate) hb_tx: tokio::sync::broadcast::Sender<crate::event::Event>,
 }
 
-#[async_trait]
 impl<E, A, R> EventHandler<E, A, R> for ImplOBC<E>
 where
     E: ProtocolItem + Clone,

@@ -10,7 +10,6 @@ use crate::util::{Echo, EchoInner, EchoS, GetSelf, ProtocolItem};
 use crate::{ActionHandler, EventHandler, GetStatus, GetVersion, OneBot};
 use crate::{WalleError, WalleResult};
 
-use async_trait::async_trait;
 use dashmap::DashMap;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
@@ -30,6 +29,7 @@ pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
+    #[allow(dead_code)]
     pub(crate) block_meta_event: AtomicBool, //todo
     pub(crate) echos: EchoMap<R>,    // echo channel sender 暂存 Map
     pub(crate) seq: AtomicU64,       // 用于生成 echo
@@ -63,7 +63,6 @@ impl<A, R> AppOBC<A, R> {
     }
 }
 
-#[async_trait]
 impl<E, A, R> ActionHandler<E, A, R> for AppOBC<A, R>
 where
     E: ProtocolItem + Clone + GetSelf,
@@ -215,7 +214,6 @@ impl<A> BotMap<A> {
     }
 }
 
-#[async_trait]
 impl<A, R> GetSelfs for AppOBC<A, R>
 where
     A: Send + Sync,
@@ -233,7 +231,6 @@ where
     }
 }
 
-#[async_trait]
 impl<A, R> GetStatus for AppOBC<A, R>
 where
     A: Send + Sync,
