@@ -19,7 +19,7 @@ impl-obc = ["uuid"]
 alt = []
 full = ["http", "websocket", "app-obc", "impl-obc", "alt"]
 tokio-rt = ["tokio/rt-multi-thread"]
-
+v11 = []
 
 [dependencies]
 # logging
