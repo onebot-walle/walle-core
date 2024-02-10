@@ -225,7 +225,10 @@ pub struct Location {
     Debug, Clone, PartialEq, Eq, PushToValueMap, ToMsgSegment, TryFromMsgSegment, TryFromValue,
 )]
 pub struct Reply {
+    /// 回复的消息 ID
     pub message_id: String,
+    /// 回复的消息发送者 ID，发送时可以不传入
+    /// TODO(check OB-REF) 可能是一个冗余字段
     pub user_id: Option<String>,
 }
 

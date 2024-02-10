@@ -15,6 +15,7 @@ use crate::OneBot;
 /// 对于协议端，EventHandler 为 OBC
 pub trait EventHandler<E = Event, A = Action, R = Resp>: Sync {
     type Config;
+    /// TODO(应用端实现该方法) more doc
     fn start<AH, EH>(
         &self,
         ob: &Arc<OneBot<AH, EH>>,
@@ -24,6 +25,7 @@ pub trait EventHandler<E = Event, A = Action, R = Resp>: Sync {
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
     /// do not use directly, use OneBot.handle_event instead.
+    /// TODO(应用端实现该方法) more doc
     fn call<AH, EH>(
         &self,
         event: E,

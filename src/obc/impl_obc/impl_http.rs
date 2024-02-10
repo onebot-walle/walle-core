@@ -129,7 +129,8 @@ where
                             }
                         }
                         Err(e) => Ok(encode2resp(
-                            if e.starts_with("missing field") {
+                            // TODO check if its correct
+                            if format!("{}", e).starts_with("missing field") {
                                 trace!(
                                     target: crate::WALLE_CORE,
                                     "Http call action miss field: {e}",

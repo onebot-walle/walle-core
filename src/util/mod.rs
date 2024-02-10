@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use color_eyre::eyre;
 use serde::{Deserialize, Serialize};
 
 mod bytes;
@@ -37,21 +38,22 @@ pub trait ProtocolItem:
     fn json_encode(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
-    fn json_decode(s: &str) -> Result<Self, String>
+    fn json_decode(s: &str) -> Result<Self, eyre::Report>
     where
         Self: Sized,
     {
-        serde_json::from_str(s).map_err(|e| e.to_string())
+        serde_json::from_str(s).map_err(|e| e.into())
     }
     fn rmp_encode(&self) -> Vec<u8> {
         rmp_serde::to_vec(self).unwrap()
     }
-    fn rmp_decode(v: &[u8]) -> Result<Self, String>
+    fn rmp_decode(v: &[u8]) -> Result<Self, eyre::Report>
     where
         Self: Sized,
     {
-        rmp_serde::from_slice(v).map_err(|e| e.to_string())
+        rmp_serde::from_slice(v).map_err(|e| e.into())
     }
+
     #[cfg(feature = "http")]
     fn to_body(self, content_type: &ContentType) -> hyper::Body {
         match content_type {

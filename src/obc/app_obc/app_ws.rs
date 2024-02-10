@@ -1,6 +1,7 @@
 use crate::{
+    com::ComEvent,
     config::{WebSocketClient, WebSocketServer},
-    error::{WalleError, WalleResult},
+    error::{ResultExt, WalleError, WalleResult},
     event::{Event, MetaDetailEvent, MetaTypes},
     util::{AuthReqHeaderExt, Echo, GetSelf, ProtocolItem},
     ActionHandler, EventHandler, OneBot,
@@ -15,8 +16,10 @@ use crate::{
 
 use std::sync::Arc;
 
+use color_eyre::eyre;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
@@ -192,11 +195,13 @@ where
         Resp(Echo<R>),
     }
 
-    let handle_ok = |item: Result<ReceiveItem<E, R>, String>| async move {
+    let handle_ok = |item: Result<ReceiveItem<ComEvent, R>, eyre::Report>| async move {
         match item {
             Ok(ReceiveItem::Event(event)) => {
+                let value: Value = serde_json::to_value(event.to_v12())?;
+                let value: E = serde_json::from_value(value)?;
                 let ob = ob.clone();
-                tokio::spawn(async move { ob.handle_event(event).await });
+                tokio::spawn(async move { ob.handle_event(value).await });
             }
             Ok(ReceiveItem::Resp(resp)) => {
                 let (r, echos) = resp.unpack();
@@ -204,13 +209,15 @@ where
                     tx.send(r).ok();
                 }
             }
-            Err(s) => warn!(target: super::OBC, "serde failed: {}", s),
+            Err(s) => return Err(s),
         }
+        Ok(())
     };
 
-    let meta_process = |meta: Result<Event, String>| async move {
-        if let Ok(event) = meta.and_then(|e: Event| {
-            <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.to_string())
+    let meta_process = |meta: Result<ComEvent, eyre::Report>| async move {
+        if let Ok(event) = meta.and_then(|e: ComEvent| {
+            let e = e.to_v12();
+            <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.into())
         }) {
             match event.detail_type {
                 MetaTypes::Connect(c) => *implt = Some(c.version.implt),
@@ -227,11 +234,15 @@ where
     match msg {
         WsMsg::Text(text) => {
             meta_process(ProtocolItem::json_decode(&text)).await;
-            handle_ok(ProtocolItem::json_decode(&text)).await;
+            handle_ok(ProtocolItem::json_decode(&text))
+                .await
+                .log(super::OBC);
         }
         WsMsg::Binary(b) => {
             meta_process(ProtocolItem::rmp_decode(&b)).await;
-            handle_ok(ProtocolItem::rmp_decode(&b)).await;
+            handle_ok(ProtocolItem::rmp_decode(&b))
+                .await
+                .log(super::OBC);
         }
         WsMsg::Ping(b) => {
             if ws_stream.send(WsMsg::Pong(b)).await.is_err() {

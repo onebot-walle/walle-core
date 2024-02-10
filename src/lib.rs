@@ -18,6 +18,8 @@ pub mod structs;
 pub mod util;
 
 mod ah;
+mod com;
+mod v11;
 pub use ah::{ActionHandler, GetSelfs, GetStatus, GetVersion};
 mod eh;
 pub use eh::EventHandler;

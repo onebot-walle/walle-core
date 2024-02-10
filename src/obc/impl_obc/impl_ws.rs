@@ -25,6 +25,7 @@ impl<E> ImplOBC<E>
 where
     E: ProtocolItem + Clone,
 {
+    // handle incoming
     pub(crate) async fn ws<A, R, AH, EH>(
         &self,
         ob: &Arc<OneBot<AH, EH>>,
@@ -70,7 +71,7 @@ where
         }
         Ok(())
     }
-
+    // handle outgoing
     pub(crate) async fn wsr<A, R, AH, EH>(
         &self,
         ob: &Arc<OneBot<AH, EH>>,
@@ -139,6 +140,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
+                                                     // https://12.onebot.dev/interface/meta/events/
     let connect = Event {
         id: "".to_owned(),
         time: crate::util::timestamp_nano_f64(),
