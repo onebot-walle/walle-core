@@ -62,3 +62,28 @@ impl serde::ser::Error for WalleError {
         WalleError::Other(format!("{}", msg))
     }
 }
+
+pub trait ResultExt<T, E> {
+    fn ignore(self) -> Option<T>;
+    fn log(self, target: &str) -> Option<T>;
+}
+impl<T, E: std::fmt::Debug> ResultExt<T, E> for Result<T, E> {
+    #[inline(always)]
+    fn ignore(self) -> Option<T> {
+        match self {
+            Ok(v) => Some(v),
+            Err(_) => None,
+        }
+    }
+
+    #[inline(always)]
+    fn log(self, target: &str) -> Option<T> {
+        match self {
+            Ok(v) => Some(v),
+            Err(e) => {
+                tracing::error!(target, "{:?}", e);
+                None
+            }
+        }
+    }
+}

@@ -15,6 +15,7 @@ use crate::{
 
 use std::sync::Arc;
 
+use color_eyre::eyre;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
@@ -192,7 +193,7 @@ where
         Resp(Echo<R>),
     }
 
-    let handle_ok = |item: Result<ReceiveItem<E, R>, String>| async move {
+    let handle_ok = |item: Result<ReceiveItem<ComEvent, R>, eyre::Report>| async move {
         match item {
             Ok(ReceiveItem::Event(event)) => {
                 let ob = ob.clone();
@@ -208,7 +209,7 @@ where
         }
     };
 
-    let meta_process = |meta: Result<Event, String>| async move {
+    let meta_process = |meta: Result<ComEvent, eyre::Report>| async move {
         if let Ok(event) = meta.and_then(|e: Event| {
             <MetaDetailEvent as TryFrom<Event>>::try_from(e).map_err(|e| e.to_string())
         }) {
