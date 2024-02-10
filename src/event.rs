@@ -8,7 +8,7 @@ use crate::{
 
 use serde::{Deserialize, Serialize};
 
-/// 标准 Event 模型
+/// 标准 onebot12 Event 模型
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub id: String,
@@ -95,14 +95,20 @@ impl GetSelf for Event {
 }
 
 /// 泛型可扩展 Event 模型
+/// https://12.onebot.dev/connect/data-protocol/event/
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
+    // 事件唯一标识符
     pub id: String,
+    // 事件发生时间（Unix 时间戳），单位：秒
     pub time: f64,
     pub implt: I,
     pub platform: P,
+    // type 事件类型，必须是 meta/message/notice/request
     pub ty: T,
+    // 事件详细类型
     pub detail_type: D,
+    // 事件子类型（详细类型的下一级类型）
     pub sub_type: S,
     pub extra: ValueMap,
 }
@@ -251,14 +257,20 @@ use walle_macro::{
     _PushToValueMap as PushToValueMap, _ToEvent as ToEvent, _TryFromEvent as TryFromEvent,
     _TryFromValue as TryFromValue,
 };
-
+/// https://12.onebot.dev/interface/user/message-events/
+/// https://12.onebot.dev/interface/group/message-events/
+/// https://12.onebot.dev/interface/guild/message-events/
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Message {
     pub selft: Selft,
+    /// 消息唯一 ID
     pub message_id: String,
+    /// 消息内容
     pub message: crate::segment::Segments,
+    /// 消息内容的替代表示, 可以为空
     pub alt_message: String,
+    /// 发送者的用户 ID
     pub user_id: String,
 }
 pub type MessageEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Message, D, S, P, I>;

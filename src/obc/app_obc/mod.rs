@@ -99,6 +99,7 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
+        // 获取需要发送Action的bot实例
         match self.bots.get_bot(&action.get_self()) {
             Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();
