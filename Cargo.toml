@@ -22,32 +22,40 @@ tokio-rt = ["tokio/rt-multi-thread"]
 
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-rmp-serde = "1.0"
+# logging
 tracing = "0.1"
 colored = "2"
 uuid = { version = "1.0", optional = true }
-hyper = { version = "0.14", features = ["full"], optional = true }
-tokio = { version = "1.0", features = ["sync", "time", "macros", "rt"] }
+
+# serde
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rmp-serde = "1"
+
+# async
+tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }
 tokio-tungstenite = { version = "0.17", optional = true }
+hyper = { version = "0.14", features = ["full"], optional = true }
 futures-util = { version = "0.3", features = ["sink"] }
-thiserror = "1.0"
+
+# error-handing
+thiserror = "1"
+
+uuid = { version = "1", optional = true }
 sha2 = { version = "0.10", optional = true }
-# snake_cased = { version = "0.1", features = ["derive"] }
-
-dashmap = "5.3"
-
-base64 = "0.13"
+dashmap = "5"
+base64 = "0.21"
 hex = "0.4"
+
+# snake_cased = { version = "0.1", features = ["derive"] }
 
 [dependencies.walle-macro]
 # path = "./walle-macro"
 version = "0.7.0-a2"
 
 [dev-dependencies]
-tracing-subscriber = "0.3"
-toml = "0.5"
+tracing-subscriber = { version = "0.3" , features = ["local-time"]}
+toml = "0.8"
 
 [[example]]
 name = "impl_ws"
