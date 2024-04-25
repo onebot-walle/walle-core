@@ -142,16 +142,16 @@ impl GetSelf for Event {
 }
 
 /// 泛型可扩展 Event 模型
-/// 
+///
 /// 用于在实现端构建事件以及在应用端处理事件，可以尝试从 `Event` 转化，或转化到 `Event`，不可直接序列化和反序列化
-/// 
+///
 /// 只有当满足以下所有条件时，该BaseEvent 才可以尝试从 `Event` 转化：
 /// - `T` 实现 `TryFromEvent<TypeLevel>`
 /// - `D` 实现 `TryFromEvent<DetailTypeLevel>`
 /// - `S` 实现 `TryFromEvent<SubTypeLevel>`
 /// - `P` 实现 `TryFromEvent<PlatformLevel>`
-/// - `I` 实现 `TryFromEvent<ImplLevel>` 
-/// 
+/// - `I` 实现 `TryFromEvent<ImplLevel>`
+///
 /// 只有当满足以下所有条件时，该BaseEvent 才可以转化到 `Event`：
 /// - `T` 实现 `ToEvent<TypeLevel>`
 /// - `D` 实现 `ToEvent<DetailTypeLevel>`
@@ -233,6 +233,29 @@ where
     P: TryFromEvent<PlatformLevel>,
 {
     fn parse(mut event: Event, implt: &str) -> Result<Self, WalleError> {
+        Ok(Self {
+            ty: T::try_from_event_mut(&mut event, implt)?,
+            detail_type: D::try_from_event_mut(&mut event, implt)?,
+            sub_type: S::try_from_event_mut(&mut event, implt)?,
+            implt: I::try_from_event_mut(&mut event, implt)?,
+            platform: P::try_from_event_mut(&mut event, implt)?,
+            id: event.id,
+            time: event.time,
+            extra: event.extra,
+        })
+    }
+}
+
+impl<T, D, S, P, I> TryFrom<(Event, &str)> for BaseEvent<T, D, S, P, I>
+where
+    T: TryFromEvent<TypeLevel>,
+    D: TryFromEvent<DetailTypeLevel>,
+    S: TryFromEvent<SubTypeLevel>,
+    P: TryFromEvent<PlatformLevel>,
+    I: TryFromEvent<ImplLevel>,
+{
+    type Error = WalleError;
+    fn try_from((mut event, implt): (Event, &str)) -> Result<Self, Self::Error> {
         Ok(Self {
             ty: T::try_from_event_mut(&mut event, implt)?,
             detail_type: D::try_from_event_mut(&mut event, implt)?,
