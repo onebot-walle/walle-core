@@ -1,6 +1,5 @@
 use crate::{
     action::*,
-    alt::ColoredAlt,
     error::WalleError,
     event::*,
     segment::*,
@@ -26,7 +25,6 @@ fn event() {
             event.1
         );
         assert_eq!(T::try_from(event.1.clone()).unwrap(), event.2);
-        println!("{}", event.1.colored_alt());
     }
     #[derive(Debug, PushToValueMap, ToEvent, TryFromEvent)]
     #[event(platform)]
@@ -171,7 +169,6 @@ fn action() {
             action.1
         );
         assert_eq!(T::try_from(action.1.clone()).unwrap(), action.2);
-        println!("{}", action.1.colored_alt());
     }
 
     test((

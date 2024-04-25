@@ -1,4 +1,9 @@
-//! Event 相关模型定义
+//! # Event
+//! 定义了以下几个类型用于 OneBot 项目的日常使用
+//!
+//! - `Event`：标准的 Event 模型，确保事件最基本的字段，所有其他字段可以后续再继续处理，可以序列化和反序列化。
+//! - `BaseEvent<T, D, S, P, I>`：根据 Rust 类型系统设计的可扩展模型，使用五个层级的泛型分别持有五个层级的扩展字段，
+//! 可以尝试从 `Event` 转化，或转化到 `Event`，不可直接序列化和反序列化，可以用于更好的在实现端构建事件以及在应用端处理事件。
 
 use crate::{
     prelude::{WalleError, WalleResult},
@@ -9,6 +14,10 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 /// 标准 Event 模型
+///
+/// 用字符串储存五个扩展层级的字段，并包含标准规定的必须持有的 `id` 和 `time` 字段，`extra` 持有所有其他字段
+///
+/// 可以直接用于序列化和反序列化
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
     pub id: String,
@@ -21,10 +30,45 @@ pub struct Event {
     pub extra: ValueMap,
 }
 
+/// 所有 `BaseEvent` 的泛型都需要实现该 trait 才能转化为 `Event`
+///
+/// 泛型 `T` 可以取 `TypeLevel`/`DetailTypeLevel`/`SubTypeLevel`/`PlatformLevel`/`ImplLevel` 五个标记等级
+///
+/// 通常情况可以通过 `TryFromEvent` derive 宏实现，但也可以手动实现，例如：
+///
+/// ```rust
+/// #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
+/// #[event(type)] // 标记扩展等级为 type
+/// pub struct Message {
+///     pub selft: Selft,
+///     pub message_id: String,
+///     pub message: crate::segment::Segments,
+///     pub alt_message: String,
+///     pub user_id: String,
+/// }
+/// ```
 pub trait ToEvent<T>: PushToValueMap {
+    /// 返回为该扩展等级的标记字符串
     fn ty(&self) -> &'static str;
 }
 
+/// 所有 `BaseEvent` 的泛型都需要实现该 trait 才能尝试从 `Event` 转化而来
+///
+/// 泛型 `T` 可以取 `TypeLevel`/`DetailTypeLevel`/`SubTypeLevel`/`PlatformLevel`/`ImplLevel` 五个标记等级
+///
+/// 通常情况可以通过 `TryFromEvent` derive 宏实现，但也可以手动实现，例如：
+///
+/// ```rust
+/// #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
+/// #[event(type)] // 标记扩展等级为 type
+/// pub struct Message {
+///     pub selft: Selft,
+///     pub message_id: String,
+///     pub message: crate::segment::Segments,
+///     pub alt_message: String,
+///     pub user_id: String,
+/// }
+/// ```
 pub trait TryFromEvent<T>: Sized {
     fn try_from_event_mut(event: &mut Event, implt: &str) -> WalleResult<Self>;
     fn try_from_event(mut event: Event, implt: &str) -> WalleResult<Self> {
@@ -32,24 +76,27 @@ pub trait TryFromEvent<T>: Sized {
     }
 }
 
-#[doc(hidden)]
+/// 仅用于标记，标记扩展等级为 type 的 trait
 pub struct TypeLevel;
-#[doc(hidden)]
+/// 仅用于标记，标记扩展等级为 detail_type 的 trait
 pub struct DetailTypeLevel;
-#[doc(hidden)]
+/// 仅用于标记，标记扩展等级为 sub_type 的 trait
 pub struct SubTypeLevel;
-#[doc(hidden)]
+/// 仅用于标记，标记扩展等级为 platform 的 trait
 pub struct PlatformLevel;
-#[doc(hidden)]
+/// 仅用于标记，标记扩展等级为 impl 的 trait
 pub struct ImplLevel;
 
 impl Event {
+    /// 尝试获取 `self` 字段
     pub fn selft(&self) -> Option<Selft> {
         self.extra.get_downcast("self").ok()
     }
+    /// 尝试获取 `self` 字段中的 `user_id` 字段
     pub fn self_id(&self) -> Option<String> {
         self.selft().map(|s| s.user_id)
     }
+    /// 尝试获取 `self` 字段中的 `platform` 字段
     pub fn platform(&self) -> Option<String> {
         self.selft().map(|s| s.platform)
     }
@@ -95,6 +142,22 @@ impl GetSelf for Event {
 }
 
 /// 泛型可扩展 Event 模型
+/// 
+/// 用于在实现端构建事件以及在应用端处理事件，可以尝试从 `Event` 转化，或转化到 `Event`，不可直接序列化和反序列化
+/// 
+/// 只有当满足以下所有条件时，该BaseEvent 才可以尝试从 `Event` 转化：
+/// - `T` 实现 `TryFromEvent<TypeLevel>`
+/// - `D` 实现 `TryFromEvent<DetailTypeLevel>`
+/// - `S` 实现 `TryFromEvent<SubTypeLevel>`
+/// - `P` 实现 `TryFromEvent<PlatformLevel>`
+/// - `I` 实现 `TryFromEvent<ImplLevel>` 
+/// 
+/// 只有当满足以下所有条件时，该BaseEvent 才可以转化到 `Event`：
+/// - `T` 实现 `ToEvent<TypeLevel>`
+/// - `D` 实现 `ToEvent<DetailTypeLevel>`
+/// - `S` 实现 `ToEvent<SubTypeLevel>`
+/// - `P` 实现 `ToEvent<PlatformLevel>`
+/// - `I` 实现 `ToEvent<ImplLevel>`
 #[derive(Debug, Clone, PartialEq)]
 pub struct BaseEvent<T = (), D = (), S = (), P = (), I = ()> {
     pub id: String,
