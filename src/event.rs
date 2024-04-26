@@ -1,4 +1,4 @@
-//! # Event
+//! # Event 模型定义
 //! 定义了以下几个类型用于 OneBot 项目的日常使用
 //!
 //! - `Event`：标准的 Event 模型，确保事件最基本的字段，所有其他字段可以后续再继续处理，可以序列化和反序列化。
@@ -338,6 +338,7 @@ use walle_macro::{
     _TryFromValue as TryFromValue,
 };
 
+/// OneBot 12 标准事件 `message` 字段结构体
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Message {
@@ -347,6 +348,7 @@ pub struct Message {
     pub alt_message: String,
     pub user_id: String,
 }
+/// OneBot 12 `message` 事件
 pub type MessageEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Message, D, S, P, I>;
 
 impl GetSelf for Message {
@@ -355,11 +357,13 @@ impl GetSelf for Message {
     }
 }
 
+/// OneBot 12 标准事件 `notice` 字段结构体
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Notice {
     pub selft: Selft,
 }
+/// OneBot 12 `notice` 事件
 pub type NoticeEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Notice, D, S, P, I>;
 
 impl GetSelf for Notice {
@@ -368,11 +372,13 @@ impl GetSelf for Notice {
     }
 }
 
+/// OneBot 12 标准事件 `request` 字段结构体
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Request {
     pub selft: Selft,
 }
+/// OneBot 12 `request` 事件
 pub type RequestEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Request, D, S, P, I>;
 
 impl GetSelf for Request {
@@ -381,11 +387,14 @@ impl GetSelf for Request {
     }
 }
 
+/// OneBot 12 标准事件 `meta` 字段结构体（其实啥字段也没有）
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub struct Meta;
+/// OneBot 12 `meta` 事件
 pub type MetaEvent<D = (), S = (), P = (), I = ()> = BaseEvent<Meta, D, S, P, I>;
 
+/// OneBot 12 标准事件 `type` 层级所有可能值枚举
 #[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(type)]
 pub enum EventType {
@@ -395,39 +404,84 @@ pub enum EventType {
     Notice(Notice),
 }
 
+/// OneBot 12 标准事件 `detail_type` 层级 `private` 字段结构体
+/// 
+/// 用于 `message.private`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Private;
+/// OneBot 12 `message.private` 事件
 pub type PrivateMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Private, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `group` 字段结构体
+/// 
+/// 用于 `message.group`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Group {
     pub group_id: String,
 }
+/// OneBot 12 `message.group` 事件
 pub type GroupMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Group, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `channel` 字段结构体
+/// 
+/// 用于 `message.channel`
+#[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
+#[event(detail_type)]
+pub struct Channel {
+    pub guild_id: String,
+    pub channel_id: String,
+}
+/// OneBot 12 `message.channel` 事件
+pub type ChannelMessageEvent<S = (), P = (), I = ()> = BaseEvent<Message, Channel, S, P, I>;
+
+/// OneBot 12 标准 `message` 事件 `detail_type` 层级所有可能值枚举
+#[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
+#[event(detail_type)]
+pub enum MessageDetailTypes {
+    Group(Group),
+    Private(Private),
+    Channel(Channel),
+}
+/// OneBot 12 `message` 所有事件枚举
+pub type MessageDetailEvent<S = (), P = (), I = ()> =
+    BaseEvent<Message, MessageDetailTypes, S, P, I>;
+
+/// OneBot 12 标准事件 `detail_type` 层级 `connect` 字段结构体
+/// 
+/// 用于 `meta.connect`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Connect {
     pub version: crate::structs::Version,
 }
+/// OneBot 12 `meta.connect` 事件
 pub type ConnectEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Connect, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `heartbeat` 字段结构体
+/// 
+/// 用于 `meta.heartbeat`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct Heartbeat {
     pub interval: u32,
 }
+/// OneBot 12 `meta.heartbeat` 事件
 pub type HeartbeatEvent<S = (), P = (), I = ()> = BaseEvent<Meta, Heartbeat, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `status_update` 字段结构体
+/// 
+/// 用于 `meta.status_update`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct StatusUpdate {
     pub status: crate::structs::Status,
 }
+/// OneBot 12 `meta.status_update` 事件
 pub type StatusUpdateEvent<S = (), P = (), I = ()> = BaseEvent<Meta, StatusUpdate, S, P, I>;
 
+/// OneBot 12 标准 `meta` 事件 `detail_type` 层级所有可能值枚举
 #[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub enum MetaTypes {
@@ -435,8 +489,12 @@ pub enum MetaTypes {
     Heartbeat(Heartbeat),
     StatusUpdate(StatusUpdate),
 }
+/// OneBot 12 `meta` 所有事件枚举
 pub type MetaDetailEvent<S = (), P = (), I = ()> = BaseEvent<Meta, MetaTypes, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `group_member_increase` 字段结构体
+/// 
+/// 用于 `notice.group_member_increase`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMemberIncrease {
@@ -444,9 +502,13 @@ pub struct GroupMemberIncrease {
     pub user_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.group_member_increase` 事件
 pub type GroupMemberIncreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMemberIncrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `group_member_decrease` 字段结构体
+/// 
+/// 用于 `notice.group_member_decrease`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMemberDecrease {
@@ -454,9 +516,13 @@ pub struct GroupMemberDecrease {
     pub user_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.group_member_decrease` 事件
 pub type GroupMemberDecreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMemberDecrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `group_message_delete` 字段结构体
+/// 
+/// 用于 `notice.group_message_delete`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GroupMessageDelete {
@@ -465,32 +531,48 @@ pub struct GroupMessageDelete {
     pub user_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.group_message_delete` 事件
 pub type GroupMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GroupMessageDelete, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `friend_increase` 字段结构体
+/// 
+/// 用于 `notice.friend_increase`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct FriendIncrease {
     pub user_id: String,
 }
+/// OneBot 12 `notice.friend_increase` 事件
 pub type FriendIncreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendIncrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `friend_decrease` 字段结构体
+/// 
+/// 用于 `notice.friend_decrease`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct FriendDecrease {
     pub user_id: String,
 }
+/// OneBot 12 `notice.friend_decrease` 事件
 pub type FriendDecreaseEvent<S = (), P = (), I = ()> = BaseEvent<Notice, FriendDecrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `private_message_delete` 字段结构体
+/// 
+/// 用于 `notice.private_message_delete`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct PrivateMessageDelete {
     pub message_id: String,
     pub user_id: String,
 }
+/// OneBot 12 `notice.private_message_delete` 事件
 pub type PrivateMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, PrivateMessageDelete, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `guild_member_increase` 字段结构体
+/// 
+/// 用于 `notice.guild_member_increase`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GuildMemberIncrease {
@@ -498,9 +580,13 @@ pub struct GuildMemberIncrease {
     pub user_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.guild_member_increase` 事件
 pub type GuildMemberIncreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GuildMemberIncrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `guild_member_decrease` 字段结构体
+/// 
+/// 用于 `notice.guild_member_decrease`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct GuildMemberDecrease {
@@ -508,9 +594,13 @@ pub struct GuildMemberDecrease {
     pub user_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.guild_member_decrease` 事件
 pub type GuildMemberDecreaseEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, GuildMemberDecrease, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `channel_message_delete` 字段结构体
+/// 
+/// 用于 `notice.channel_message_delete`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelMessageDelete {
@@ -520,9 +610,13 @@ pub struct ChannelMessageDelete {
     pub operator_id: String,
     pub message_id: String,
 }
+/// OneBot 12 `notice.channel_message_delete` 事件
 pub type ChannelMessageDeleteEvent<S = (), P = (), I = ()> =
     BaseEvent<Notice, ChannelMessageDelete, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `channel_create` 字段结构体
+/// 
+/// 用于 `notice.channel_create`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelCreate {
@@ -530,8 +624,12 @@ pub struct ChannelCreate {
     pub channel_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.channel_create` 事件
 pub type ChannelCreateEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelCreate, S, P, I>;
 
+/// OneBot 12 标准事件 `detail_type` 层级 `channel_delete` 字段结构体
+/// 
+/// 用于 `notice.channel_delete`
 #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 #[event(detail_type)]
 pub struct ChannelDelete {
@@ -539,11 +637,5 @@ pub struct ChannelDelete {
     pub channel_id: String,
     pub operator_id: String,
 }
+/// OneBot 12 `notice.channel_delete` 事件
 pub type ChannelDeleteEvent<S = (), P = (), I = ()> = BaseEvent<Notice, ChannelDelete, S, P, I>;
-
-#[derive(Debug, Clone, PartialEq, PushToValueMap, ToEvent, TryFromEvent)]
-#[event(detail_type)]
-pub enum MessageDeatilTypes {
-    Group(Group),
-    Private(Private),
-}
