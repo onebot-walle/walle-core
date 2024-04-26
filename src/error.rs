@@ -32,6 +32,7 @@ pub enum WalleError {
     // Extended
     #[error("ExtendedMap missed key: {0}")]
     MapMissedKey(String),
+    /// Value 的类型与预期不匹配
     #[error("Type mismatch expect {0}, got {1}")]
     ValueTypeNotMatch(String, String),
     #[error("Illegal base64")]

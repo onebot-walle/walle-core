@@ -24,6 +24,48 @@ pub enum Value {
     Null,
 }
 
+/// 添加到 ValueMap 的方法
+/// 
+/// 可以通过 derive 宏自动实现，例如：
+/// 
+/// ```rust
+/// #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
+/// pub struct Bot {
+///     pub selft: Selft,
+///     pub online: bool,
+/// }
+/// ```
+pub trait PushToValueMap {
+    fn push_to(self, map: &mut ValueMap);
+}
+
+/// ValueMap 扩展方法
+pub trait ValueMapExt {
+    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>;
+    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>;
+    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>;
+    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
+    where
+        T: TryFrom<Value, Error = WalleError>;
+    fn try_get_as_ref<'a, T>(&'a self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsRef<'a, T>,
+        T: 'a;
+    fn try_get_as_mut<'a, T>(&'a mut self, key: &str) -> Result<T, WalleError>
+    where
+        Value: TryAsMut<'a, T>,
+        T: 'a;
+    fn push<T>(&mut self, value: T)
+    where
+        T: PushToValueMap;
+}
+
 macro_rules! impl_from {
     ($inty: tt,$ty: ty) => {
         impl From<$ty> for Value {
@@ -318,38 +360,8 @@ impl Value {
     }
 }
 
-pub trait PushToValueMap {
-    fn push_to(self, map: &mut ValueMap);
-}
-
 impl PushToValueMap for () {
     fn push_to(self, _map: &mut ValueMap) {}
-}
-
-pub trait ValueMapExt {
-    fn try_remove_downcast<T>(&mut self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>;
-    fn remove_downcast<T>(&mut self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>;
-    fn try_get_downcast<T>(&self, key: &str) -> Result<Option<T>, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>;
-    fn get_downcast<T>(&self, key: &str) -> Result<T, WalleError>
-    where
-        T: TryFrom<Value, Error = WalleError>;
-    fn try_get_as_ref<'a, T>(&'a self, key: &str) -> Result<T, WalleError>
-    where
-        Value: TryAsRef<'a, T>,
-        T: 'a;
-    fn try_get_as_mut<'a, T>(&'a mut self, key: &str) -> Result<T, WalleError>
-    where
-        Value: TryAsMut<'a, T>,
-        T: 'a;
-    fn push<T>(&mut self, value: T)
-    where
-        T: PushToValueMap;
 }
 
 impl ValueMapExt for ValueMap {
