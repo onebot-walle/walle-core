@@ -38,6 +38,7 @@ where
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for wss in config {
+            // 创建tcp监听
             let addr = std::net::SocketAddr::new(wss.host, wss.port);
             let tcp_listener = tokio::net::TcpListener::bind(&addr)
                 .await
@@ -47,7 +48,7 @@ where
                 "Websocket server listening on ws://{}", addr
             );
             let access_token = wss.access_token.clone();
-            let mut signal_rx = ob.get_signal_rx()?;
+            let mut shutdown_signal_rx = ob.get_signal_rx()?;
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
             let ob = ob.clone();
@@ -64,7 +65,7 @@ where
                             ));
                         }
                     }
-                    _ = signal_rx.recv() => break,
+                    _ = shutdown_signal_rx.recv() => break,
                 }}
             }));
         }
@@ -138,8 +139,8 @@ async fn ws_loop<E, A, R, AH, EH>(
 {
     let (json_resp_tx, mut json_resp_rx) = tokio::sync::mpsc::unbounded_channel();
     let (rmp_resp_tx, mut rmp_resp_rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
-    let connect = Event {
+    let mut shutdown_signal_rx = ob.get_signal_rx().unwrap(); //todo
+    let connect_evnet = Event {
         id: "".to_owned(),
         time: crate::util::timestamp_nano_f64(),
         ty: "meta".to_owned(),
@@ -150,33 +151,36 @@ async fn ws_loop<E, A, R, AH, EH>(
         },
     };
     if ws_stream
-        .send(WsMsg::Text(connect.json_encode()))
+        .send(WsMsg::Text(connect_evnet.json_encode()))
         .await
         .is_err()
     {
+        warn!(target: super::OBC, "ws send meta.connect event failed, disconnect");
         return;
     }
-    let status = ob.action_handler.get_status().await;
-    let status = Event {
+    let status_event = Event {
         id: "".to_owned(),
         time: crate::util::timestamp_nano_f64(),
         ty: "meta".to_owned(),
         detail_type: "status_update".to_owned(),
         sub_type: "".to_owned(),
         extra: value_map! {
-            "status": status
+            "status": ob.action_handler.get_status().await
         },
     };
     if ws_stream
-        .send(WsMsg::Text(status.json_encode()))
+        .send(WsMsg::Text(status_event.json_encode()))
         .await
         .is_err()
     {
+        warn!(target: super::OBC, "ws send meta.status_update event failed, disconnect");
         return;
     }
     loop {
         tokio::select! {
-            _ = signal_rx.recv() => break,
+            // shutdown
+            _ = shutdown_signal_rx.recv() => break,
+            // send event
             event = event_rx.recv() => {
                 match event {
                     Ok(event) => {
@@ -194,6 +198,7 @@ async fn ws_loop<E, A, R, AH, EH>(
                     }
                 }
             },
+            // send hb event
             hb = hb_rx.recv() => {
                 match hb {
                     Ok(hb) => {
@@ -208,6 +213,7 @@ async fn ws_loop<E, A, R, AH, EH>(
                     }
                 }
             }
+            // recv maybe action
             Some(ws_msg) = ws_stream.next() => {
                 trace!(target: crate::WALLE_CORE, "ws recv: {:?}", ws_msg);
                 match ws_msg {
@@ -221,16 +227,16 @@ async fn ws_loop<E, A, R, AH, EH>(
                         ).await { break },
                     Err(_) => break,
                 }
-
             },
+            // send action response by json
             Some(resp) = json_resp_rx.recv() => {
                 trace!(target: crate::WALLE_CORE, "ws send json: {:?}", resp);
                 // send action response
                 if ws_stream.send(WsMsg::Text(resp.json_encode())).await.is_err() {
                     break;
                 }
-
             },
+            // send action response by msgpack
             Some(resp) = rmp_resp_rx.recv() => {
                 trace!(target: crate::WALLE_CORE, "ws send rmp: {:?}", resp);
                 // send action response
@@ -243,6 +249,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     ws_stream.send(WsMsg::Close(None)).await.ok();
 }
 
+// handle ws received maybe action
 pub(crate) async fn ws_recv<E, A, R, AH, EH>(
     ws_msg: WsMsg,
     ob: &Arc<OneBot<AH, EH>>,
