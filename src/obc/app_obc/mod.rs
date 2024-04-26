@@ -99,7 +99,7 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        match self.bots.get_bot(&action.get_self()) {
+        match self.bots.get_bot_tx(&action.get_self()) {
             Some(action_txs) => {
                 let (tx, rx) = oneshot::channel();
                 let seq = self.next_seg();
@@ -150,10 +150,15 @@ where
 
 #[derive(Debug)]
 pub(crate) struct BotMap<A> {
+    /// 登记获取连接序列号
     pub(crate) conn_seq: AtomicUsize,
-    // value: (implt, action_tx)
+    /// 根据 bot 的 self 获取其 impl 字段和所有的 action_tx
+    ///
+    /// value: (implt, action_tx)
     pub(crate) bots: DashMap<Selft, (String, Vec<mpsc::UnboundedSender<Echo<A>>>)>,
-    // value: (action_tx, selfts)
+    /// 根据连接序列号获取其 action_tx 和 所有 bot self
+    ///
+    /// value: (action_tx, selfts)
     pub(crate) conns: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
 }
 
@@ -168,12 +173,14 @@ impl<A> Default for BotMap<A> {
 }
 
 impl<A> BotMap<A> {
+    /// 登记一个新链接，返回新链接的 conn_seq，并返回一个接收 Echo<A> 的 Receiver
     fn new_connect(&self) -> (usize, mpsc::UnboundedReceiver<Echo<A>>) {
         let seq = self.conn_seq.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = mpsc::unbounded_channel();
         self.conns.insert(seq, (tx, HashSet::default()));
         (seq, rx)
     }
+    /// 根据 conn_seq 关闭一个链接，并移除所有相关的 bot 的 action_tx
     fn connect_closs(&self, tx_seq: &usize) {
         if let Some(selfts) = self.conns.remove(tx_seq) {
             for selft in selfts.1 .1 {
@@ -188,6 +195,7 @@ impl<A> BotMap<A> {
             }
         }
     }
+    /// 更新一个连接的 bot 列表
     fn connect_update(&self, tx_seq: &usize, bots: Vec<Bot>, implt: &str) {
         let mut get = self.conns.get_mut(tx_seq).unwrap();
         let tx = get.0.clone();
@@ -224,9 +232,11 @@ impl<A> BotMap<A> {
             }
         }
     }
-    fn get_bot(&self, bot: &Selft) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
+    /// 获取一个 bot 的 action_tx
+    fn get_bot_tx(&self, bot: &Selft) -> Option<Vec<mpsc::UnboundedSender<Echo<A>>>> {
         self.bots.get(bot).as_deref().cloned().map(|v| v.1)
     }
+    /// 获取所有 bot
     fn selfts(&self) -> Vec<Selft> {
         self.bots.iter().map(|i| i.key().clone()).collect()
     }
@@ -291,12 +301,17 @@ fn test_bot_map() {
         platform: "".to_owned(),
         user_id: "1".to_owned(),
     };
-    // map.connect_update(&0, HashSet::from([self0.clone()]), "");
-    // assert_eq!(map.bots.get(&self0).unwrap().1.len(), 1);
-    // assert!(map.txs.get(&0).unwrap().1.len() == 1);
-    // map.connect_update(&0, HashSet::from([self1.clone()]), "");
-    assert!(map.bots.get(&self0).is_none());
-    assert!(map.conns.get(&0).unwrap().1.len() == 1);
-    assert_eq!(map.bots.get(&self1).unwrap().1.len(), 1);
-    assert!(map.get_bot(&self1).is_some());
+    map.connect_update(
+        &0,
+        vec![Bot {
+            selft: self0.clone(),
+            online: true,
+        }],
+        "",
+    );
+    assert_eq!(map.bots.get(&self0).unwrap().1.len(), 1);
+    assert!(map.conns.get(&0).unwrap().value().1.len() == 1);
+    assert!(map.bots.get(&self1).is_none());
+    assert!(map.get_bot_tx(&self0).is_some());
+    assert!(map.get_bot_tx(&self1).is_none());
 }
