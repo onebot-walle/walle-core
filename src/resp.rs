@@ -145,16 +145,17 @@ impl Resp {
 pub mod resp_error {
     use super::RespError;
     /// RespError 构造函数声明
+    /// 
+    /// ## Example:
     /// ```rust
-    /// error_type!(bad_request, 10001, "无效的动作请求");
-    /// ```
-    /// generate code:
-    /// ```rust
+    /// use  walle_core::resp::RespError;
+    ///
+    /// // error_type!(bad_request, 10001, "无效的动作请求");
     /// pub fn bad_request<T: std::fmt::Display>(msg: T) -> RespError {
     ///     RespError {
-    ///         code: 10001,
+    ///         retcode: 10001,
     ///         message: {
-    ///             let mut message = String::from($message);
+    ///             let mut message = String::from("无效的动作请求");
     ///             let msg = msg.to_string();
     ///                 if msg != String::default() {
     ///                     message.push(':');

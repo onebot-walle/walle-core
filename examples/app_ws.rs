@@ -1,12 +1,8 @@
 use std::sync::Arc;
-use walle_core::action::Action;
 use walle_core::alt::TracingHandler;
 use walle_core::config::AppConfig;
-use walle_core::event::Event;
 use walle_core::obc::AppOBC;
-use walle_core::prelude::Version;
-use walle_core::resp::Resp;
-use walle_core::OneBot;
+use walle_core::prelude::*;
 
 #[tokio::main]
 async fn main() {

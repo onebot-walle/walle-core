@@ -41,13 +41,10 @@ Walle 的名字来源于机械总动员的 WALL-E ( A Rusty Bot )
 
 ```rust
 use std::sync::Arc;
-use walle_core::action::Action;
 use walle_core::alt::TracingHandler;
 use walle_core::config::ImplConfig;
-use walle_core::event::Event;
 use walle_core::obc::ImplOBC;
-use walle_core::resp::Resp;
-use walle_core::OneBot;
+use walle_core::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -55,11 +52,15 @@ async fn main() {
     let ob = Arc::new(OneBot::new(
         TracingHandler::<Event, Action, Resp>::default(),
         ImplOBC::new("impl".to_string()),
+        walle_core::structs::Version {
+            implt: walle_core::WALLE_CORE.to_owned(),
+            version: walle_core::VERSION.to_owned(),
+            onebot_version: 12.to_string(),
+        },
     ));
-    let tasks = ob.start((), ImplConfig::default(), true).await.unwrap();
-    for task in tasks {
-        task.await.unwrap()
-    }
+    ob.start((), ImplConfig::default(), true).await.unwrap();
+    // ob.wait_all().await;
+    ob.shutdown(true).await.ok();
 }
 ```
 
@@ -67,13 +68,10 @@ async fn main() {
 
 ```rust
 use std::sync::Arc;
-use walle_core::action::Action;
 use walle_core::alt::TracingHandler;
 use walle_core::config::AppConfig;
-use walle_core::event::Event;
 use walle_core::obc::AppOBC;
-use walle_core::resp::Resp;
-use walle_core::OneBot;
+use walle_core::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -81,11 +79,15 @@ async fn main() {
     let ob = Arc::new(OneBot::new(
         AppOBC::new(),
         TracingHandler::<Event, Action, Resp>::default(),
+        Version {
+            implt: walle_core::WALLE_CORE.to_owned(),
+            version: walle_core::VERSION.to_owned(),
+            onebot_version: 12.to_string(),
+        },
     ));
-    let tasks = ob.start(AppConfig::default(), (), true).await.unwrap();
-    for task in tasks {
-        task.await.unwrap()
-    }
+    ob.start(AppConfig::default(), (), true).await.unwrap();
+    // ob.wait_all().await;
+    ob.shutdown(true).await.ok();
 }
 
 ```
@@ -107,13 +109,13 @@ walle_core::event::BaseEvent\<T, D, S, P, I\> 为扩展模型，其中五个泛�
 定义一个 type 级别扩展字段（ ob12 理论上不支持该级别扩展）:
 
 ```rust
-use walle_core::prelude::{PushToValueMap, ToEvent, TryFromEvent};
+use walle_core::prelude::*;
 
 #[derive(ToEvent, PushToValueMap, TryFromEvent)]
 #[event(type)]
 pub struct Message {
     pub message_id: String,
-    pub message: crate::message::Message,
+    pub message: Segments,
     pub alt_message: String,
     pub user_id: String,
 }
@@ -122,6 +124,8 @@ pub struct Message {
 或者定义一个 detail_type 级别扩展字段
 
 ```rust
+use walle_core::prelude::*;
+
 #[derive(PushToValueMap, TryFromEvent, ToEvent)]
 #[event(detail_type = "group")]
 pub struct Group_ {
@@ -132,7 +136,7 @@ pub struct Group_ {
 #[derive(TryFromEvent)]
 #[event(detail_type)]
 pub enum Details {
-    Group(Group), // Group 应 impl TryFromValue
+    Group(walle_core::event::Group), // Group 应 impl TryFromValue
     Private,
 }
 
@@ -149,6 +153,8 @@ walle_core::action::Action 为序列化使用标准类型，该模型仅确保 a
 或者直接使用本 crate 提供的派生宏
 
 ```rust
+use walle_core::prelude::*;
+
 #[derive(ToAction, PushToValueMap, TryFromAction)]
 pub struct GetFile {
     pub file_id: String,
@@ -159,6 +165,8 @@ pub struct GetFile {
 或者
 
 ```rust
+use walle_core::prelude::*;
+
 #[derive(ToAction, TryFromAction, PushToValueMap)]
 #[action("upload_file")]
 pub struct UploadFile_ {
@@ -175,6 +183,9 @@ pub struct UploadFile_ {
 想要同时支持多种 Action ? 没问题! 
 
 ```rust
+use walle_core::prelude::*;
+use walle_core::action::GetUserInfo;
+
 #[derive(TryFromAction)]
 pub enum MyAction {
     GetUserInfo(GetUserInfo), // GetUserInfo 应 impl TryFromValue
@@ -195,6 +206,8 @@ walle_core::resp::Resp 为序列化使用标准类型
 当然还是可以使用宏
 
 ```rust
+use walle_core::prelude::*;
+
 #[derive(PushToValueMap, TryFromValue)]
 pub struct Status {
     pub good: bool,
@@ -209,6 +222,8 @@ pub struct Status {
 基本与 Action 模型相同，唯一的不同是序列化使用的模型是 walle_core::message::MessageSegment，该模型同时也是一个 Value ，因此可以从 Event 或 Action 中获取。
 
 ```rust
+use walle_core::prelude::*;
+
 #[derive(PushToValueMap, TryFromMsgSegment, ToMsgSegment)]
 pub struct Text {
     pub text: String,

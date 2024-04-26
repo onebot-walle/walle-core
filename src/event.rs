@@ -37,12 +37,14 @@ pub struct Event {
 /// 通常情况可以通过 `TryFromEvent` derive 宏实现，但也可以手动实现，例如：
 ///
 /// ```rust
+/// use walle_core::prelude::*;
+///
 /// #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 /// #[event(type)] // 标记扩展等级为 type
 /// pub struct Message {
 ///     pub selft: Selft,
 ///     pub message_id: String,
-///     pub message: crate::segment::Segments,
+///     pub message: Segments,
 ///     pub alt_message: String,
 ///     pub user_id: String,
 /// }
@@ -59,12 +61,14 @@ pub trait ToEvent<T>: PushToValueMap {
 /// 通常情况可以通过 `TryFromEvent` derive 宏实现，但也可以手动实现，例如：
 ///
 /// ```rust
+/// use walle_core::prelude::*;
+///
 /// #[derive(Debug, Clone, PartialEq, TryFromValue, PushToValueMap, ToEvent, TryFromEvent)]
 /// #[event(type)] // 标记扩展等级为 type
 /// pub struct Message {
 ///     pub selft: Selft,
 ///     pub message_id: String,
-///     pub message: crate::segment::Segments,
+///     pub message: Segments,
 ///     pub alt_message: String,
 ///     pub user_id: String,
 /// }

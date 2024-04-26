@@ -25,10 +25,12 @@ pub enum Value {
 }
 
 /// 添加到 ValueMap 的方法
-/// 
+///
 /// 可以通过 derive 宏自动实现，例如：
-/// 
+///
 /// ```rust
+/// use walle_core::prelude::*;
+///
 /// #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 /// pub struct Bot {
 ///     pub selft: Selft,
