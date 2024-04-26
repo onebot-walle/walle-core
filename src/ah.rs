@@ -4,7 +4,6 @@ use std::sync::Arc;
 use crate::action::Action;
 use crate::error::WalleResult;
 use crate::event::Event;
-use crate::prelude::Version;
 use crate::resp::Resp;
 use crate::structs::{Bot, Selft, Status};
 use crate::util::GetSelf;
@@ -16,7 +15,7 @@ use crate::OneBot;
 /// 对于应用端，ActionHandler 为 OBC
 ///
 /// 对于协议端，ActionHandler 为具体实现
-pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus + GetVersion {
+pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus {
     type Config;
     fn start<AH, EH>(
         &self,
@@ -121,10 +120,6 @@ pub trait GetStatus: GetSelfs + Sync {
     }
 }
 
-pub trait GetVersion {
-    fn get_version(&self) -> Version;
-}
-
 pub struct JoinedHandler<H0, H1>(pub H0, pub H1);
 
 pub trait AHExt<E, A, R> {
@@ -166,15 +161,6 @@ where
 {
     async fn is_good(&self) -> bool {
         self.0.is_good().await && self.1.is_good().await
-    }
-}
-
-impl<H0, H1> GetVersion for JoinedHandler<H0, H1>
-where
-    H0: GetVersion,
-{
-    fn get_version(&self) -> Version {
-        self.0.get_version()
     }
 }
 

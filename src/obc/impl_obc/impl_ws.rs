@@ -146,7 +146,7 @@ async fn ws_loop<E, A, R, AH, EH>(
         detail_type: "connect".to_owned(),
         sub_type: "".to_owned(),
         extra: value_map! {
-            "version": ob.action_handler.get_version()
+            "version": ob.version.clone(),
         },
     };
     if ws_stream

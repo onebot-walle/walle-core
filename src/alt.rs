@@ -7,7 +7,7 @@ use tracing::info;
 use crate::action::Action;
 use crate::ah::GetSelfs;
 use crate::event::Event;
-use crate::prelude::{Version, WalleResult};
+use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
 use crate::structs::Selft;
 use crate::util::{Value, ValueMap};
@@ -118,16 +118,6 @@ where
 {
     async fn is_good(&self) -> bool {
         true
-    }
-}
-
-impl<E, A, R> crate::GetVersion for TracingHandler<E, A, R> {
-    fn get_version(&self) -> Version {
-        Version {
-            implt: crate::WALLE_CORE.to_owned(),
-            version: crate::VERSION.to_owned(),
-            onebot_version: "12".to_owned(),
-        }
     }
 }
 

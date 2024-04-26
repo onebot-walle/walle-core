@@ -18,7 +18,7 @@ pub mod structs;
 pub mod util;
 
 mod ah;
-pub use ah::{ActionHandler, GetSelfs, GetStatus, GetVersion};
+pub use ah::{ActionHandler, GetSelfs, GetStatus};
 mod eh;
 pub use eh::EventHandler;
 use tokio::task::JoinHandle;
@@ -27,6 +27,8 @@ use tokio::task::JoinHandle;
 pub mod obc;
 #[cfg(test)]
 mod test;
+
+use structs::Version;
 
 pub mod prelude {
     pub use super::*;
@@ -53,6 +55,8 @@ pub struct OneBot<AH, EH> {
     signal: StdMutex<Option<tokio::sync::broadcast::Sender<()>>>,
     ah_tasks: Mutex<Vec<JoinHandle<()>>>,
     eh_tasks: Mutex<Vec<JoinHandle<()>>>,
+    // Version
+    pub version: Version,
 }
 
 use std::sync::{Arc, Mutex as StdMutex};
@@ -61,13 +65,14 @@ use tokio::sync::Mutex;
 pub use crate::error::{WalleError, WalleResult};
 
 impl<AH, EH> OneBot<AH, EH> {
-    pub fn new(action_handler: AH, event_handler: EH) -> Self {
+    pub fn new(action_handler: AH, event_handler: EH, version: Version) -> Self {
         Self {
             action_handler,
             event_handler,
             signal: StdMutex::new(None),
             ah_tasks: Mutex::default(),
             eh_tasks: Mutex::default(),
+            version,
         }
     }
     pub async fn start<E, A, R>(

@@ -72,8 +72,10 @@ pub struct ChannelInfo {
 
 #[derive(Debug, Clone, PartialEq, Eq, PushToValueMap, TryFromValue)]
 pub struct Version {
+    /// impl 字段
     pub implt: String,
-    // pub platform: String,
+    /// impl 版本号
     pub version: String,
+    /// onebot 标准版本号
     pub onebot_version: String,
 }
