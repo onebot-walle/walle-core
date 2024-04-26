@@ -3,7 +3,7 @@
 
 #[doc(hidden)]
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-/// "Walle-core"
+/// Walle-core
 pub const WALLE_CORE: &str = "Walle-core";
 
 pub mod action;

@@ -1,5 +1,6 @@
-use std::fmt::Debug;
+//! 通用内容
 
+use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 
 mod bytes;
@@ -10,6 +11,7 @@ pub use bytes::*;
 pub use echo::*;
 pub use value::*;
 
+/// 返回纳秒单位时间戳
 pub fn timestamp_nano() -> u128 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -17,15 +19,18 @@ pub fn timestamp_nano() -> u128 {
         .as_nanos()
 }
 
+/// 返回 f64 时间戳，单位为秒
 pub fn timestamp_nano_f64() -> f64 {
     timestamp_nano() as f64 / 1_000_000_000.0
 }
 
+/// 从纳秒时间戳生成 uuid
 #[cfg(feature = "impl-obc")]
 pub fn new_uuid() -> String {
     uuid::Uuid::from_u128(timestamp_nano()).to_string()
 }
 
+/// 约束具有 `self` 字段
 pub trait GetSelf: Sized {
     fn get_self(&self) -> Selft;
 }
@@ -104,6 +109,7 @@ impl std::fmt::Display for ContentType {
     }
 }
 
+#[doc(hidden)]
 pub(crate) trait AuthReqHeaderExt {
     fn header_auth_token(self, token: &Option<String>) -> Self;
 }
@@ -126,6 +132,7 @@ impl AuthReqHeaderExt for Builder {
     }
 }
 
+#[doc(hidden)]
 pub trait TryAsRef<'a, T>
 where
     T: 'a,
@@ -133,6 +140,7 @@ where
     fn _try_as_ref(&'a self) -> WalleResult<T>;
 }
 
+#[doc(hidden)]
 pub trait TryAsMut<'a, T>
 where
     T: 'a,

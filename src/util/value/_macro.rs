@@ -16,7 +16,7 @@ macro_rules! value {
 }
 
 #[macro_export]
-/// Vec<Value> 声明宏
+/// `Vec<Value>` 声明宏
 macro_rules! value_vec {
     (@internal [$($elems:expr),*]) => {
         vec![$($elems),*]

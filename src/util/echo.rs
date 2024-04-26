@@ -1,6 +1,7 @@
 use super::{timestamp_nano, ValueMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
+/// 用于处理带 `echo` 字段的 action 与 response
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Echo<I> {
     #[serde(flatten)]
@@ -11,6 +12,7 @@ pub struct Echo<I> {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct EchoS(pub Option<EchoInner>);
 
+/// `echo` 字段的可能类型，同时支持 str 和 dict
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum EchoInner {
     S(String),

@@ -1,3 +1,5 @@
+//! payload value 的各类型与方法，与 json 基本一致
+
 use std::collections::HashMap;
 
 use super::{OneBotBytes, TryAsMut, TryAsRef};

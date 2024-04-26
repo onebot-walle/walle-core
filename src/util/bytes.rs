@@ -1,5 +1,10 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
+/// 用于序列化和反序列化 OneBot 消息的 bytes 类型
+/// 
+/// json 序列化时，使用 base64 编码
+/// 
+/// msgpack 序列化时，使用原始 bytes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OneBotBytes(pub Vec<u8>);
 
