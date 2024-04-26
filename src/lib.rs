@@ -157,7 +157,8 @@ impl<AH, EH> OneBot<AH, EH> {
             self.event_handler.shutdown().await;
             self.action_handler.shutdown().await;
         }
-        Ok(self.wait_all().await)
+        self.wait_all().await;
+        Ok(())
     }
     pub async fn handle_event<E, A, R>(self: &Arc<Self>, event: E) -> WalleResult<()>
     where
@@ -222,18 +223,20 @@ impl<AH, EH> OneBot<AH, EH> {
     }
 }
 
+type BotContent<A> = (String, Vec<mpsc::UnboundedSender<Echo<A>>>);
+
 #[derive(Debug)]
 pub struct BotMap<A> {
     /// 登记获取连接序列号
-    pub(crate) conn_seq: AtomicUsize,
+    conn_seq: AtomicUsize,
     /// 根据 bot 的 self 获取其 impl 字段和所有的 action_tx
     ///
     /// value: (implt, action_tx)
-    pub(crate) bots: DashMap<Selft, (String, Vec<mpsc::UnboundedSender<Echo<A>>>)>,
+    bots: DashMap<Selft, BotContent<A>>,
     /// 根据连接序列号获取其 action_tx 和 所有 bot self
     ///
     /// value: (action_tx, selfts)
-    pub(crate) conns: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
+    conns: DashMap<usize, (mpsc::UnboundedSender<Echo<A>>, HashSet<Selft>)>,
 }
 
 impl<A> Default for BotMap<A> {

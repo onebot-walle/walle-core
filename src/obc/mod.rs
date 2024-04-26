@@ -22,8 +22,8 @@ use tokio_tungstenite::tungstenite::http::Uri;
 fn check_query(uri: &Uri) -> Option<&str> {
     uri.query()
         .unwrap_or_default()
-        .split("&")
-        .map(|v| v.split_once("="))
+        .split('&')
+        .map(|v| v.split_once('='))
         .collect::<Option<std::collections::HashMap<&str, &str>>>()
         .unwrap_or_default()
         .get("access_token")

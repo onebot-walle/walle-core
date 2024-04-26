@@ -90,7 +90,7 @@ pub struct TracingHandler<E, A, R>(std::marker::PhantomData<(E, A, R)>);
 
 impl<E, A, R> Default for TracingHandler<E, A, R> {
     fn default() -> Self {
-        Self(std::marker::PhantomData::default())
+        Self(std::marker::PhantomData)
     }
 }
 
@@ -101,16 +101,16 @@ where
     R: From<RespError> + Send + Sync + 'static,
 {
     type Config = ();
-    fn start<AH, EH>(
+    async fn start<AH, EH>(
         &self,
         _ob: &Arc<OneBot<AH, EH>>,
         _config: (),
-    ) -> impl std::future::Future<Output = WalleResult<Vec<tokio::task::JoinHandle<()>>>> + Send
+    ) -> WalleResult<Vec<tokio::task::JoinHandle<()>>>
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        async move { Ok(vec![]) }
+        Ok(vec![])
     }
     async fn call<AH, EH>(&self, action: A, _ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
     where

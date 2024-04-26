@@ -52,10 +52,10 @@ impl MsgSegment {
             format!("[{},{}]", self.ty, content)
         }
     }
-    pub fn try_as_ref<'a>(&'a self) -> WalleResult<MsgSegmentRef<'a>> {
+    pub fn try_as_ref(&self) -> WalleResult<MsgSegmentRef<'_>> {
         self._try_as_ref()
     }
-    pub fn try_as_mut<'a>(&'a mut self) -> WalleResult<MsgSegmentMut<'a>> {
+    pub fn try_as_mut(&mut self) -> WalleResult<MsgSegmentMut<'_>> {
         self._try_as_mut()
     }
 }
@@ -235,8 +235,8 @@ pub trait MessageExt {
 }
 
 pub trait MessageRefExt {
-    fn try_as_ref<'a>(&'a self) -> WalleResult<Vec<MsgSegmentRef<'a>>>;
-    fn try_iter_text_mut<'a>(&'a self) -> WalleResult<Vec<&'a str>> {
+    fn try_as_ref(&self) -> WalleResult<Vec<MsgSegmentRef<'_>>>;
+    fn try_iter_text_mut(&self) -> WalleResult<Vec<&str>> {
         Ok(self
             .try_as_ref()?
             .into_iter()
@@ -249,7 +249,7 @@ pub trait MessageRefExt {
             })
             .collect())
     }
-    fn try_first_text_ref<'a>(&'a self) -> WalleResult<&'a str> {
+    fn try_first_text_ref(&self) -> WalleResult<&str> {
         let mut segs = self.try_as_ref()?;
         if !segs.is_empty() {
             if let MsgSegmentRef::Text { text, .. } = segs.remove(0) {
@@ -260,9 +260,9 @@ pub trait MessageRefExt {
             "first message segment is not text".to_string(),
         ))
     }
-    fn try_last_text_ref<'a>(&'a self) -> WalleResult<&'a str> {
+    fn try_last_text_ref(&self) -> WalleResult<&str> {
         if let Some(MsgSegmentRef::Text { text, .. }) = self.try_as_ref()?.pop() {
-            return Ok(text);
+            Ok(text)
         } else {
             Err(WalleError::Other(
                 "last message segment is not text".to_string(),
@@ -272,8 +272,8 @@ pub trait MessageRefExt {
 }
 
 pub trait MessageMutExt {
-    fn try_as_mut<'a>(&'a mut self) -> WalleResult<Vec<MsgSegmentMut<'a>>>;
-    fn try_iter_text_mut<'a>(&'a mut self) -> WalleResult<Vec<&'a mut String>> {
+    fn try_as_mut(&mut self) -> WalleResult<Vec<MsgSegmentMut<'_>>>;
+    fn try_iter_text_mut(&mut self) -> WalleResult<Vec<&mut String>> {
         Ok(self
             .try_as_mut()?
             .into_iter()
@@ -286,7 +286,7 @@ pub trait MessageMutExt {
             })
             .collect())
     }
-    fn try_first_text_mut<'a>(&'a mut self) -> WalleResult<&'a mut String> {
+    fn try_first_text_mut(&mut self) -> WalleResult<&mut String> {
         let mut segs = self.try_as_mut()?;
         if !segs.is_empty() {
             if let MsgSegmentMut::Text { text } = segs.remove(0) {
@@ -297,9 +297,9 @@ pub trait MessageMutExt {
             "first message segment is not text".to_string(),
         ))
     }
-    fn try_last_text_mut<'a>(&'a mut self) -> WalleResult<&'a mut String> {
+    fn try_last_text_mut(&mut self) -> WalleResult<&mut String> {
         if let Some(MsgSegmentMut::Text { text }) = self.try_as_mut()?.pop() {
-            return Ok(text);
+            Ok(text)
         } else {
             Err(WalleError::Other(
                 "last message segment is not text".to_string(),
@@ -329,26 +329,26 @@ impl MessageExt for Segments {
 }
 
 impl MessageRefExt for Segments {
-    fn try_as_ref<'a>(&'a self) -> WalleResult<Vec<MsgSegmentRef<'a>>> {
+    fn try_as_ref(&self) -> WalleResult<Vec<MsgSegmentRef<'_>>> {
         self.iter().map(|seg| seg.try_as_ref()).collect()
     }
 }
 
 impl MessageMutExt for Segments {
-    fn try_as_mut<'a>(&'a mut self) -> WalleResult<Vec<MsgSegmentMut<'a>>> {
-        self.into_iter().map(|seg| seg.try_as_mut()).collect()
+    fn try_as_mut(&mut self) -> WalleResult<Vec<MsgSegmentMut<'_>>> {
+        self.iter_mut().map(|seg| seg.try_as_mut()).collect()
     }
 }
 
 impl MessageRefExt for Vec<Value> {
-    fn try_as_ref<'a>(&'a self) -> WalleResult<Vec<MsgSegmentRef<'a>>> {
+    fn try_as_ref(&self) -> WalleResult<Vec<MsgSegmentRef<'_>>> {
         self.iter().map(|v| v.try_as_ref()).collect()
     }
 }
 
 impl MessageMutExt for Vec<Value> {
-    fn try_as_mut<'a>(&'a mut self) -> WalleResult<Vec<MsgSegmentMut<'a>>> {
-        self.into_iter().map(|v| v.try_as_mut()).collect()
+    fn try_as_mut(&mut self) -> WalleResult<Vec<MsgSegmentMut<'_>>> {
+        self.iter_mut().map(|v| v.try_as_mut()).collect()
     }
 }
 
@@ -410,46 +410,46 @@ where
     match ty {
         "text" => Ok(MsgSegmentRef::Text {
             text: data.try_get_as_ref("text")?,
-            extra: &data,
+            extra: data,
         }),
         "mention" => Ok(MsgSegmentRef::Mention {
             user_id: data.try_get_as_ref("user_id")?,
-            extra: &data,
+            extra: data,
         }),
-        "mention_all" => Ok(MsgSegmentRef::MentionAll { extra: &data }),
+        "mention_all" => Ok(MsgSegmentRef::MentionAll { extra: data }),
         "image" => Ok(MsgSegmentRef::Image {
             file_id: data.try_get_as_ref("file_id")?,
-            extra: &data,
+            extra: data,
         }),
         "voice" => Ok(MsgSegmentRef::Voice {
             file_id: data.try_get_as_ref("file_id")?,
-            extra: &data,
+            extra: data,
         }),
         "audio" => Ok(MsgSegmentRef::Audio {
             file_id: data.try_get_as_ref("file_id")?,
-            extra: &data,
+            extra: data,
         }),
         "video" => Ok(MsgSegmentRef::Video {
             file_id: data.try_get_as_ref("file_id")?,
-            extra: &data,
+            extra: data,
         }),
         "file" => Ok(MsgSegmentRef::File {
             file_id: data.try_get_as_ref("file_id")?,
-            extra: &data,
+            extra: data,
         }),
         "location" => Ok(MsgSegmentRef::Location {
             latitude: data.try_get_as_ref("latitude")?,
             longitude: data.try_get_as_ref("longitude")?,
             title: data.try_get_as_ref("title")?,
             content: data.try_get_as_ref("content")?,
-            extra: &data,
+            extra: data,
         }),
         "reply" => Ok(MsgSegmentRef::Reply {
             message_id: data.try_get_as_ref("message_id")?,
             user_id: data.try_get_as_ref("user_id")?,
-            extra: &data,
+            extra: data,
         }),
-        _ => Ok(MsgSegmentRef::Other { ty, extra: &data }),
+        _ => Ok(MsgSegmentRef::Other { ty, extra: data }),
     }
 }
 
