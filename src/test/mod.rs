@@ -50,18 +50,25 @@ fn event() {
             sub_type: "".to_string(),
             extra: value_map! {
                 "interval": 5000,
+                "status": {
+                    "good": true
+                }
             },
         },
-        new_event(
-            "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-            1632847927.599013,
-            Meta {},
-            Heartbeat { interval: 5000 },
-            (),
-            (),
-            (),
-            value_map!(),
-        ),
+        BaseEvent {
+            id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
+            time: 1632847927.599013,
+            ty: Meta {},
+            detail_type: Heartbeat { interval: 5000 },
+            sub_type: (),
+            platform: (),
+            implt: (),
+            extra: value_map! {
+                "status": {
+                    "good": true
+                }
+            },
+        },
     ));
     test((
         r#"{
@@ -122,10 +129,10 @@ fn event() {
                 "user_id": "123456788"
             },
         },
-        new_event(
-            "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
-            1632847927.0,
-            Message {
+        BaseEvent {
+            id: "b6e65187-5ac0-489c-b431-53078e9d2bbb".to_string(),
+            time: 1632847927.0,
+            ty: Message {
                 message: vec![
                     crate::segment::MsgSegment {
                         ty: "text".to_string(),
@@ -148,12 +155,12 @@ fn event() {
                     user_id: "123234".to_owned(),
                 },
             },
-            Private {},
-            (),
-            (),
-            (),
-            value_map!(),
-        ),
+            detail_type: Private {},
+            sub_type: (),
+            platform: (),
+            implt: (),
+            extra: value_map!(),
+        },
     ));
 }
 
