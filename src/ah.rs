@@ -130,7 +130,7 @@ where
         }
     }
     fn get_bot_map(&self) -> Option<&BotMap<A>> {
-        todo!()
+        self.0.get_bot_map() // 仅使用其中一个的 BotMap
     }
     async fn before_call_event<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<E>
     where

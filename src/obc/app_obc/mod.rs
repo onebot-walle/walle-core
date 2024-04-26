@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use super::OBC;
 use crate::util::{EchoInner, EchoS, GetSelf, ProtocolItem};
-use crate::{ActionHandler, EventHandler, OneBot};
+use crate::{ActionHandler, BotMap, EventHandler, OneBot};
 use crate::{WalleError, WalleResult};
 
 use dashmap::DashMap;
@@ -25,10 +25,10 @@ pub(crate) type EchoMap<R> = Arc<DashMap<EchoS, oneshot::Sender<R>>>;
 /// Event 泛型要求实现 Clone + SelfId trait
 /// Action 泛型要求实现 SelfId + ActionType trait
 pub struct AppOBC<A, R> {
-    pub(crate) _block_meta_event: AtomicBool, //todo
-    pub(crate) echos: EchoMap<R>,             // echo channel sender 暂存 Map
-    pub(crate) seq: AtomicU64,                // 用于生成 echo
-    pub(crate) _bots: Arc<crate::BotMap<A>>,  // Bot action channel map
+    pub(crate) _block_meta_event: AtomicBool,     //todo
+    pub(crate) echos: EchoMap<R>,                 // echo channel sender 暂存 Map
+    pub(crate) seq: AtomicU64,                    // 用于生成 echo
+    pub(crate) _bots: OnceLock<crate::BotMap<A>>, // Bot action channel map
 }
 
 impl<A, R> AppOBC<A, R> {
@@ -46,7 +46,7 @@ impl<A, R> Default for AppOBC<A, R> {
             _block_meta_event: AtomicBool::new(true),
             echos: Arc::new(DashMap::new()),
             seq: AtomicU64::default(),
-            _bots: Arc::new(Default::default()),
+            _bots: OnceLock::new(),
         }
     }
 }
@@ -132,7 +132,10 @@ where
         }
     }
     fn get_bot_map(&self) -> Option<&crate::BotMap<A>> {
-        Some(&self._bots)
+        self._bots.get().or_else(|| {
+            self._bots.set(BotMap::default()).unwrap();
+            self._bots.get()
+        })
     }
     async fn before_call_event<AH, EH>(
         &self,
