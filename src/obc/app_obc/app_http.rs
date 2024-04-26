@@ -38,7 +38,6 @@ where
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
         for webhook in config {
-            let bot_map = self.bots.clone();
             let echo_map = self.echos.clone();
             let access_token = webhook.access_token.clone();
             let mut signal_rx = ob.get_signal_rx()?;
@@ -52,7 +51,6 @@ where
             let serv = service_fn(move |req: Request<Body>| {
                 let access_token = access_token.clone();
                 let ob = ob.clone();
-                let bot_map = bot_map.clone();
                 let echo_map = echo_map.clone();
                 async move {
                     if let Some(token) = access_token.as_ref() {
@@ -89,9 +87,10 @@ where
                     .unwrap();
                     match E::json_decode(&body) {
                         Ok(event) => {
-                            let (seq, mut action_rx) = bot_map.new_connect();
+                            let (seq, mut action_rx) =
+                                ob.action_handler.get_bot_map().unwrap().new_connect();
                             let selft = event.get_self();
-                            bot_map.connect_update(
+                            ob.action_handler.get_bot_map().unwrap().connect_update(
                                 &seq,
                                 vec![Bot {
                                     online: true,
@@ -110,7 +109,7 @@ where
                             {
                                 let echo_s = a.get_echo();
                                 echo_map.remove(&echo_s);
-                                bot_map.connect_closs(&seq);
+                                ob.action_handler.get_bot_map().unwrap().connect_closs(&seq);
                                 return Ok(Response::new(a.json_encode().into()));
                             }
                         }
@@ -152,9 +151,9 @@ where
     {
         let client = Arc::new(HyperClient::new());
         for (bot_id, http) in config {
-            let (seq, mut rx) = self.bots.new_connect();
+            let (seq, mut rx) = ob.action_handler.get_bot_map().unwrap().new_connect();
             let implt = http.implt.clone().unwrap_or_default();
-            self.bots.connect_update(
+            ob.action_handler.get_bot_map().unwrap().connect_update(
                 &seq,
                 vec![Bot {
                     online: true,

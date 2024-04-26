@@ -165,7 +165,7 @@ async fn ws_loop<E, A, R, AH, EH>(
         detail_type: "status_update".to_owned(),
         sub_type: "".to_owned(),
         extra: value_map! {
-            "status": ob.action_handler.get_status().await
+            "status": ob.get_status(),
         },
     };
     if ws_stream

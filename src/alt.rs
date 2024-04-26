@@ -5,11 +5,9 @@ use colored::*;
 use tracing::info;
 
 use crate::action::Action;
-use crate::ah::GetSelfs;
 use crate::event::Event;
 use crate::prelude::WalleResult;
 use crate::resp::{resp_error, RespError};
-use crate::structs::Selft;
 use crate::util::{Value, ValueMap};
 use crate::{ActionHandler, EventHandler, OneBot, WALLE_CORE};
 
@@ -96,31 +94,6 @@ impl<E, A, R> Default for TracingHandler<E, A, R> {
     }
 }
 
-impl<E, A, R> GetSelfs for TracingHandler<E, A, R>
-where
-    E: Send + Sync + 'static,
-    A: Send + Sync + 'static,
-    R: Send + Sync + 'static,
-{
-    async fn get_selfs(&self) -> Vec<Selft> {
-        vec![]
-    }
-    async fn get_impl(&self, _selft: &Selft) -> String {
-        String::default()
-    }
-}
-
-impl<E, A, R> crate::GetStatus for TracingHandler<E, A, R>
-where
-    E: Send + Sync + 'static,
-    A: Send + Sync + 'static,
-    R: Send + Sync + 'static,
-{
-    async fn is_good(&self) -> bool {
-        true
-    }
-}
-
 impl<E, A, R> ActionHandler<E, A, R> for TracingHandler<E, A, R>
 where
     E: Send + Sync + 'static,
@@ -146,6 +119,9 @@ where
     {
         info!(target: WALLE_CORE, "{}", action.colored_alt());
         Ok(resp_error::unsupported_action("").into())
+    }
+    fn get_bot_map(&self) -> Option<&crate::BotMap<A>> {
+        None
     }
     async fn shutdown(&self) {
         info!(target: WALLE_CORE, "Shutting down TracingHandler")

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::OBC;
 use crate::event::Event;
 use crate::util::ProtocolItem;
+use crate::WalleResult;
 use crate::{ActionHandler, EventHandler, OneBot};
-use crate::{GetStatus, WalleResult};
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
@@ -81,11 +81,11 @@ impl<E> ImplOBC<E> {
     }
 }
 
-async fn build_hb<AH, EH>(ob: &OneBot<AH, EH>, interval: u32) -> crate::event::Event
+async fn build_hb<AH, EH, E, A, R>(ob: &OneBot<AH, EH>, interval: u32) -> crate::event::Event
 where
-    AH: GetStatus + Send + Sync,
+    AH: ActionHandler<E, A, R> + Send + Sync,
 {
-    let status = ob.action_handler.get_status().await;
+    let status = ob.get_status();
     crate::event::Event {
         id: crate::util::new_uuid(),
         time: crate::util::timestamp_nano_f64(),
@@ -99,13 +99,13 @@ where
     }
 }
 
-fn start_hb<AH, EH>(
+fn start_hb<AH, EH, E, A, R>(
     ob: &Arc<OneBot<AH, EH>>,
     interval: u32,
     hb_tx: broadcast::Sender<Event>,
 ) -> JoinHandle<()>
 where
-    AH: GetStatus + Send + Sync + 'static,
+    AH: ActionHandler<E, A, R> + Send + Sync + 'static,
     EH: Send + Sync + 'static,
 {
     let hb_tx = Arc::new(hb_tx);

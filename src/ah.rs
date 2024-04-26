@@ -5,8 +5,8 @@ use crate::action::Action;
 use crate::error::WalleResult;
 use crate::event::Event;
 use crate::resp::Resp;
-use crate::structs::{Bot, Selft, Status};
 use crate::util::GetSelf;
+use crate::BotMap;
 use crate::EventHandler;
 use crate::OneBot;
 
@@ -15,7 +15,7 @@ use crate::OneBot;
 /// 对于应用端，ActionHandler 为 OBC
 ///
 /// 对于协议端，ActionHandler 为具体实现
-pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus {
+pub trait ActionHandler<E = Event, A = Action, R = Resp> {
     type Config;
     fn start<AH, EH>(
         &self,
@@ -34,6 +34,7 @@ pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus {
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
+    fn get_bot_map(&self) -> Option<&BotMap<A>>;
     fn before_call_event<AH, EH>(
         &self,
         event: E,
@@ -81,45 +82,6 @@ pub trait ActionHandler<E = Event, A = Action, R = Resp>: GetStatus {
     }
 }
 
-/// supertrait for ActionHandler
-pub trait GetSelfs {
-    fn get_selfs(&self) -> impl Future<Output = Vec<Selft>> + Send;
-    fn get_impl(&self, selft: &Selft) -> impl Future<Output = String> + Send;
-}
-
-impl<T: GetSelfs + Send + Sync> GetSelfs for Arc<T> {
-    async fn get_impl(&self, selft: &Selft) -> String {
-        self.as_ref().get_impl(selft).await
-    }
-    async fn get_selfs(&self) -> Vec<Selft> {
-        self.as_ref().get_selfs().await
-    }
-}
-
-/// supertrait for ActionHandler
-pub trait GetStatus: GetSelfs + Sync {
-    fn is_good(&self) -> impl Future<Output = bool> + Send;
-    fn get_status(&self) -> impl Future<Output = Status> + Send
-    where
-        Self: Sized,
-    {
-        async {
-            Status {
-                good: self.is_good().await,
-                bots: self
-                    .get_selfs()
-                    .await
-                    .into_iter()
-                    .map(|selft| Bot {
-                        selft,
-                        online: true,
-                    })
-                    .collect(),
-            }
-        }
-    }
-}
-
 pub struct JoinedHandler<H0, H1>(pub H0, pub H1);
 
 pub trait AHExt<E, A, R> {
@@ -132,37 +94,6 @@ pub trait AHExt<E, A, R> {
 }
 
 impl<T: ActionHandler<E, A, R>, E, A, R> AHExt<E, A, R> for T {}
-
-impl<H0, H1> GetSelfs for JoinedHandler<H0, H1>
-//todo
-where
-    H0: GetSelfs + Send + Sync,
-    H1: GetSelfs + Send + Sync,
-{
-    async fn get_selfs(&self) -> Vec<crate::structs::Selft> {
-        let mut r = self.0.get_selfs().await;
-        r.extend(self.1.get_selfs().await.into_iter());
-        r
-    }
-    async fn get_impl(&self, selft: &Selft) -> String {
-        if self.0.get_selfs().await.contains(selft) {
-            self.0.get_impl(selft).await
-        } else {
-            self.1.get_impl(selft).await
-        }
-    }
-}
-
-impl<H0, H1> GetStatus for JoinedHandler<H0, H1>
-//todo
-where
-    H0: GetStatus + Send + Sync,
-    H1: GetStatus + Send + Sync,
-{
-    async fn is_good(&self) -> bool {
-        self.0.is_good().await && self.1.is_good().await
-    }
-}
 
 impl<AH0, AH1, E, A, R> ActionHandler<E, A, R> for JoinedHandler<AH0, AH1>
 where
@@ -192,13 +123,14 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        if self.0.get_selfs().await.contains(&action.get_self()) {
+        if ob.contains_bot(&action.get_self()) {
             self.0.call(action, ob).await
-        } else if self.1.get_selfs().await.contains(&action.get_self()) {
-            self.1.call(action, ob).await
         } else {
             Ok(crate::resp::resp_error::who_am_i("").into())
         }
+    }
+    fn get_bot_map(&self) -> Option<&BotMap<A>> {
+        todo!()
     }
     async fn before_call_event<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<E>
     where
