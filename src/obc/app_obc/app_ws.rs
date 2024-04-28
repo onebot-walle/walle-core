@@ -46,6 +46,7 @@ where
             let ob = ob.clone();
             let echo_map = self.echos.clone();
             let mut signal_rx = ob.get_signal_rx()?;
+            let bot_map = self.get_bot_map().clone();
             tasks.push(tokio::spawn(async move {
                 while signal_rx.try_recv().is_err() {
                     let ob = ob.clone();
@@ -58,7 +59,7 @@ where
                         .header_auth_token(&wsc.access_token);
                     match try_connect(&wsc, req).await {
                         Some(ws_stream) => {
-                            ws_loop(ob, ws_stream, echo_map).await;
+                            ws_loop(ob, ws_stream, echo_map, bot_map.clone()).await;
                             warn!(target: crate::WALLE_CORE, "Disconnected from {}", wsc.url);
                         }
                         None => {
@@ -94,6 +95,7 @@ where
             let ob = ob.clone();
             let mut signal_rx = ob.get_signal_rx()?;
             let echo_map = self.echos.clone();
+            let bot_map = self.get_bot_map().clone();
             tasks.push(tokio::spawn(async move {
                 loop {
                     tokio::select! {
@@ -107,7 +109,7 @@ where
                                     .await
                             {
                                 let ob = ob.clone();
-                                tokio::spawn(ws_loop(ob.clone(), ws_stream, echo_map.clone()));
+                                tokio::spawn(ws_loop(ob.clone(), ws_stream, echo_map.clone(), bot_map.clone()));
                             }
                         }
                     }
@@ -122,7 +124,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     ob: Arc<OneBot<AH, EH>>,
     mut ws_stream: WebSocketStream<TcpStream>,
     echo_map: EchoMap<R>,
-    // bot_map: Arc<BotMap<A>>,
+    bot_map: Arc<super::BotMap<A>>,
     // implt: String,
 ) where
     E: ProtocolItem + GetSelf + Clone,
@@ -131,7 +133,7 @@ async fn ws_loop<E, A, R, AH, EH>(
     AH: ActionHandler<E, A, R> + Send + Sync + 'static,
     EH: EventHandler<E, A, R> + Send + Sync + 'static,
 {
-    let (seq, mut action_rx) = ob.action_handler.get_bot_map().unwrap().new_connect();
+    let (seq, mut action_rx) = bot_map.new_connect();
     let mut signal_rx = ob.get_signal_rx().unwrap(); //todo
     let mut implt = None;
     loop {
@@ -151,6 +153,7 @@ async fn ws_loop<E, A, R, AH, EH>(
                         &echo_map,
                         &seq,
                         &mut implt,
+                        &bot_map,
                     ).await {
                         break;
                     },
@@ -162,7 +165,7 @@ async fn ws_loop<E, A, R, AH, EH>(
         }
     }
     ws_stream.send(WsMsg::Close(None)).await.ok();
-    ob.action_handler.get_bot_map().unwrap().connect_closs(&seq);
+    bot_map.connect_closs(&seq);
 }
 
 async fn ws_recv<E, A, R, AH, EH>(
@@ -172,6 +175,7 @@ async fn ws_recv<E, A, R, AH, EH>(
     echo_map: &EchoMap<R>,
     seq: &usize,
     implt: &mut Option<String>,
+    bot_map: &Arc<super::BotMap<A>>,
 ) -> bool
 where
     E: ProtocolItem + Clone + GetSelf,
@@ -211,11 +215,7 @@ where
                 MetaTypes::Connect(c) => *implt = Some(c.version.implt),
                 MetaTypes::StatusUpdate(s) => {
                     if let Some(some_implt) = implt {
-                        ob.action_handler.get_bot_map().unwrap().connect_update(
-                            seq,
-                            s.status.bots,
-                            some_implt,
-                        )
+                        bot_map.connect_update(seq, s.status.bots, some_implt)
                     }
                 }
                 _ => {}

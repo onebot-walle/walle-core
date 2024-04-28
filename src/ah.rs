@@ -5,8 +5,9 @@ use crate::action::Action;
 use crate::error::WalleResult;
 use crate::event::Event;
 use crate::resp::Resp;
+use crate::structs::Selft;
+use crate::structs::Status;
 use crate::util::GetSelf;
-use crate::BotMap;
 use crate::EventHandler;
 use crate::OneBot;
 
@@ -15,7 +16,7 @@ use crate::OneBot;
 /// 对于应用端，ActionHandler 为 OBC
 ///
 /// 对于协议端，ActionHandler 为具体实现
-pub trait ActionHandler<E = Event, A = Action, R = Resp> {
+pub trait ActionHandler<E = Event, A = Action, R = Resp>: GenStatus {
     type Config;
     fn start<AH, EH>(
         &self,
@@ -34,7 +35,6 @@ pub trait ActionHandler<E = Event, A = Action, R = Resp> {
     where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static;
-    fn get_bot_map(&self) -> Option<&BotMap<A>>;
     fn before_call_event<AH, EH>(
         &self,
         event: E,
@@ -82,6 +82,20 @@ pub trait ActionHandler<E = Event, A = Action, R = Resp> {
     }
 }
 
+pub trait GenStatus {
+    fn gen_status(&self) -> Status;
+    fn contains_bot(&self, bot: &Selft) -> bool;
+}
+
+impl<AH: GenStatus, EH> GenStatus for OneBot<AH, EH> {
+    fn gen_status(&self) -> Status {
+        self.action_handler.gen_status()
+    }
+    fn contains_bot(&self, bot: &Selft) -> bool {
+        self.action_handler.contains_bot(bot)
+    }
+}
+
 pub struct JoinedHandler<H0, H1>(pub H0, pub H1);
 
 pub trait AHExt<E, A, R> {
@@ -94,6 +108,24 @@ pub trait AHExt<E, A, R> {
 }
 
 impl<T: ActionHandler<E, A, R>, E, A, R> AHExt<E, A, R> for T {}
+
+impl<AH0, AH1> GenStatus for JoinedHandler<AH0, AH1>
+where
+    AH0: GenStatus,
+    AH1: GenStatus,
+{
+    fn contains_bot(&self, bot: &Selft) -> bool {
+        self.0.contains_bot(bot) || self.1.contains_bot(bot)
+    }
+    fn gen_status(&self) -> Status {
+        let status0 = self.0.gen_status();
+        let status1 = self.1.gen_status();
+        Status {
+            good: status0.good && status1.good,
+            bots: status0.bots.into_iter().chain(status1.bots).collect(),
+        }
+    }
+}
 
 impl<AH0, AH1, E, A, R> ActionHandler<E, A, R> for JoinedHandler<AH0, AH1>
 where
@@ -123,14 +155,13 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        if ob.contains_bot(&action.get_self()) {
+        if self.0.contains_bot(&action.get_self()) {
             self.0.call(action, ob).await
+        } else if self.1.contains_bot(&action.get_self()) {
+            self.1.call(action, ob).await
         } else {
             Ok(crate::resp::resp_error::who_am_i("").into())
         }
-    }
-    fn get_bot_map(&self) -> Option<&BotMap<A>> {
-        self.0.get_bot_map() // 仅使用其中一个的 BotMap
     }
     async fn before_call_event<AH, EH>(&self, event: E, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<E>
     where

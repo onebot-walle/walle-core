@@ -85,7 +85,7 @@ async fn build_hb<AH, EH, E, A, R>(ob: &OneBot<AH, EH>, interval: u32) -> crate:
 where
     AH: ActionHandler<E, A, R> + Send + Sync,
 {
-    let status = ob.get_status();
+    let status = ob.action_handler.gen_status();
     crate::event::Event {
         id: crate::util::new_uuid(),
         time: crate::util::timestamp_nano_f64(),
