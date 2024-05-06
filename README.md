@@ -236,4 +236,4 @@ pub struct Text {
 
 - `"type"` -> `ty`
 - `"impl"` -> `implt`
-- `"selft"` -> `self`
+- `"self"` -> `selft`
