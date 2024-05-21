@@ -83,6 +83,7 @@ impl AppConfig {
 pub struct HttpServer {
     pub host: std::net::IpAddr,
     pub port: u16,
+    pub path: Option<String>,
     pub access_token: Option<String>,
     #[cfg(feature = "impl")]
     pub event_enable: bool,
@@ -95,6 +96,7 @@ impl Default for HttpServer {
         Self {
             host: std::net::IpAddr::from([127, 0, 0, 1]),
             port: 6700,
+            path: None,
             access_token: None,
             #[cfg(feature = "impl")]
             event_enable: true,
@@ -132,6 +134,7 @@ impl Default for HttpClient {
 pub struct WebSocketServer {
     pub host: std::net::IpAddr,
     pub port: u16,
+    pub path: Option<String>,
     pub access_token: Option<String>,
 }
 
@@ -140,6 +143,7 @@ impl Default for WebSocketServer {
         Self {
             host: std::net::IpAddr::from([127, 0, 0, 1]),
             port: 8844,
+            path: None,
             access_token: None,
         }
     }

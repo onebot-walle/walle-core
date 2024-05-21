@@ -69,7 +69,9 @@ where
                 "Starting HTTP server on http://{}", addr
             );
             let access_token = http.access_token.clone();
+            let path = http.path.clone();
             let serv = service_fn(move |req: Request<Body>| {
+                let path = path.clone();
                 let access_token = access_token.clone();
                 let ob = ob_.clone();
                 async move {
@@ -77,7 +79,10 @@ where
                     if req.method() != Method::POST {
                         return Ok::<Response<Body>, Infallible>(empty_error_response(405));
                     }
-                    if req.uri().path() != "/" {
+                    if path
+                        .map(|p| req.uri().path() != p)
+                        .unwrap_or(!["/", ""].contains(&req.uri().path()))
+                    {
                         return Ok(empty_error_response(404));
                     }
                     let content_type = match req

@@ -47,7 +47,6 @@ where
                 target: super::OBC,
                 "Websocket server listening on ws://{}", addr
             );
-            let access_token = wss.access_token.clone();
             let mut shutdown_signal_rx = ob.get_signal_rx()?;
             let event_rx = self.event_tx.subscribe();
             let hb_rx = self.hb_tx.subscribe();
@@ -55,7 +54,7 @@ where
             tasks.push(tokio::spawn(async move {
             loop { tokio::select! {
                     Ok((stream, addr)) = tcp_listener.accept() => {
-                        if let Some((ws_stream, _)) = upgrade_websocket(&access_token, stream).await {
+                        if let Some((ws_stream, _)) = upgrade_websocket(&wss.access_token, &wss.path, stream).await {
                             info!(target: super::OBC, "New websocket connection from {}", addr);
                             tokio::spawn(ws_loop(
                                 ob.clone(),

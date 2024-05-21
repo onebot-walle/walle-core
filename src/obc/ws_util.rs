@@ -66,6 +66,7 @@ pub(crate) async fn try_connect(
 
 pub(crate) async fn upgrade_websocket(
     access_token: &Option<String>,
+    path: &Option<String>,
     stream: TcpStream,
 ) -> Option<(WebSocketStream<TcpStream>, String)> {
     let addr = match stream.peer_addr() {
@@ -80,6 +81,18 @@ pub(crate) async fn upgrade_websocket(
 
     let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
         use crate::obc::check_query;
+
+        if path
+            .as_ref()
+            .map(|p| req.uri().path() != p)
+            .unwrap_or(!["/", ""].contains(&req.uri().path()))
+        {
+            return Err(HttpRespBuilder::new()
+                .status(404)
+                .body(Some("Not Found".to_string()))
+                .unwrap());
+        }
+
         let headers = req.headers();
         if let Some(token) = access_token {
             if let Some(auth) = headers.get("Authorization").and_then(|a| a.to_str().ok()) {

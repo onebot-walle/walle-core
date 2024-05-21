@@ -39,6 +39,7 @@ where
     {
         for webhook in config {
             let echo_map = self.echos.clone();
+            let path = webhook.path.clone();
             let access_token = webhook.access_token.clone();
             let mut signal_rx = ob.get_signal_rx()?;
             let ob = ob.clone();
@@ -50,11 +51,21 @@ where
             let listener = TcpListener::bind(&addr).await.map_err(WalleError::from)?;
             let map = self.get_bot_map().clone();
             let serv = service_fn(move |req: Request<Body>| {
+                let path = path.clone();
                 let access_token = access_token.clone();
                 let ob = ob.clone();
                 let echo_map = echo_map.clone();
                 let map = map.clone();
                 async move {
+                    if path
+                        .map(|p| req.uri().path() != p)
+                        .unwrap_or(!["/", ""].contains(&req.uri().path()))
+                    {
+                        return Ok(Response::builder()
+                            .status(404)
+                            .body("Not Found".into())
+                            .unwrap());
+                    }
                     if let Some(token) = access_token.as_ref() {
                         if let Some(header_token) = req
                             .headers()

@@ -105,7 +105,7 @@ where
                         }
                         Ok((stream, _)) = tcp_listener.accept() => {
                             if let Some((ws_stream, _implt)) =
-                                upgrade_websocket(&wss.access_token, stream)
+                                upgrade_websocket(&wss.access_token, &wss.path, stream)
                                     .await
                             {
                                 let ob = ob.clone();
