@@ -169,9 +169,8 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        self.1
-            .before_call_event(self.0.before_call_event(event, ob).await?, ob)
-            .await
+        let event = self.0.before_call_event(event, ob).await?;
+        self.1.before_call_event(event, ob).await
     }
     async fn after_call_event<AH, EH>(&self, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<()>
     where

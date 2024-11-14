@@ -134,9 +134,8 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        self.1
-            .before_call_action(self.0.before_call_action(action, ob).await?, ob)
-            .await
+        let action = self.0.before_call_action(action, ob).await?;
+        self.1.before_call_action(action, ob).await
     }
     async fn after_call_action<AH, EH>(&self, resp: R, ob: &Arc<OneBot<AH, EH>>) -> WalleResult<R>
     where
@@ -144,9 +143,8 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        self.1
-            .after_call_action(self.0.after_call_action(resp, ob).await?, ob)
-            .await
+        let resp = self.0.after_call_action(resp, ob).await?;
+        self.1.after_call_action(resp, ob).await
     }
     async fn shutdown(&self) {
         self.0.shutdown().await;

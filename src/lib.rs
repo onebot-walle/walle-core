@@ -162,12 +162,8 @@ impl<AH, EH> OneBot<AH, EH> {
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
         E: Send + 'static,
     {
-        self.event_handler
-            .call(
-                self.action_handler.before_call_event(event, self).await?,
-                self,
-            )
-            .await?;
+        let event = self.action_handler.before_call_event(event, self).await?;
+        self.event_handler.call(event, self).await?;
         self.action_handler.after_call_event(self).await
     }
     pub async fn handle_action<E, A, R>(self: &Arc<Self>, action: A) -> WalleResult<R>
@@ -177,16 +173,8 @@ impl<AH, EH> OneBot<AH, EH> {
         A: Send + 'static,
         R: Send + 'static,
     {
-        self.event_handler
-            .after_call_action(
-                self.action_handler
-                    .call(
-                        self.event_handler.before_call_action(action, self).await?,
-                        self,
-                    )
-                    .await?,
-                self,
-            )
-            .await
+        let action = self.event_handler.before_call_action(action, self).await?;
+        let resp = self.action_handler.call(action, self).await?;
+        self.event_handler.after_call_action(resp, self).await
     }
 }
