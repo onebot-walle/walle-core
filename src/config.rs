@@ -85,10 +85,10 @@ pub struct HttpServer {
     pub port: u16,
     pub path: Option<String>,
     pub access_token: Option<String>,
-    #[cfg(feature = "impl")]
-    pub event_enable: bool,
-    #[cfg(feature = "impl")]
-    pub event_buffer_size: usize,
+    // #[cfg(feature = "impl-obc")]
+    // pub event_enable: bool,
+    // #[cfg(feature = "impl-obc")]
+    // pub event_buffer_size: usize,
 }
 
 impl Default for HttpServer {
@@ -98,10 +98,10 @@ impl Default for HttpServer {
             port: 6700,
             path: None,
             access_token: None,
-            #[cfg(feature = "impl")]
-            event_enable: true,
-            #[cfg(feature = "impl")]
-            event_buffer_size: 16,
+            // #[cfg(feature = "impl-obc")]
+            // event_enable: true,
+            // #[cfg(feature = "impl-obc")]
+            // event_buffer_size: 16,
         }
     }
 }

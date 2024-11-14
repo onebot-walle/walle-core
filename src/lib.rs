@@ -18,9 +18,9 @@ pub mod structs;
 pub mod util;
 
 mod ah;
-pub use ah::{ActionHandler, GenStatus};
+pub use ah::{AHExt, ActionHandler, GenStatus};
 mod eh;
-pub use eh::EventHandler;
+pub use eh::{EHExt, EventHandler};
 use tokio::task::JoinHandle;
 
 #[cfg(any(feature = "impl-obc", feature = "app-obc"))]
