@@ -14,6 +14,7 @@ fn flatten(input: Result<TokenStream2>) -> TokenStream2 {
     }
 }
 
+/// CamelCase to snake_case
 fn snake_case(s: String) -> String {
     let mut out = String::default();
     let mut chars = s.chars();
@@ -29,6 +30,7 @@ fn snake_case(s: String) -> String {
     out
 }
 
+/// 关键字转义
 fn escape(s: &mut String) {
     match s.as_str() {
         "ty" => *s = "type".to_string(),
@@ -92,6 +94,18 @@ use action_segment::try_from_msg_segment_internal;
 ob!(TryFromMsgSegment: msg_segment => try_from_msg_segment, try_from_msg_segment_internal, walle_core);
 ob!(_TryFromMsgSegment: msg_segment => _try_from_msg_segment, try_from_msg_segment_internal, crate);
 
+/// From
+/// ```rust
+/// pub a: i32,         // Field
+/// pub b: Option<i32>, // Opetion Field
+/// (i32)               // Unnamed Field
+/// ```
+/// to
+/// ```rust
+/// a: map.remove_downcast("a")
+/// b: map.try_remove_downcast("b")
+/// i32::try_from(map)
+/// ```
 fn fields_from_map(fields: &Fields) -> TokenStream2 {
     match fields {
         Fields::Named(named) => {
