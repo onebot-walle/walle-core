@@ -255,10 +255,13 @@ where
 impl TryFrom<Value> for OneBotBytes {
     type Error = WalleError;
     fn try_from(value: Value) -> Result<Self, Self::Error> {
+        use base64::Engine;
         match value {
             Value::Bytes(v) => Ok(v),
             Value::Str(s) => Ok(OneBotBytes(
-                base64::decode(&s).map_err(|_| WalleError::IllegalBase64(s))?,
+                base64::engine::general_purpose::STANDARD
+                    .decode(&s)
+                    .map_err(|_| WalleError::IllegalBase64(s))?,
             )),
             v => Err(WalleError::ValueTypeNotMatch(
                 "bytes".to_string(),

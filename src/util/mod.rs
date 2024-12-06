@@ -1,7 +1,7 @@
 //! 通用内容
 
-use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 mod bytes;
 mod echo;
@@ -10,6 +10,9 @@ pub mod value;
 pub use bytes::*;
 pub use echo::*;
 pub use value::*;
+
+#[cfg(feature = "http")]
+use hyper::body::Bytes;
 
 /// 返回纳秒单位时间戳
 pub fn timestamp_nano() -> u128 {
@@ -58,10 +61,10 @@ pub trait ProtocolItem:
         rmp_serde::from_slice(v).map_err(|e| e.to_string())
     }
     #[cfg(feature = "http")]
-    fn to_body(self, content_type: &ContentType) -> hyper::Body {
+    fn to_body(self, content_type: &ContentType) -> Bytes {
         match content_type {
-            ContentType::Json => hyper::Body::from(self.json_encode()),
-            ContentType::MsgPack => hyper::Body::from(self.rmp_encode()),
+            ContentType::Json => Bytes::from(self.json_encode()),
+            ContentType::MsgPack => Bytes::from(self.rmp_encode()),
         }
     }
     #[cfg(feature = "websocket")]
@@ -114,9 +117,9 @@ pub(crate) trait AuthReqHeaderExt {
     fn header_auth_token(self, token: &Option<String>) -> Self;
 }
 
-#[cfg(feature = "http")]
+#[cfg(all(feature = "http", not(feature = "websocket")))]
 use hyper::http::{header::AUTHORIZATION, request::Builder};
-#[cfg(all(feature = "websocket", not(feature = "http")))]
+#[cfg(feature = "websocket")]
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, request::Builder};
 
 use crate::{structs::Selft, WalleResult};

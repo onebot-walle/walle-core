@@ -1,12 +1,16 @@
 use std::{convert::Infallible, sync::Arc, time::Duration};
 
+use http_body_util::{BodyExt, Full};
 use hyper::{
-    body::Buf,
-    client::HttpConnector,
+    body::{Buf, Bytes, Incoming},
     header::{AUTHORIZATION, CONTENT_TYPE},
-    server::conn::Http,
     service::service_fn,
-    Body, Client as HyperClient, Method, Request, Response, StatusCode,
+    Method, Request, Response, StatusCode,
+};
+use hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt::{TokioExecutor, TokioIo},
+    server::conn::auto::Builder as ServerAutoBuilder,
 };
 use tokio::{net::TcpListener, task::JoinHandle};
 use tracing::{info, trace, warn};
@@ -21,18 +25,21 @@ use crate::{
 
 use super::ImplOBC;
 
-fn empty_error_response(code: u16) -> Response<Body> {
+type FullBytesResp = Response<Full<Bytes>>;
+type HyperClient = Client<HttpConnector, String>;
+
+fn empty_error_response(code: u16) -> FullBytesResp {
     Response::builder()
         .status(code)
-        .body(Body::empty())
+        .body(Full::default())
         .unwrap()
 }
 
-fn error_response(code: u16, body: &'static str) -> Response<Body> {
+fn error_response(code: u16, body: &'static str) -> FullBytesResp {
     Response::builder().status(code).body(body.into()).unwrap()
 }
 
-fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> Response<Body> {
+fn encode2resp<T: ProtocolItem>(t: T, content_type: &ContentType) -> FullBytesResp {
     match content_type {
         ContentType::Json => Response::builder()
             .header(CONTENT_TYPE, "application/json")
@@ -70,14 +77,14 @@ where
             );
             let access_token = http.access_token.clone();
             let path = http.path.clone();
-            let serv = service_fn(move |req: Request<Body>| {
+            let serv = service_fn(move |req: Request<Incoming>| {
                 let path = path.clone();
                 let access_token = access_token.clone();
                 let ob = ob_.clone();
                 async move {
                     use crate::obc::check_query;
                     if req.method() != Method::POST {
-                        return Ok::<Response<Body>, Infallible>(empty_error_response(405));
+                        return Ok::<_, Infallible>(empty_error_response(405));
                     }
                     if path
                         .map(|p| req.uri().path() != p)
@@ -112,7 +119,7 @@ where
                             return Ok(error_response(403, "Missing Authorization Header"));
                         }
                     }
-                    let data = hyper::body::to_bytes(req).await.unwrap();
+                    let data = req.collect().await.unwrap().to_bytes();
                     let action: Result<Echo<A>, _> = match content_type {
                         ContentType::Json => {
                             ProtocolItem::json_decode(&String::from_utf8(data.to_vec()).unwrap())
@@ -159,10 +166,8 @@ where
                         Ok((tcp_stream, _)) = listener.accept() => {
                             let serv = serv.clone();
                             tokio::spawn(async move {
-                                Http::new()
-                                    .serve_connection(tcp_stream, serv)
-                                    .await
-                                    .unwrap(); //Infallible
+                                let io = TokioIo::new(tcp_stream);
+                                ServerAutoBuilder::new(TokioExecutor::new()).serve_connection(io, serv).await.unwrap();
                             });
                         }
                     }
@@ -185,11 +190,11 @@ where
         AH: ActionHandler<E, A, R> + Send + Sync + 'static,
         EH: EventHandler<E, A, R> + Send + Sync + 'static,
     {
-        let client = Arc::new(HyperClient::new());
         let ob = ob.clone();
         let mut event_rx = self.event_tx.subscribe();
         let mut signal_rx = ob.get_signal_rx()?;
         let r#impl = self.implt.clone();
+        let cli: HyperClient = Client::builder(TokioExecutor::new()).build_http::<String>();
         tasks.push(tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -199,7 +204,7 @@ where
                         event,
                         &r#impl,
                         &config,
-                        &client
+                        &cli
                     ).await
                 }
             }
@@ -213,7 +218,7 @@ async fn webhook_push<E, A, R, AH, EH>(
     event: E,
     r#impl: &str,
     config: &Vec<HttpClient>,
-    client: &Arc<HyperClient<HttpConnector, Body>>,
+    cli: &HyperClient,
 ) where
     E: ProtocolItem,
     A: ProtocolItem,
@@ -230,29 +235,28 @@ async fn webhook_push<E, A, R, AH, EH>(
             .header("X-OneBot-Version", 12.to_string())
             .header("X-Impl", r#impl.to_owned())
             .header_auth_token(&webhook.access_token)
-            .body(date.clone().into())
+            .body(date.clone())
             .unwrap();
         let ob = ob.clone();
-        let client = client.clone();
         let timeout = webhook.timeout;
+        let cli = cli.clone();
         tokio::spawn(async move {
-            let resp = match tokio::time::timeout(Duration::from_secs(timeout), client.request(req))
-                .await
-            {
-                Ok(Ok(r)) => r,
-                Ok(Err(e)) => {
-                    warn!(target: crate::WALLE_CORE, "{}", e);
-                    return;
-                }
-                Err(_) => {
-                    warn!(target: crate::WALLE_CORE, "push event timeout");
-                    return;
-                }
-            };
+            let resp =
+                match tokio::time::timeout(Duration::from_secs(timeout), cli.request(req)).await {
+                    Ok(Ok(r)) => r,
+                    Ok(Err(e)) => {
+                        warn!(target: crate::WALLE_CORE, "{}", e);
+                        return;
+                    }
+                    Err(_) => {
+                        warn!(target: crate::WALLE_CORE, "push event timeout");
+                        return;
+                    }
+                };
             match resp.status() {
                 StatusCode::NO_CONTENT => (),
                 StatusCode::OK => {
-                    let body = hyper::body::aggregate(resp).await.unwrap();
+                    let body = resp.collect().await.unwrap().to_bytes();
                     let actions: Vec<A> = match serde_json::from_reader(body.reader()) {
                         Ok(e) => e,
                         Err(_) => {

@@ -14,9 +14,9 @@ pub use app_obc::*;
 #[cfg(feature = "impl-obc")]
 pub use impl_obc::*;
 
-#[cfg(feature = "http")]
+#[cfg(all(feature = "http", not(feature = "websocket")))]
 use hyper::Uri;
-#[cfg(all(not(feature = "http"), feature = "websocket"))]
+#[cfg(feature = "websocket")]
 use tokio_tungstenite::tungstenite::http::Uri;
 
 fn check_query(uri: &Uri) -> Option<&str> {

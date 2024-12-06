@@ -1,7 +1,7 @@
 use super::OBC;
 use colored::*;
 use tokio::net::TcpStream;
-use tokio_tungstenite::tungstenite::handshake::client::{generate_key, Request, Response};
+use tokio_tungstenite::tungstenite::handshake::client::{generate_key, Request};
 use tokio_tungstenite::tungstenite::http::{
     request::Builder as HttpReqBuilder, response::Builder as HttpRespBuilder, Response as HttpResp,
     Uri,
@@ -79,59 +79,60 @@ pub(crate) async fn upgrade_websocket(
     let mut implt = String::default();
     let ref_implt = &mut implt;
 
-    let callback = |req: &Request, resp: Response| -> Result<Response, HttpResp<Option<String>>> {
-        use crate::obc::check_query;
+    let callback =
+        |req: &Request, resp: HttpResp<()>| -> Result<HttpResp<()>, HttpResp<Option<String>>> {
+            use crate::obc::check_query;
 
-        if path
-            .as_ref()
-            .map(|p| req.uri().path() != p)
-            .unwrap_or(!["/", ""].contains(&req.uri().path()))
-        {
-            return Err(HttpRespBuilder::new()
-                .status(404)
-                .body(Some("Not Found".to_string()))
-                .unwrap());
-        }
-
-        let headers = req.headers();
-        if let Some(token) = access_token {
-            if let Some(auth) = headers.get("Authorization").and_then(|a| a.to_str().ok()) {
-                if auth.strip_prefix("Bearer ") != Some(token) {
-                    return Err(HttpRespBuilder::new()
-                        .status(403)
-                        .body(Some("Authorization Header is invalid".to_string()))
-                        .unwrap());
-                }
-            } else if let Some(auth) = check_query(req.uri()) {
-                if auth != token {
-                    return Err(HttpRespBuilder::new()
-                        .status(403)
-                        .body(Some("Authorization Query is invalid".to_string()))
-                        .unwrap());
-                }
-            } else {
+            if path
+                .as_ref()
+                .map(|p| req.uri().path() != p)
+                .unwrap_or(!["/", ""].contains(&req.uri().path()))
+            {
                 return Err(HttpRespBuilder::new()
-                    .status(403)
-                    .body(Some("Missing Authorization Header".to_string()))
+                    .status(404)
+                    .body(Some("Not Found".to_string()))
                     .unwrap());
             }
-        }
-        if let Some(Some((version, implt))) = headers
-            .get("Sec-WebSocket-Protocol")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| s.split_once('.'))
-        {
-            if version == "12" {
-                *ref_implt = implt.to_owned();
+
+            let headers = req.headers();
+            if let Some(token) = access_token {
+                if let Some(auth) = headers.get("Authorization").and_then(|a| a.to_str().ok()) {
+                    if auth.strip_prefix("Bearer ") != Some(token) {
+                        return Err(HttpRespBuilder::new()
+                            .status(403)
+                            .body(Some("Authorization Header is invalid".to_string()))
+                            .unwrap());
+                    }
+                } else if let Some(auth) = check_query(req.uri()) {
+                    if auth != token {
+                        return Err(HttpRespBuilder::new()
+                            .status(403)
+                            .body(Some("Authorization Query is invalid".to_string()))
+                            .unwrap());
+                    }
+                } else {
+                    return Err(HttpRespBuilder::new()
+                        .status(403)
+                        .body(Some("Missing Authorization Header".to_string()))
+                        .unwrap());
+                }
             }
-        }
-        info!(
-            target: OBC,
-            "Websocket connectted with {}",
-            addr.to_string().blue()
-        );
-        Ok(resp)
-    };
+            if let Some(Some((version, implt))) = headers
+                .get("Sec-WebSocket-Protocol")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.split_once('.'))
+            {
+                if version == "12" {
+                    *ref_implt = implt.to_owned();
+                }
+            }
+            info!(
+                target: OBC,
+                "Websocket connectted with {}",
+                addr.to_string().blue()
+            );
+            Ok(resp)
+        };
 
     match accept_hdr_async(stream, callback).await {
         Ok(s) => {
